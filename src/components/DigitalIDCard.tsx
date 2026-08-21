@@ -46,6 +46,9 @@ export const DigitalIDCard: React.FC<DigitalIDCardProps> = ({
           tabIndex={0}
           style={{ padding: '18px 20px', cursor: 'pointer' }}
         >
+          {/* Holographic Metallic Shimmer Light Sweep */}
+          <div className="id-card-shimmer-sweep" aria-hidden="true" />
+
           {/* Clean Top Row: School Branding Only */}
           <div className="id-card-top-row" style={{ marginBottom: 12 }}>
             <div className="id-card-school" style={{ fontSize: 13.5, fontWeight: 800, letterSpacing: '0.04em' }}>
@@ -109,6 +112,9 @@ export const DigitalIDCard: React.FC<DigitalIDCardProps> = ({
           role="button"
           tabIndex={0}
         >
+          {/* Holographic Metallic Shimmer Light Sweep */}
+          <div className="id-card-shimmer-sweep" aria-hidden="true" />
+
           {/* Back Header */}
           <div className="id-card-top-row" style={{ marginBottom: 8 }}>
             <div className="id-card-school">
