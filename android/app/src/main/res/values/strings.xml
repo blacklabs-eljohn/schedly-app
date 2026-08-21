@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Schedly</string>
+    <string name="title_activity_main">Schedly</string>
+    <string name="package_name">com.cororganizer.app</string>
+    <string name="custom_url_scheme">com.cororganizer.app</string>
+    <string name="widget_up_next_desc">Shows your immediate upcoming class, room, and live countdown</string>
+    <string name="widget_today_schedule_desc">Shows your full timetable list for today</string>
+    <string name="widget_digital_pass_desc">Displays your official Digital Student ID pass on your home screen</string>
+</resources>

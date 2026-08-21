@@ -39,6 +39,7 @@ import { EditIDModal } from './components/EditIDModal';
 import { SplashScreen } from './components/SplashScreen';
 import { triggerLightHaptic, triggerMediumHaptic, triggerSuccessHaptic } from './services/hapticsService';
 import { AuthScreen } from './components/AuthScreen';
+import { syncWidgetsData } from './services/widgetBridge';
 
 import { Camera, ArrowRight, MapPin, User as UserIcon, Sun, Moon, Sparkles, CheckCircle2, Clock, CalendarDays, Edit3, ChevronUp, Code2, Atom, Cpu, BookOpen, GraduationCap } from 'lucide-react';
 import './styles/apple-design-system.css';
@@ -346,6 +347,11 @@ export function App() {
   const todayDayName = (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()]) as DayOfWeek;
   const todayInfo = getDayScheduleInfo(courses, todayDayName || 'Mon');
   const firstName = profile.fullName ? profile.fullName.split(' ')[0] : 'Student';
+
+  // Sync latest schedule, up next, and profile to Android Home Screen Widgets
+  useEffect(() => {
+    syncWidgetsData(courses, profile, todayDayName);
+  }, [courses, profile, todayDayName]);
 
   const today = new Date();
   const dateString = today.toLocaleDateString('en-US', {

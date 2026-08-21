@@ -1,12 +1,12 @@
 {
-  "appId": "com.cororganizer.app",
-  "appName": "COR Organizer",
+  "appId": "com.schedly.app",
+  "appName": "Schedly",
   "webDir": "dist",
   "bundledWebRuntime": false,
   "plugins": {
     "LocalNotifications": {
       "smallIcon": "ic_stat_icon_config_sample",
-      "iconColor": "#007AFF",
+      "iconColor": "#2563EB",
       "sound": "beep.wav"
     }
   }
