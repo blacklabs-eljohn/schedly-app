@@ -295,7 +295,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* Developer Credits (Instagram Link) */}
+      {/* Developer Credits (Hidden Easter Egg Link) */}
       <div className="ios-section-header">Developer & Credits</div>
       <a 
         href="https://www.instagram.com/ethan_sienes/" 
@@ -311,7 +311,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           textDecoration: 'none', 
           color: 'inherit',
           cursor: 'pointer',
-          transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+          transition: 'transform 0.15s ease'
         }}
       >
         <div style={{
@@ -330,21 +330,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
           />
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--ios-text-primary)' }}>Ethan Sienes</span>
             <span className="ios-tag-pill ios-tag-pill-green" style={{ fontSize: 9.5, padding: '1px 6px' }}>Developer</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#E1306C" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-              <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
-              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-              <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
-            </svg>
-            <span style={{ fontSize: 12, color: 'var(--ios-blue)', fontWeight: 700 }}>@ethan_sienes</span>
+          <div style={{ fontSize: 12, color: 'var(--ios-text-secondary)', marginTop: 2 }}>
+            Designed & Built with ❤️ for Students
           </div>
         </div>
-        <ExternalLink size={16} color="var(--ios-text-muted)" style={{ flexShrink: 0 }} />
       </a>
 
       {/* Legal Disclaimer & App Info Footer */}
