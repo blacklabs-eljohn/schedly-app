@@ -361,19 +361,13 @@ export function App() {
       {/* 3-Step Animated Splash Screen */}
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
 
-      {/* Authentication Screen (Rendered if not logged in and not guest mode) */}
-      {!showSplash && !isAuthChecking && !currentUser && !isGuestMode ? (
+      {/* Authentication Screen (Rendered if not logged in) */}
+      {!showSplash && !isAuthChecking && !currentUser ? (
         <AuthScreen 
           onAuthSuccess={(authenticatedUser) => {
             setCurrentUser(authenticatedUser);
             setIsGuestMode(false);
             handleTriggerCloudSync(authenticatedUser.id, authenticatedUser.user_metadata?.full_name, true);
-          }}
-          onContinueGuest={() => {
-            setIsGuestMode(true);
-            setCourses(getStoredCourses('guest'));
-            setProfile(getStoredStudentProfile('guest'));
-            setSettings(getStoredSettings('guest'));
           }}
         />
       ) : (
