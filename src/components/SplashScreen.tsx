@@ -6,31 +6,31 @@ interface SplashScreenProps {
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
-  const [currentSlide, setCurrentSlide] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
-    // Step 2: Slide 2 (Grayscale Campus + Yellow Banner) at 850ms
+    // Step 2: Top layer slides up by 105px to reveal yellow layer (800ms)
     const t1 = setTimeout(() => {
       triggerLightHaptic();
-      setCurrentSlide(2);
-    }, 850);
+      setStep(2);
+    }, 800);
 
-    // Step 3: Slide 3 (Grayscale Campus + Yellow + Blue Developer Banner) at 1800ms
+    // Step 3: Yellow & Top layers slide up further to reveal blue layer (1750ms)
     const t2 = setTimeout(() => {
       triggerLightHaptic();
-      setCurrentSlide(3);
-    }, 1800);
+      setStep(3);
+    }, 1750);
 
-    // Step 4: Fade out exit at 2850ms
+    // Step 4: Fade out exit (2750ms)
     const t3 = setTimeout(() => {
       setIsFadingOut(true);
-    }, 2850);
+    }, 2750);
 
-    // Complete at 3200ms
+    // Complete (3100ms)
     const t4 = setTimeout(() => {
       onComplete();
-    }, 3200);
+    }, 3100);
 
     return () => {
       clearTimeout(t1);
@@ -47,13 +47,25 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
     }, 220);
   };
 
+  // GPU offsets matching the curve proportions
+  const getTopLayerOffset = () => {
+    if (step === 3) return -185; // Reveals yellow (105px) + blue (80px)
+    if (step === 2) return -105; // Reveals yellow (105px)
+    return 0;                    // Covers full screen
+  };
+
+  const getYellowOffset = () => {
+    if (step === 3) return -80;  // Slides up 80px to reveal blue
+    return 0;                    // Sits at bottom
+  };
+
   return (
     <div 
       onClick={handleSkip}
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: '#0F172A',
+        backgroundColor: '#2563EB', // Blue foundation
         zIndex: 99999,
         overflow: 'hidden',
         cursor: 'pointer',
@@ -64,56 +76,89 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         willChange: 'opacity, transform'
       }}
     >
-      {/* Slide 1: S1v.png */}
-      <img 
-        src="/splash-1.png" 
-        alt="Schedly Splash 1" 
+      {/* 1. Base Layer (Blue - Slide 3): Fixed at bottom */}
+      <div 
         style={{
           position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          objectPosition: 'center',
-          opacity: currentSlide === 1 ? 1 : 0,
-          transition: 'opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1)',
-          pointerEvents: 'none'
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 80,
+          backgroundColor: '#2563EB',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          color: '#FFFFFF',
+          fontSize: 16,
+          fontWeight: 800,
+          letterSpacing: '-0.01em',
+          zIndex: 1
         }}
-      />
+      >
+        Developed by Ethan Sienes
+      </div>
 
-      {/* Slide 2: S3vv.png */}
-      <img 
-        src="/splash-2.png" 
-        alt="Schedly Splash 2" 
+      {/* 2. Middle Layer (Yellow - Slide 2 & 3): Slides up to reveal blue */}
+      <div 
         style={{
           position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          objectPosition: 'center',
-          opacity: currentSlide === 2 ? 1 : 0,
-          transition: 'opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1)',
-          pointerEvents: 'none'
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: '#FFEA00',
+          borderBottomLeftRadius: 52,
+          borderBottomRightRadius: 52,
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+          textAlign: 'center',
+          color: '#000000',
+          fontSize: 16.5,
+          fontWeight: 800,
+          letterSpacing: '-0.01em',
+          paddingBottom: 34,
+          zIndex: 2,
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.35)',
+          transform: `translate3d(0, ${getYellowOffset()}px, 0)`,
+          transition: 'transform 0.65s cubic-bezier(0.32, 0.72, 0, 1)',
+          willChange: 'transform'
         }}
-      />
+      >
+        Your Schedule, Simplified
+      </div>
 
-      {/* Slide 3: S3v.png */}
-      <img 
-        src="/splash-3.png" 
-        alt="Schedly Splash 3" 
+      {/* 3. Top Layer (Grayscale Campus + Schedly Graphic): Slides up to reveal yellow */}
+      <div 
         style={{
           position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          objectPosition: 'center',
-          opacity: currentSlide === 3 ? 1 : 0,
-          transition: 'opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1)',
-          pointerEvents: 'none'
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: '#1E293B',
+          borderBottomLeftRadius: 52,
+          borderBottomRightRadius: 52,
+          overflow: 'hidden',
+          zIndex: 3,
+          boxShadow: '0 14px 44px rgba(0, 0, 0, 0.65)',
+          transform: `translate3d(0, ${getTopLayerOffset()}px, 0)`,
+          transition: 'transform 0.65s cubic-bezier(0.32, 0.72, 0, 1)',
+          willChange: 'transform'
         }}
-      />
+      >
+        <img 
+          src="/splash-1.png" 
+          alt="Schedly Splash" 
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center'
+          }}
+        />
+      </div>
     </div>
   );
 };
