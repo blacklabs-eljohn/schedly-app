@@ -296,26 +296,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* Developer Credits */}
       <div className="ios-section-header">Developer & Credits</div>
       <div className="ios-card" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{
-            width: 42,
-            height: 42,
+            width: 48,
+            height: 48,
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #2563EB, #4F46E5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#FFFFFF',
-            fontWeight: 800,
-            fontSize: 15,
+            overflow: 'hidden',
             flexShrink: 0,
-            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
+            border: '2px solid var(--ios-blue)',
+            boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)',
+            background: 'var(--ios-card-border)'
           }}>
-            ES
+            <img 
+              src="/eljohn-sienes.png" 
+              alt="Ethan Sienes" 
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+            />
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontWeight: 800, fontSize: 14.5 }}>Ethan Sienes</span>
+              <span style={{ fontWeight: 800, fontSize: 15 }}>Ethan Sienes</span>
               <span className="ios-tag-pill ios-tag-pill-green" style={{ fontSize: 9.5, padding: '1px 6px' }}>Developer</span>
             </div>
             <div style={{ fontSize: 12, color: 'var(--ios-text-secondary)', marginTop: 2 }}>
