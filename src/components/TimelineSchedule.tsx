@@ -70,22 +70,29 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Timeline hours from 07:00 to 20:00
-  const START_HOUR = 7;
-  const END_HOUR = 20;
+  const dayInfo = getDayScheduleInfo(courses, selectedDay);
+  const conflicts = detectScheduleConflicts(courses).filter(c => c.day === selectedDay);
+  const isToday = selectedDay === todayDayName;
+
+  // Timeline hours from 06:00 to 20:00 (Starts at 6 AM so 7 AM & 7:30 AM classes are never clipped or placed on 8 AM)
+  const minClassHour = dayInfo.courses.length > 0
+    ? Math.min(...dayInfo.courses.map(c => Math.floor(timeToMinutes(c.startTime) / 60)))
+    : 7;
+  const START_HOUR = Math.min(6, Math.max(5, minClassHour - 1));
+  const maxClassHour = dayInfo.courses.length > 0
+    ? Math.max(...dayInfo.courses.map(c => Math.ceil(timeToMinutes(c.endTime) / 60)))
+    : 20;
+  const END_HOUR = Math.max(20, maxClassHour);
   const HOUR_HEIGHT = 68;
+  const GRID_TOP_OFFSET = 20; // Breathing room so top hour labels are never truncated
 
   const hoursList = [];
   for (let h = START_HOUR; h <= END_HOUR; h++) {
     hoursList.push(h);
   }
 
-  const dayInfo = getDayScheduleInfo(courses, selectedDay);
-  const conflicts = detectScheduleConflicts(courses).filter(c => c.day === selectedDay);
-  const isToday = selectedDay === todayDayName;
-
   // Calculate top px for live time line
-  const liveLineTop = ((currentTimeMins - START_HOUR * 60) / 60) * HOUR_HEIGHT;
+  const liveLineTop = GRID_TOP_OFFSET + ((currentTimeMins - START_HOUR * 60) / 60) * HOUR_HEIGHT;
   const isLiveLineVisible = isToday && currentTimeMins >= START_HOUR * 60 && currentTimeMins <= (END_HOUR + 1) * 60;
 
   // Smart Concurrent Event Layout Engine (Google Calendar / Apple Calendar style)
@@ -104,7 +111,7 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
       const endMins = timeToMinutes(c.endTime);
       const startOffsetMins = Math.max(0, startMins - START_HOUR * 60);
       const durationMins = Math.max(35, endMins - startMins);
-      const top = (startOffsetMins / 60) * HOUR_HEIGHT;
+      const top = GRID_TOP_OFFSET + (startOffsetMins / 60) * HOUR_HEIGHT;
       const height = (durationMins / 60) * HOUR_HEIGHT;
       return {
         course: c,
@@ -406,11 +413,11 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
               Timeline Grid ({dayCourses.length} {dayCourses.length === 1 ? 'Class' : 'Classes'})
             </div>
             <span style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <CalendarIcon size={12} /> 7:00 AM – 8:00 PM
+              <CalendarIcon size={12} /> {START_HOUR === 12 ? '12 PM' : START_HOUR > 12 ? `${START_HOUR - 12}:00 PM` : `${START_HOUR}:00 AM`} – {END_HOUR === 12 ? '12 PM' : END_HOUR > 12 ? `${END_HOUR - 12}:00 PM` : `${END_HOUR}:00 AM`}
             </span>
           </div>
 
-          <div className="timeline-grid-wrapper" style={{ height: `${(END_HOUR - START_HOUR + 1) * HOUR_HEIGHT}px` }}>
+          <div className="timeline-grid-wrapper" style={{ height: `${GRID_TOP_OFFSET + (END_HOUR - START_HOUR + 1) * HOUR_HEIGHT + 20}px` }}>
             {/* Live Current Time Line */}
             {isLiveLineVisible && (
               <div className="timeline-now-line" style={{ top: `${liveLineTop}px` }}>
@@ -422,7 +429,7 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
             {hoursList.map((h, idx) => {
               const timeLabel = h === 12 ? '12 PM' : h > 12 ? `${h - 12} PM` : `${h} AM`;
               return (
-                <div key={h} className="timeline-hour-slot" style={{ top: `${idx * HOUR_HEIGHT}px` }}>
+                <div key={h} className="timeline-hour-slot" style={{ top: `${GRID_TOP_OFFSET + idx * HOUR_HEIGHT}px` }}>
                   <span className="timeline-hour-text">{timeLabel}</span>
                 </div>
               );
