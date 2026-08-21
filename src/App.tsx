@@ -11,7 +11,7 @@ import {
   resetScheduleData,
   createBlankProfile
 } from './services/storageService';
-import { detectScheduleConflicts, getDayScheduleInfo, formatTime12H, timeToMinutes } from './services/scheduleEngine';
+import { detectScheduleConflicts, getDayScheduleInfo, formatTime12H, timeToMinutes, getSubjectCardGradient } from './services/scheduleEngine';
 import { scheduleClassReminders, showSystemToast, triggerTestClassNotification } from './services/notificationService';
 import { onAuthStateChange, getCurrentUser, signOutUser } from './services/authService';
 import { 
@@ -504,11 +504,7 @@ export function App() {
                             const isLive = nowMins >= startMins && nowMins <= endMins;
                             const isLab = course.courseCode?.toLowerCase().includes('lab') || course.courseName?.toLowerCase().includes('lab');
                             const isExpanded = selectedCourse?.id === course.id;
-                            const customBg = course.color 
-                              ? (course.color.startsWith('#') || course.color.startsWith('rgb') 
-                                  ? course.color 
-                                  : VIBRANT_PALETTES[idx % VIBRANT_PALETTES.length])
-                              : VIBRANT_PALETTES[idx % VIBRANT_PALETTES.length];
+                            const customBg = getSubjectCardGradient(idx, todayInfo.courses.length, settings.subjectCardTheme || 'blue-cascade');
 
                             const cleanInstructor = course.instructor 
                               ? course.instructor.startsWith('Prof.') ? course.instructor : `Prof. ${course.instructor}`
@@ -664,6 +660,7 @@ export function App() {
                     onAddCourse={handleAddCourse}
                     onToggleTheme={handleToggleTheme}
                     theme={theme}
+                    subjectCardTheme={settings.subjectCardTheme || 'blue-cascade'}
                   />
                 </main>
               )}

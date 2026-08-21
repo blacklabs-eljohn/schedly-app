@@ -68,11 +68,14 @@ export interface ActiveClassState {
   statusText: string;
 }
 
+export type SubjectCardTheme = 'blue-cascade' | 'dual-tone' | 'rainbow';
+
 export interface NotificationSettings {
   remindersEnabled: boolean;
   reminderMinutes: number; // e.g. 30
   soundEnabled: boolean;
   appearanceMode: 'system' | 'light' | 'dark';
+  subjectCardTheme?: SubjectCardTheme;
 }
 
 export interface CORScanResult {

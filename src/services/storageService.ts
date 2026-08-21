@@ -8,7 +8,8 @@ export const DEFAULT_SETTINGS: NotificationSettings = {
   remindersEnabled: true,
   reminderMinutes: 30,
   soundEnabled: true,
-  appearanceMode: 'light'
+  appearanceMode: 'light',
+  subjectCardTheme: 'blue-cascade'
 };
 
 const DEFAULT_AVATAR = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%232563EB"/><stop offset="100%" stop-color="%2360A5FA"/></linearGradient></defs><rect width="120" height="120" rx="20" fill="url(%23g)"/><circle cx="60" cy="45" r="22" fill="%23FFFFFF"/><path d="M25 102c0-20 16-32 35-32s35 12 35 32" fill="%23FFFFFF"/></svg>`;

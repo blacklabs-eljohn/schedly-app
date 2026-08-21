@@ -218,3 +218,47 @@ export function getActiveClassState(courses: Course[], refDate = new Date()): Ac
     statusText: 'No scheduled classes'
   };
 }
+
+/**
+ * Returns a cohesive background gradient for subject cards based on the selected theme
+ */
+export function getSubjectCardGradient(
+  index: number,
+  total: number = 5,
+  theme: 'blue-cascade' | 'dual-tone' | 'rainbow' = 'blue-cascade'
+): string {
+  if (theme === 'dual-tone') {
+    // 2-Tone Alternating: Schedly Electric Blue & Deep Midnight Slate
+    return index % 2 === 0
+      ? 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)' // Vibrant Electric Royal Blue
+      : 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)'; // Deep Midnight Slate
+  }
+
+  if (theme === 'rainbow') {
+    const rainbowPalettes = [
+      'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)', // Electric Indigo
+      'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', // Ocean Blue
+      'linear-gradient(135deg, #10B981 0%, #059669 100%)', // Emerald Green
+      'linear-gradient(135deg, #F43F5E 0%, #E11D48 100%)', // Sunset Rose
+      'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)', // Royal Purple
+      'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', // Amber Gold
+      'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)', // Cyber Teal
+      'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)'  // Neon Pink
+    ];
+    return rainbowPalettes[index % rainbowPalettes.length];
+  }
+
+  // 'blue-cascade' (Default - Tonal Monochromatic Blue Cascade matching attached design)
+  const cascadeGradients = [
+    'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', // Light/Medium Royal Blue (Top of stack)
+    'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', // Royal Blue
+    'linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%)', // Cobalt Blue
+    'linear-gradient(135deg, #1E40AF 0%, #172554 100%)', // Deep Navy
+    'linear-gradient(135deg, #1E3A8A 0%, #0F172A 100%)', // Midnight Indigo
+    'linear-gradient(135deg, #0F172A 0%, #090D16 100%)'  // Obsidian Navy (Bottom of stack)
+  ];
+
+  if (total <= 1) return cascadeGradients[1];
+  const step = Math.min(index, cascadeGradients.length - 1);
+  return cascadeGradients[step];
+}

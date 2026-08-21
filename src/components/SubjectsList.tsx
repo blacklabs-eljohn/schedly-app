@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Course, ScheduleConflict } from '../types';
-import { formatTime12H, timeToMinutes, formatDuration } from '../services/scheduleEngine';
+import { Course, ScheduleConflict, SubjectCardTheme } from '../types';
+import { formatTime12H, timeToMinutes, formatDuration, getSubjectCardGradient } from '../services/scheduleEngine';
 import { 
   MapPin, 
   User, 
@@ -32,6 +32,7 @@ interface SubjectsListProps {
   onAddCourse?: (newCourse: Course) => void;
   onToggleTheme?: () => void;
   theme?: 'light' | 'dark';
+  subjectCardTheme?: SubjectCardTheme;
 }
 
 type FilterType = 'all' | 'lecture' | 'lab' | 'conflicts';
@@ -107,7 +108,10 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
   onSelectCourse,
   onUpdateCourse,
   onDeleteCourse,
-  onAddCourse
+  onAddCourse,
+  onToggleTheme,
+  theme,
+  subjectCardTheme
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -282,11 +286,7 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
             const isConflicting = conflicts.some(c => c.course1.id === course.id || c.course2.id === course.id);
             const durationMins = timeToMinutes(course.endTime) - timeToMinutes(course.startTime);
             const formattedDuration = formatDuration(Math.max(durationMins, 0));
-            const customBg = course.color 
-              ? (course.color.startsWith('#') || course.color.startsWith('rgb') 
-                  ? `linear-gradient(135deg, ${course.color} 0%, ${course.color} 100%)` 
-                  : course.color)
-              : VIBRANT_PALETTES[idx % VIBRANT_PALETTES.length];
+            const customBg = getSubjectCardGradient(idx, filteredCourses.length, subjectCardTheme || 'blue-cascade');
             const cleanDays = formatCleanDays(course.days);
             const cleanInstructor = course.instructor 
               ? course.instructor.startsWith('Prof.') ? course.instructor : `Prof. ${course.instructor}`

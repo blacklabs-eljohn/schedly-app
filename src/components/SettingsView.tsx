@@ -1,7 +1,8 @@
 import React from 'react';
-import { NotificationSettings } from '../types';
+import { NotificationSettings, SubjectCardTheme } from '../types';
 import { 
   Bell, 
+  Palette, 
   Camera, 
   RotateCcw, 
   Volume2, 
@@ -216,6 +217,146 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </button>
           </div>
         )}
+      </div>
+
+      {/* Subject Card Aesthetic Style Group */}
+      <div className="ios-section-header">Subject Cards Theme</div>
+      <div className="ios-card" style={{ padding: '14px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: 'var(--ios-blue-light)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--ios-blue)',
+            flexShrink: 0
+          }}>
+            <Palette size={18} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14.5 }}>Card Stack Aesthetics</div>
+            <div style={{ fontSize: 12, color: 'var(--ios-text-muted)', marginTop: 1 }}>Choose your subject palette style</div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Option 1: Blue Cascade (Reference Style) */}
+          <div 
+            onClick={() => {
+              triggerLightHaptic();
+              onUpdateSettings({ ...settings, subjectCardTheme: 'blue-cascade' });
+            }}
+            role="button"
+            tabIndex={0}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 14px',
+              borderRadius: 14,
+              border: `1.5px solid ${(settings.subjectCardTheme || 'blue-cascade') === 'blue-cascade' ? 'var(--ios-blue)' : 'var(--ios-card-border)'}`,
+              background: (settings.subjectCardTheme || 'blue-cascade') === 'blue-cascade' ? 'var(--ios-blue-light)' : 'var(--ios-bg-secondary)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13.5, color: (settings.subjectCardTheme || 'blue-cascade') === 'blue-cascade' ? 'var(--ios-blue)' : 'var(--ios-text-primary)' }}>
+                🌊 Brand Blue Cascade
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 2 }}>
+                Tonal gradient cascade (Editorial & Clean)
+              </div>
+            </div>
+
+            {/* Visual Color Pill Preview */}
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#60A5FA' }} />
+              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#2563EB' }} />
+              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#1E3A8A' }} />
+              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#0F172A' }} />
+            </div>
+          </div>
+
+          {/* Option 2: 2-Tone Alternating */}
+          <div 
+            onClick={() => {
+              triggerLightHaptic();
+              onUpdateSettings({ ...settings, subjectCardTheme: 'dual-tone' });
+            }}
+            role="button"
+            tabIndex={0}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 14px',
+              borderRadius: 14,
+              border: `1.5px solid ${settings.subjectCardTheme === 'dual-tone' ? 'var(--ios-blue)' : 'var(--ios-card-border)'}`,
+              background: settings.subjectCardTheme === 'dual-tone' ? 'var(--ios-blue-light)' : 'var(--ios-bg-secondary)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13.5, color: settings.subjectCardTheme === 'dual-tone' ? 'var(--ios-blue)' : 'var(--ios-text-primary)' }}>
+                🌗 2-Tone Cobalt & Slate
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 2 }}>
+                Alternating royal blue & midnight cards
+              </div>
+            </div>
+
+            {/* Visual Color Pill Preview */}
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#2563EB' }} />
+              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#0F172A' }} />
+              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#2563EB' }} />
+              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#0F172A' }} />
+            </div>
+          </div>
+
+          {/* Option 3: Rainbow Spectrum */}
+          <div 
+            onClick={() => {
+              triggerLightHaptic();
+              onUpdateSettings({ ...settings, subjectCardTheme: 'rainbow' });
+            }}
+            role="button"
+            tabIndex={0}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 14px',
+              borderRadius: 14,
+              border: `1.5px solid ${settings.subjectCardTheme === 'rainbow' ? 'var(--ios-blue)' : 'var(--ios-card-border)'}`,
+              background: settings.subjectCardTheme === 'rainbow' ? 'var(--ios-blue-light)' : 'var(--ios-bg-secondary)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13.5, color: settings.subjectCardTheme === 'rainbow' ? 'var(--ios-blue)' : 'var(--ios-text-primary)' }}>
+                🎨 Multicolor Spectrum
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 2 }}>
+                Vibrant multi-colored rainbow cards
+              </div>
+            </div>
+
+            {/* Visual Color Pill Preview */}
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#6366F1' }} />
+              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#10B981' }} />
+              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#F43F5E' }} />
+              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#F59E0B' }} />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* COR Management Group */}
