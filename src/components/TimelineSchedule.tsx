@@ -209,7 +209,7 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
   };
 
   return (
-    <div className="ios-section" style={{ paddingBottom: 110, paddingTop: 4 }}>
+    <div className="ios-section" style={{ paddingBottom: 90, paddingTop: 4 }}>
       {/* App Bar Header: Left Title "Schedule", Right Toggle Switch [List | Grid] */}
       <div className="schedule-top-bar">
         <h1 className="schedule-title-left">

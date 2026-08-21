@@ -104,28 +104,35 @@
   font-family: var(--ios-font-family);
 }
 
-body {
+html, body {
   background-color: var(--ios-bg-primary);
   color: var(--ios-text-primary);
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  margin: 0;
+  padding: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 
 #root {
   width: 100%;
   max-width: 480px;
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--ios-bg-primary);
   position: relative;
   box-shadow: var(--ios-shadow-lg);
   display: flex;
   flex-direction: column;
-  padding-bottom: 110px;
+  margin: 0 auto;
 }
 
 main {

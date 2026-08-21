@@ -462,7 +462,7 @@ export function App() {
 
                   {/* Today's Classes List (Stacked Cards) */}
                   {courses.length > 0 && (
-                    <div className="ios-section" style={{ paddingBottom: 110, paddingTop: 6 }}>
+                    <div className="ios-section" style={{ paddingBottom: 90, paddingTop: 6 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                         <div className="ios-section-header" style={{ margin: 0 }}>
                           Classes Today ({todayInfo.courses.length})

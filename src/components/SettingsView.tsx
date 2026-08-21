@@ -50,7 +50,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   return (
-    <div className="ios-section" style={{ paddingBottom: 110, paddingTop: 4 }}>
+    <div className="ios-section" style={{ paddingBottom: 90, paddingTop: 4 }}>
       {/* Top Header Bar: Left Title "Settings", Right Schedly Logo */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h1 className="subjects-title">Settings</h1>

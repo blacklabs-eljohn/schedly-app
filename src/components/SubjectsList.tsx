@@ -165,7 +165,7 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
   };
 
   return (
-    <div className="ios-section" style={{ paddingBottom: 120, paddingTop: 4 }}>
+    <div className="ios-section" style={{ paddingBottom: 90, paddingTop: 4 }}>
       {/* Minimal Top Header Bar: "Subjects" + Subtitle + Circular [+] Button */}
       <div className="subjects-top-bar" style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', minWidth: 0 }}>
