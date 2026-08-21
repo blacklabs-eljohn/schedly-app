@@ -12,7 +12,7 @@ import {
   createBlankProfile
 } from './services/storageService';
 import { detectScheduleConflicts, getDayScheduleInfo, formatTime12H, timeToMinutes } from './services/scheduleEngine';
-import { scheduleClassReminders, showSystemToast } from './services/notificationService';
+import { scheduleClassReminders, showSystemToast, triggerTestClassNotification } from './services/notificationService';
 import { onAuthStateChange, getCurrentUser, signOutUser } from './services/authService';
 import { 
   pullCloudData, 
@@ -334,8 +334,8 @@ export function App() {
     showSystemToast('Signed Out', 'You have been logged out.');
   };
 
-  const handleTestNotification = () => {
-    showSystemToast('Upcoming Class Alert', 'CS 101 starts in 30 minutes. Room 204 · 8:00 AM');
+  const handleTestNotification = async () => {
+    await triggerTestClassNotification(settings.reminderMinutes || 15);
   };
 
   const handleViewInTimetable = (day: string) => {
@@ -352,6 +352,11 @@ export function App() {
   useEffect(() => {
     syncWidgetsData(courses, profile, todayDayName);
   }, [courses, profile, todayDayName]);
+
+  // Automatically maintain scheduled local push notifications for all classes
+  useEffect(() => {
+    scheduleClassReminders(courses, settings);
+  }, [courses, settings]);
 
   const today = new Date();
   const dateString = today.toLocaleDateString('en-US', {
