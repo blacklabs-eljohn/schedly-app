@@ -1,0 +1,32 @@
+{
+  "short_name": "Schedly",
+  "name": "Schedly - Student Schedule & Digital ID",
+  "description": "Smart student timetable, schedule conflict engine, and digital student pass",
+  "icons": [
+    {
+      "src": "/schedly-icon.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/schedly-icon.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/schedly-logo.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#F8FAFC",
+  "theme_color": "#2563EB",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["education", "productivity", "utilities"]
+}
