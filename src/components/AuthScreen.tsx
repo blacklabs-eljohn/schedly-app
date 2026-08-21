@@ -16,11 +16,16 @@ import {
   Eye, 
   EyeOff, 
   Sparkles,
-  Zap
+  Zap,
+  LogIn,
+  UserPlus,
+  KeyRound,
+  ShieldCheck
 } from 'lucide-react';
+import { triggerSelectionHaptic, triggerLightHaptic, triggerSuccessHaptic } from '../services/hapticsService';
 import { showSystemToast } from '../services/notificationService';
 
-type AuthViewMode = 'welcome' | 'signin' | 'signup' | 'forgot_password';
+type AuthMode = 'signin' | 'signup' | 'forgot_password';
 
 interface AuthScreenProps {
   onAuthSuccess: (user: any) => void;
@@ -28,7 +33,7 @@ interface AuthScreenProps {
 }
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess, onContinueGuest }) => {
-  const [viewMode, setViewMode] = useState<AuthViewMode>('welcome');
+  const [authMode, setAuthMode] = useState<AuthMode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -39,7 +44,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess, onContinu
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const resetForm = () => {
+  const switchMode = (mode: AuthMode) => {
+    triggerSelectionHaptic();
+    setAuthMode(mode);
     setErrorMessage(null);
     setSuccessMessage(null);
   };
@@ -63,6 +70,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess, onContinu
     }
 
     if (res.user) {
+      triggerSuccessHaptic();
       showSystemToast('Welcome Back!', 'Logged in to Schedly.');
       onAuthSuccess(res.user);
     }
@@ -97,6 +105,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess, onContinu
     }
 
     if (res.user) {
+      triggerSuccessHaptic();
       showSystemToast('Account Created!', 'Welcome to Schedly.');
       onAuthSuccess(res.user);
     }
@@ -105,7 +114,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess, onContinu
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
-      setErrorMessage('Please enter your account email.');
+      setErrorMessage('Please enter your account email address.');
       return;
     }
 
@@ -118,11 +127,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess, onContinu
     if (res.error) {
       setErrorMessage(res.error.message);
     } else {
-      setSuccessMessage('Password reset link sent! Check your inbox.');
+      triggerSuccessHaptic();
+      setSuccessMessage('Password reset link sent! Please check your inbox.');
     }
   };
 
   const handleGoogleAuth = async () => {
+    triggerLightHaptic();
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -130,121 +141,160 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess, onContinu
     setIsLoading(false);
 
     if (res.error) {
-      setErrorMessage(res.error.message || 'Google Sign In is not enabled on this Supabase project.');
+      setErrorMessage(res.error.message || 'Google Sign In is not configured on this Supabase project.');
     }
   };
 
   return (
-    <div 
-      style={{
-        minHeight: '100vh',
-        width: '100%',
-        maxWidth: 480,
-        margin: '0 auto',
-        backgroundColor: 'var(--ios-bg-primary)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '24px 20px',
-        position: 'relative'
-      }}
-    >
+    <div className="auth-wrapper">
       {/* Brand Header */}
-      <div style={{ textAlign: 'center', marginBottom: 24 }}>
-        <div 
-          style={{
-            width: 72,
-            height: 72,
-            borderRadius: 18,
-            overflow: 'hidden',
-            margin: '0 auto 14px auto',
-            boxShadow: '0 8px 24px rgba(37, 99, 235, 0.25)'
-          }}
-        >
+      <div className="auth-header">
+        <div className="auth-logo-glow">
           <img 
-            src="/schedly-icon.png" 
-            alt="Schedly" 
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+            src="/schedly-logo.png" 
+            alt="Schedly Logo" 
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
           />
         </div>
 
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--ios-blue-light)', padding: '2px 8px', borderRadius: 6, marginBottom: 6 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--ios-blue)', letterSpacing: '0.04em' }}>SCHEDLY CLOUD</span>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--ios-blue-light)', padding: '3px 9px', borderRadius: 999, marginBottom: 8 }}>
+          <ShieldCheck size={12} color="var(--ios-blue)" />
+          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--ios-blue)', letterSpacing: '0.04em' }}>
+            SCHEDLY CLOUD
+          </span>
         </div>
 
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--ios-text-primary)', letterSpacing: '-0.02em', margin: 0 }}>
-          {viewMode === 'welcome' && 'Welcome to Schedly'}
-          {viewMode === 'signin' && 'Sign In to Schedly'}
-          {viewMode === 'signup' && 'Create Account'}
-          {viewMode === 'forgot_password' && 'Reset Password'}
+        <h1 className="auth-title">
+          {authMode === 'signin' && 'Welcome Back'}
+          {authMode === 'signup' && 'Create Your Pass'}
+          {authMode === 'forgot_password' && 'Reset Password'}
         </h1>
 
-        <p style={{ fontSize: 13.5, color: 'var(--ios-text-muted)', marginTop: 4 }}>
-          {viewMode === 'welcome' && 'Your student life, organized.'}
-          {viewMode === 'signin' && 'Access your synchronized schedule & digital pass'}
-          {viewMode === 'signup' && 'Instant access · Cloud sync across Android and Web'}
-          {viewMode === 'forgot_password' && "We'll send a password recovery link to your inbox"}
+        <p className="auth-subtitle">
+          {authMode === 'signin' && 'Sign in to access your timetable and digital pass'}
+          {authMode === 'signup' && 'Instant cloud sync across your devices'}
+          {authMode === 'forgot_password' && 'Enter your email to receive recovery instructions'}
         </p>
       </div>
 
-      {/* Alert Messages */}
-      {errorMessage && (
-        <div className="ios-conflict-alert" style={{ marginBottom: 16 }}>
-          <AlertCircle size={16} className="ios-conflict-icon" />
-          <div style={{ fontSize: 12.5, color: 'var(--ios-red)', fontWeight: 600 }}>
-            {errorMessage}
-          </div>
+      {/* Segmented Switcher for Sign In & Create Account */}
+      {authMode !== 'forgot_password' && (
+        <div className="auth-segmented-tabs">
+          <button 
+            type="button"
+            className={`auth-tab-btn ${authMode === 'signin' ? 'active' : ''}`}
+            onClick={() => switchMode('signin')}
+          >
+            <LogIn size={14} /> Sign In
+          </button>
+          <button 
+            type="button"
+            className={`auth-tab-btn ${authMode === 'signup' ? 'active' : ''}`}
+            onClick={() => switchMode('signup')}
+          >
+            <UserPlus size={14} /> Create Account
+          </button>
         </div>
       )}
 
-      {successMessage && (
-        <div style={{ background: 'var(--ios-green-light)', border: '1px solid var(--ios-green)', borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <CheckCircle2 size={16} color="var(--ios-green)" />
-          <div style={{ fontSize: 12.5, color: 'var(--ios-green)', fontWeight: 700 }}>
-            {successMessage}
+      {/* Form Card */}
+      <div className="auth-card">
+        {/* Error Notification */}
+        {errorMessage && (
+          <div className="ios-conflict-alert" style={{ marginBottom: 14 }}>
+            <AlertCircle size={15} className="ios-conflict-icon" />
+            <div style={{ fontSize: 12.5, color: 'var(--ios-red)', fontWeight: 600, lineHeight: 1.3 }}>
+              {errorMessage}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* VIEW 1: WELCOME SCREEN */}
-      {viewMode === 'welcome' && (
-        <div className="ios-card" style={{ padding: '24px 20px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Success Notification */}
+        {successMessage && (
+          <div style={{ background: 'var(--ios-green-light)', border: '1px solid var(--ios-green)', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <CheckCircle2 size={16} color="var(--ios-green)" style={{ flexShrink: 0 }} />
+            <div style={{ fontSize: 12.5, color: 'var(--ios-green)', fontWeight: 700 }}>
+              {successMessage}
+            </div>
+          </div>
+        )}
+
+        {/* 1. SIGN IN FORM */}
+        {authMode === 'signin' && (
+          <form onSubmit={handleSignIn} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="ios-input-group" style={{ margin: 0 }}>
+              <label className="ios-input-label">Email Address</label>
+              <div className="auth-input-row">
+                <Mail size={16} className="auth-input-icon-left" />
+                <input 
+                  type="email"
+                  required
+                  className="auth-input-field"
+                  placeholder="student@nemsu.edu.ph"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
+              </div>
+            </div>
+
+            <div className="ios-input-group" style={{ margin: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                <label className="ios-input-label" style={{ margin: 0 }}>Password</label>
+                <button 
+                  type="button"
+                  onClick={() => switchMode('forgot_password')}
+                  style={{ background: 'none', border: 'none', color: 'var(--ios-blue)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                >
+                  Forgot password?
+                </button>
+              </div>
+
+              <div className="auth-input-row">
+                <Lock size={16} className="auth-input-icon-left" />
+                <input 
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  className="auth-input-field"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+                <button 
+                  type="button"
+                  className="auth-input-icon-right"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
             <button 
-              type="button"
+              type="submit"
               className="ios-btn-primary"
-              onClick={() => {
-                resetForm();
-                setViewMode('signup');
-              }}
+              disabled={isLoading}
+              style={{ marginTop: 4 }}
             >
-              <Sparkles size={16} /> Create Free Account
+              {isLoading ? <Loader2 size={16} className="animate-spin" /> : 'Sign In'}
             </button>
 
-            <button 
-              type="button"
-              className="ios-btn-secondary"
-              onClick={() => {
-                resetForm();
-                setViewMode('signin');
-              }}
-            >
-              Sign In with Email <ArrowRight size={15} />
-            </button>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '6px 0' }}>
-              <div style={{ flex: 1, height: 1, backgroundColor: 'var(--ios-divider)' }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ios-text-muted)' }}>OR</span>
-              <div style={{ flex: 1, height: 1, backgroundColor: 'var(--ios-divider)' }} />
+            {/* Social Divider */}
+            <div className="auth-social-divider">
+              <div className="line" />
+              <span>OR</span>
+              <div className="line" />
             </div>
 
             <button 
               type="button"
-              className="ios-btn-secondary"
+              className="auth-google-btn"
               onClick={handleGoogleAuth}
               disabled={isLoading}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24">
+              <svg width="18" height="18" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
@@ -252,225 +302,119 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess, onContinu
               </svg>
               <span>Continue with Google</span>
             </button>
+          </form>
+        )}
 
-            {onContinueGuest && (
-              <button 
-                type="button"
-                className="ios-btn-secondary"
-                onClick={onContinueGuest}
-                style={{ marginTop: 4, background: 'transparent', border: '1px dashed var(--ios-card-border)', color: 'var(--ios-text-muted)', fontSize: 12.5 }}
-              >
-                <Zap size={14} /> Continue as Guest (Offline Mode)
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* VIEW 2: SIGN IN SCREEN */}
-      {viewMode === 'signin' && (
-        <form onSubmit={handleSignIn} className="ios-card" style={{ padding: '24px 20px' }}>
-          <div className="ios-input-group">
-            <label className="ios-input-label">Email Address</label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type="email"
-                required
-                className="ios-input"
-                placeholder="student@nemsu.edu.ph"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                style={{ paddingLeft: 36 }}
-              />
-              <Mail size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ios-text-muted)' }} />
+        {/* 2. SIGN UP FORM */}
+        {authMode === 'signup' && (
+          <form onSubmit={handleSignUp} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="ios-input-group" style={{ margin: 0 }}>
+              <label className="ios-input-label">Full Name</label>
+              <div className="auth-input-row">
+                <UserIcon size={16} className="auth-input-icon-left" />
+                <input 
+                  type="text"
+                  required
+                  className="auth-input-field"
+                  placeholder="e.g. Ethan Rivera"
+                  value={fullName}
+                  onChange={e => setFullName(e.target.value)}
+                  autoComplete="name"
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="ios-input-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label className="ios-input-label">Password</label>
-              <button 
-                type="button"
-                onClick={() => {
-                  resetForm();
-                  setViewMode('forgot_password');
-                }}
-                style={{ background: 'none', border: 'none', color: 'var(--ios-blue)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', padding: 0 }}
-              >
-                Forgot password?
-              </button>
+            <div className="ios-input-group" style={{ margin: 0 }}>
+              <label className="ios-input-label">Email Address</label>
+              <div className="auth-input-row">
+                <Mail size={16} className="auth-input-icon-left" />
+                <input 
+                  type="email"
+                  required
+                  className="auth-input-field"
+                  placeholder="student@nemsu.edu.ph"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
+              </div>
             </div>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type={showPassword ? 'text' : 'password'}
-                required
-                className="ios-input"
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                style={{ paddingLeft: 36, paddingRight: 36 }}
-              />
-              <Lock size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ios-text-muted)' }} />
-              <button 
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--ios-text-muted)', cursor: 'pointer' }}
-              >
-                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-              </button>
-            </div>
-          </div>
 
-          <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="ios-input-group" style={{ margin: 0 }}>
+              <label className="ios-input-label">Password (min 6 chars)</label>
+              <div className="auth-input-row">
+                <Lock size={16} className="auth-input-icon-left" />
+                <input 
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  className="auth-input-field"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                />
+                <button 
+                  type="button"
+                  className="auth-input-icon-right"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="ios-input-group" style={{ margin: 0 }}>
+              <label className="ios-input-label">Confirm Password</label>
+              <div className="auth-input-row">
+                <Lock size={16} className="auth-input-icon-left" />
+                <input 
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  className="auth-input-field"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
+
             <button 
               type="submit"
               className="ios-btn-primary"
               disabled={isLoading}
-            >
-              {isLoading ? <Loader2 size={16} className="animate-spin" /> : 'Sign In'}
-            </button>
-
-            <div style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--ios-text-muted)', marginTop: 4 }}>
-              Don't have an account?{' '}
-              <button 
-                type="button"
-                onClick={() => {
-                  resetForm();
-                  setViewMode('signup');
-                }}
-                style={{ background: 'none', border: 'none', color: 'var(--ios-blue)', fontWeight: 700, cursor: 'pointer' }}
-              >
-                Create Account
-              </button>
-            </div>
-          </div>
-        </form>
-      )}
-
-      {/* VIEW 3: CREATE ACCOUNT SCREEN (INSTANT) */}
-      {viewMode === 'signup' && (
-        <form onSubmit={handleSignUp} className="ios-card" style={{ padding: '24px 20px' }}>
-          <div className="ios-input-group">
-            <label className="ios-input-label">Full Name</label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type="text"
-                required
-                className="ios-input"
-                placeholder="e.g. Ethan Rivera"
-                value={fullName}
-                onChange={e => setFullName(e.target.value)}
-                style={{ paddingLeft: 36 }}
-              />
-              <UserIcon size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ios-text-muted)' }} />
-            </div>
-          </div>
-
-          <div className="ios-input-group">
-            <label className="ios-input-label">Email Address</label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type="email"
-                required
-                className="ios-input"
-                placeholder="student@nemsu.edu.ph"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                style={{ paddingLeft: 36 }}
-              />
-              <Mail size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ios-text-muted)' }} />
-            </div>
-          </div>
-
-          <div className="ios-input-group">
-            <label className="ios-input-label">Password (min 6 characters)</label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type={showPassword ? 'text' : 'password'}
-                required
-                className="ios-input"
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                style={{ paddingLeft: 36, paddingRight: 36 }}
-              />
-              <Lock size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ios-text-muted)' }} />
-              <button 
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--ios-text-muted)', cursor: 'pointer' }}
-              >
-                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-              </button>
-            </div>
-          </div>
-
-          <div className="ios-input-group">
-            <label className="ios-input-label">Confirm Password</label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type={showPassword ? 'text' : 'password'}
-                required
-                className="ios-input"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                style={{ paddingLeft: 36 }}
-              />
-              <Lock size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ios-text-muted)' }} />
-            </div>
-          </div>
-
-          <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button 
-              type="submit"
-              className="ios-btn-primary"
-              disabled={isLoading}
+              style={{ marginTop: 4 }}
             >
               {isLoading ? <Loader2 size={16} className="animate-spin" /> : 'Create Account'}
             </button>
+          </form>
+        )}
 
-            <div style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--ios-text-muted)', marginTop: 4 }}>
-              Already have an account?{' '}
-              <button 
-                type="button"
-                onClick={() => {
-                  resetForm();
-                  setViewMode('signin');
-                }}
-                style={{ background: 'none', border: 'none', color: 'var(--ios-blue)', fontWeight: 700, cursor: 'pointer' }}
-              >
-                Sign In
-              </button>
+        {/* 3. FORGOT PASSWORD FORM */}
+        {authMode === 'forgot_password' && (
+          <form onSubmit={handleForgotPassword} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="ios-input-group" style={{ margin: 0 }}>
+              <label className="ios-input-label">Account Email Address</label>
+              <div className="auth-input-row">
+                <Mail size={16} className="auth-input-icon-left" />
+                <input 
+                  type="email"
+                  required
+                  className="auth-input-field"
+                  placeholder="student@nemsu.edu.ph"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
+              </div>
             </div>
-          </div>
-        </form>
-      )}
 
-      {/* VIEW 4: FORGOT PASSWORD */}
-      {viewMode === 'forgot_password' && (
-        <form onSubmit={handleForgotPassword} className="ios-card" style={{ padding: '24px 20px' }}>
-          <div className="ios-input-group">
-            <label className="ios-input-label">Account Email</label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type="email"
-                required
-                className="ios-input"
-                placeholder="student@nemsu.edu.ph"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                style={{ paddingLeft: 36 }}
-              />
-              <Mail size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ios-text-muted)' }} />
-            </div>
-          </div>
-
-          <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button 
               type="submit"
               className="ios-btn-primary"
               disabled={isLoading}
+              style={{ marginTop: 4 }}
             >
               {isLoading ? <Loader2 size={16} className="animate-spin" /> : 'Send Reset Link'}
             </button>
@@ -478,15 +422,28 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess, onContinu
             <button 
               type="button"
               className="ios-btn-secondary"
-              onClick={() => {
-                resetForm();
-                setViewMode('signin');
-              }}
+              onClick={() => switchMode('signin')}
+              style={{ marginTop: 2 }}
             >
               Back to Sign In
             </button>
-          </div>
-        </form>
+          </form>
+        )}
+      </div>
+
+      {/* Guest Mode Action Pill */}
+      {onContinueGuest && authMode !== 'forgot_password' && (
+        <button 
+          type="button"
+          className="auth-guest-btn"
+          onClick={() => {
+            triggerLightHaptic();
+            onContinueGuest();
+          }}
+        >
+          <Zap size={14} color="var(--ios-blue)" />
+          <span>Continue as Guest (Offline Mode)</span>
+        </button>
       )}
     </div>
   );
