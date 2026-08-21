@@ -146,7 +146,7 @@ main {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 20px 10px 20px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 20px 10px 20px;
 }
 
 .top-utility-left {
@@ -1338,7 +1338,7 @@ main {
 /* ======================================================== */
 .ios-tab-bar-container {
   position: fixed;
-  bottom: 18px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 32px);
@@ -1426,7 +1426,7 @@ main {
   border-top-right-radius: 28px;
   overflow-y: auto;
   box-shadow: var(--ios-shadow-modal);
-  padding: 14px 20px 32px 20px;
+  padding: 14px 20px calc(28px + env(safe-area-inset-bottom, 0px)) 20px;
   animation: slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
@@ -2204,7 +2204,7 @@ input:checked + .ios-toggle-slider:before {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 32px 18px 40px 18px;
+  padding: calc(32px + env(safe-area-inset-top, 0px)) 18px calc(40px + env(safe-area-inset-bottom, 0px)) 18px;
   box-sizing: border-box;
 }
 
