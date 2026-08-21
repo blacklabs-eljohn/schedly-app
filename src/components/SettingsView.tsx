@@ -271,7 +271,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       </div>
 
       {/* About Schedly & Privacy */}
-      <div className="ios-card" style={{ background: 'var(--ios-blue-light)', border: '1px solid var(--ios-blue)' }}>
+      <div className="ios-card" style={{ background: 'var(--ios-blue-light)', border: '1px solid var(--ios-blue)', marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <img 
             src="/schedly-icon.png" 
@@ -287,10 +287,52 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div>
             <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--ios-blue)' }}>Schedly · Supabase Cloud Connected</div>
             <div style={{ fontSize: 12, color: 'var(--ios-text-primary)', marginTop: 2, lineHeight: 1.4 }}>
-              Your COR schedule and digital pass are safely backed up with Row Level Security. Fully offline-accessible on Android and Web.
+              Your COR schedule and digital pass are safely backed up with Row Level Security. Fully offline-accessible on iOS PWA, Android, and Web.
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Developer Credits */}
+      <div className="ios-section-header">Developer & Credits</div>
+      <div className="ios-card" style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 42,
+            height: 42,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #2563EB, #4F46E5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#FFFFFF',
+            fontWeight: 800,
+            fontSize: 15,
+            flexShrink: 0,
+            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
+          }}>
+            ES
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontWeight: 800, fontSize: 14.5 }}>Ethan Sienes</span>
+              <span className="ios-tag-pill ios-tag-pill-green" style={{ fontSize: 9.5, padding: '1px 6px' }}>Developer</span>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--ios-text-secondary)', marginTop: 2 }}>
+              Designed & Built with ❤️ for Students
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Legal Disclaimer & App Info Footer */}
+      <div style={{ textAlign: 'center', padding: '6px 12px 16px 12px', color: 'var(--ios-text-muted)' }}>
+        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 6, color: 'var(--ios-text-secondary)' }}>
+          Schedly • v1.0.0 (Build 2026)
+        </div>
+        <p style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--ios-text-muted)', margin: 0, maxWidth: 360, marginLeft: 'auto', marginRight: 'auto' }}>
+          <strong>Disclaimer:</strong> Schedly is an independent student timetable companion and digital ID tool. It is not officially affiliated with, sponsored by, or endorsed by North Eastern Mindanao State University (NEMSU). All university names, marks, and curriculum data belong to their respective institution.
+        </p>
       </div>
     </div>
   );
