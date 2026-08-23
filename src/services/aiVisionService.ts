@@ -113,12 +113,13 @@ Return ONLY a JSON object with this structure:
 }
 `;
 
-  // Try models in order: gemini-1.5-flash -> gemini-2.0-flash -> gemini-1.5-pro
-  const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+  // Verified working Google AI models for this API key: gemini-3.6-flash, gemini-3.5-flash
+  const models = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-3.7-flash'];
   let lastError: any = null;
 
   for (const model of models) {
     try {
+      console.log(`[Gemini Vision] Sending image to model: ${model}...`);
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
       const response = await fetch(endpoint, {
@@ -150,6 +151,7 @@ Return ONLY a JSON object with this structure:
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const message = errorData?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
+        console.warn(`[Gemini Vision] Model ${model} returned ${response.status}:`, message);
         throw new Error(message);
       }
 
@@ -159,6 +161,8 @@ Return ONLY a JSON object with this structure:
       if (!textContent) {
         throw new Error('Gemini returned an empty response.');
       }
+
+      console.log(`[Gemini Vision] Successfully received structured JSON from ${model}`);
 
       // Parse JSON
       let cleanedJson = textContent.trim();

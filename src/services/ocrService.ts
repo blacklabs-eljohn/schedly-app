@@ -92,8 +92,11 @@ export async function scanCORImage(
   // 1. Try Gemini AI Vision if available
   if (shouldTryGemini) {
     try {
-      if (onProgress) onProgress('✨ Sending to Gemini AI Multimodal Vision...', 25);
-      const aiResult = await extractCORWithGemini(imageUri, apiKey);
+      if (onProgress) onProgress('✨ Optimizing image resolution & sharpness...', 20);
+      const processedUri = await preprocessImage(imageUri);
+
+      if (onProgress) onProgress('✨ Sending to Google Gemini Vision AI...', 50);
+      const aiResult = await extractCORWithGemini(processedUri, apiKey);
       
       if (onProgress) onProgress('✨ AI parsing complete!', 100);
 
@@ -109,7 +112,6 @@ export async function scanCORImage(
     } catch (aiErr) {
       console.warn('Gemini AI Vision error, falling back to on-device OCR:', aiErr);
       if (engine === 'gemini') {
-        // If user explicitly chose Gemini only, rethrow or fall through with notice
         if (onProgress) onProgress('AI connection failed, using enhanced on-device OCR...', 35);
       }
     }
