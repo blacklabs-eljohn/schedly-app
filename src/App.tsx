@@ -386,9 +386,29 @@ export function App() {
   };
 
   const conflicts = detectScheduleConflicts(courses);
-  const todayDayName = (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()]) as DayOfWeek;
+  const today = new Date();
+  const todayDayName = (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][today.getDay()]) as DayOfWeek;
   const todayInfo = getDayScheduleInfo(courses, todayDayName || 'Mon');
-  const firstName = profile.fullName ? profile.fullName.split(' ')[0] : 'Student';
+
+  const getStudentFirstName = (name?: string): string => {
+    if (!name || !name.trim()) return 'Student';
+    const clean = name.trim();
+    // If formatted as "LASTNAME, FIRSTNAME MIDDLE" (e.g. "CRISOSTOMO, ELJOHN SIENES")
+    if (clean.includes(',')) {
+      const parts = clean.split(',');
+      const afterComma = parts[1]?.trim() || '';
+      const firstWord = afterComma.split(' ')[0]?.trim();
+      if (firstWord) {
+        return firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase();
+      }
+    }
+    // Otherwise standard "First Middle Last" (e.g. "Eljohn Sienes Crisostomo" or "Ethan")
+    const firstWord = clean.split(' ')[0];
+    return firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase();
+  };
+
+  const studentFirstName = getStudentFirstName(profile.fullName);
+  const timeOfDayGreeting = today.getHours() < 12 ? 'Good Morning' : today.getHours() < 18 ? 'Good Afternoon' : 'Good Evening';
 
   // Sync latest schedule, up next, and profile to Android Home Screen Widgets
   useEffect(() => {
@@ -400,7 +420,6 @@ export function App() {
     scheduleClassReminders(courses, settings);
   }, [courses, settings]);
 
-  const today = new Date();
   const dateString = today.toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',
@@ -435,10 +454,10 @@ export function App() {
             <header className="top-utility-row">
               <div className="top-utility-left">
                 <span className="top-utility-subheading">
-                  {today.getHours() < 12 ? 'Good Morning' : today.getHours() < 18 ? 'Good Afternoon' : 'Good Evening'}
+                  {timeOfDayGreeting},
                 </span>
                 <h1 className="top-utility-greeting">
-                  {profile.fullName || 'New Student'}
+                  {studentFirstName}
                 </h1>
               </div>
 
