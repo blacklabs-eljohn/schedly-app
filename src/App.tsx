@@ -372,13 +372,18 @@ export function App() {
       {/* 3-Step Animated Splash Screen */}
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
 
-      {/* Authentication Screen (Rendered if not logged in) */}
+      {/* Authentication & Onboarding Screen (Rendered if not logged in) */}
       {!showSplash && !isAuthChecking && !currentUser ? (
         <AuthScreen 
-          onAuthSuccess={(authenticatedUser) => {
+          onAuthSuccess={(authenticatedUser, initialProfile) => {
             setCurrentUser(authenticatedUser);
             setIsGuestMode(false);
-            handleTriggerCloudSync(authenticatedUser.id, authenticatedUser.user_metadata?.full_name, true);
+            if (initialProfile) {
+              setProfile(initialProfile);
+              saveStudentProfile(initialProfile, authenticatedUser.id);
+              pushProfileToCloud(authenticatedUser.id, initialProfile);
+            }
+            handleTriggerCloudSync(authenticatedUser.id, initialProfile?.fullName || authenticatedUser.user_metadata?.full_name, true);
           }}
         />
       ) : (
