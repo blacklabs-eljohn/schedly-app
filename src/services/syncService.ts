@@ -45,28 +45,43 @@ export async function pullCloudData(userId: string, defaultFullName?: string): P
 
     let userProfile = getStoredStudentProfile(userId, defaultFullName);
 
+    const isCorruptedName = (name?: string) => {
+      if (!name) return true;
+      const upper = name.toUpperCase().trim();
+      return upper.includes('MIDDLE NAME') || upper.includes('SEX FIRST') || upper.includes('FIRST NAME') || upper === 'STUDENT NAME';
+    };
+
     if (profileRow) {
+      const resolvedName = (profileRow.full_name && !isCorruptedName(profileRow.full_name))
+        ? profileRow.full_name
+        : (defaultFullName && !isCorruptedName(defaultFullName))
+        ? defaultFullName
+        : (!isCorruptedName(userProfile.fullName))
+        ? userProfile.fullName
+        : defaultFullName || 'Student';
+
       userProfile = {
         id: profileRow.id,
-        fullName: profileRow.full_name || defaultFullName || userProfile.fullName,
-        studentNumber: profileRow.student_number || '',
-        program: profileRow.program || '',
-        yearLevel: profileRow.year_level || '1ST YEAR',
-        section: profileRow.section || '',
-        schoolName: profileRow.school_name || 'NEMSU',
-        academicYear: profileRow.academic_year || '2026–2027',
+        fullName: resolvedName,
+        studentNumber: profileRow.student_number || userProfile.studentNumber || '',
+        program: profileRow.program || userProfile.program || '',
+        yearLevel: profileRow.year_level || userProfile.yearLevel || '1ST YEAR',
+        section: profileRow.section || userProfile.section || '',
+        schoolName: profileRow.school_name || userProfile.schoolName || 'NEMSU',
+        academicYear: profileRow.academic_year || userProfile.academicYear || '2026–2027',
         profilePhoto: profileRow.profile_photo_url || userProfile.profilePhoto,
-        schoolLogo: profileRow.school_logo_url || 'nemsu_star',
-        selectedTheme: profileRow.selected_theme || 'digital-blue',
-        accentColor: profileRow.accent_color || '#2563EB',
-        emergencyContactName: profileRow.emergency_contact_name || '',
-        emergencyContactPhone: profileRow.emergency_contact_phone || '',
-        bloodType: profileRow.blood_type || 'O+'
+        schoolLogo: profileRow.school_logo_url || userProfile.schoolLogo || 'nemsu_star',
+        selectedTheme: (profileRow.selected_theme as any) || userProfile.selectedTheme || 'digital-blue',
+        accentColor: profileRow.accent_color || userProfile.accentColor || '#2563EB',
+        emergencyContactName: profileRow.emergency_contact_name || userProfile.emergencyContactName || '',
+        emergencyContactPhone: profileRow.emergency_contact_phone || userProfile.emergencyContactPhone || '',
+        bloodType: profileRow.blood_type || userProfile.bloodType || 'O+'
       };
       saveStudentProfile(userProfile, userId);
     } else {
       // Initialize fresh cloud profile for this new user
-      const newBlankProfile = createBlankProfile(userId, defaultFullName);
+      const cleanDefaultName = defaultFullName && !isCorruptedName(defaultFullName) ? defaultFullName : 'Student';
+      const newBlankProfile = { ...userProfile, fullName: userProfile.fullName && !isCorruptedName(userProfile.fullName) ? userProfile.fullName : cleanDefaultName };
       await pushProfileToCloud(userId, newBlankProfile);
       userProfile = newBlankProfile;
       saveStudentProfile(userProfile, userId);

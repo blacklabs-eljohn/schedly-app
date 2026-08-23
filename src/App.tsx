@@ -238,15 +238,40 @@ export function App() {
     }
   };
 
+  const isCorruptedName = (name?: string) => {
+    if (!name) return true;
+    const upper = name.toUpperCase().trim();
+    return upper.includes('MIDDLE NAME') || upper.includes('SEX FIRST') || upper.includes('FIRST NAME') || upper === 'STUDENT NAME' || upper === 'NEW STUDENT';
+  };
+
+  // Self-heal corrupted student name from previous OCR bug if present
+  useEffect(() => {
+    if (profile.fullName && isCorruptedName(profile.fullName)) {
+      const cleanName = currentUser?.user_metadata?.full_name || 'Student';
+      const healed = { ...profile, fullName: cleanName };
+      setProfile(healed);
+      saveStudentProfile(healed, currentUser?.id);
+      if (currentUser) {
+        pushProfileToCloud(currentUser.id, healed);
+      }
+    }
+  }, [profile, currentUser]);
+
   const handleScanComplete = (extractedCourses: Course[], extractedProfile?: Partial<StudentProfile>) => {
     setIsScannerOpen(false);
     setReviewCourses(extractedCourses);
     setIsCorrectionOpen(true);
 
     if (extractedProfile && Object.keys(extractedProfile).length > 0) {
+      const cleanScannedName = extractedProfile.fullName && !isCorruptedName(extractedProfile.fullName)
+        ? extractedProfile.fullName
+        : profile.fullName && !isCorruptedName(profile.fullName)
+        ? profile.fullName
+        : currentUser?.user_metadata?.full_name || 'Student';
+
       const merged: StudentProfile = {
         ...profile,
-        fullName: extractedProfile.fullName || profile.fullName,
+        fullName: cleanScannedName,
         studentNumber: extractedProfile.studentNumber || profile.studentNumber,
         program: extractedProfile.program || profile.program,
         yearLevel: extractedProfile.yearLevel || profile.yearLevel,
@@ -262,9 +287,26 @@ export function App() {
     }
   };
 
-  const handleSaveSchedule = (finalCourses: Course[]) => {
+  const handleSaveSchedule = (finalCourses: Course[], updatedProfile?: Partial<StudentProfile>) => {
     setCourses(finalCourses);
     saveCourses(finalCourses, currentUser?.id);
+
+    if (updatedProfile && Object.keys(updatedProfile).length > 0) {
+      const merged: StudentProfile = {
+        ...profile,
+        ...updatedProfile,
+        fullName: updatedProfile.fullName && !isCorruptedName(updatedProfile.fullName)
+          ? updatedProfile.fullName
+          : profile.fullName
+      };
+      setProfile(merged);
+      saveStudentProfile(merged, currentUser?.id);
+
+      if (currentUser) {
+        pushProfileToCloud(currentUser.id, merged);
+      }
+    }
+
     setIsCorrectionOpen(false);
     setActiveTab('home');
     showSystemToast('Schedule Updated', `${finalCourses.length} classes added to timetable.`);
@@ -421,6 +463,7 @@ export function App() {
           {isCorrectionOpen ? (
             <CorrectionScreen 
               courses={reviewCourses}
+              profile={profile}
               onSaveSchedule={handleSaveSchedule}
               onCancel={() => setIsCorrectionOpen(false)}
             />

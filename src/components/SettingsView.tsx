@@ -1,21 +1,21 @@
 import React from 'react';
-import { NotificationSettings, SubjectCardTheme } from '../types';
+import { NotificationSettings } from '../types';
 import { 
   Bell, 
   Palette, 
   Camera, 
   RotateCcw, 
   Volume2, 
-  Sun, 
-  Moon, 
   Cloud, 
   CloudOff, 
   LogOut, 
   RefreshCw, 
   UserCheck,
-  ExternalLink
+  ExternalLink,
+  Sparkles
 } from 'lucide-react';
-import { triggerLightHaptic } from '../services/hapticsService';
+import { triggerLightHaptic, triggerSuccessHaptic } from '../services/hapticsService';
+import { getStoredGeminiApiKey, saveStoredGeminiApiKey, hasGeminiApiKey } from '../services/aiVisionService';
 
 interface SettingsViewProps {
   settings: NotificationSettings;
@@ -355,6 +355,80 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div style={{ width: 14, height: 14, borderRadius: 4, background: '#F43F5E' }} />
               <div style={{ width: 14, height: 14, borderRadius: 4, background: '#F59E0B' }} />
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Document Scanner Engine Settings */}
+      <div className="ios-section-header">AI Document Scanner</div>
+      <div className="ios-card" style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid var(--ios-divider)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: 'var(--ios-blue-light)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--ios-blue)',
+              flexShrink: 0
+            }}>
+              <Sparkles size={18} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14.5 }}>Google Gemini AI Vision</div>
+              <div style={{ fontSize: 12, color: 'var(--ios-text-muted)', marginTop: 1 }}>
+                {hasGeminiApiKey() ? 'API Key Configured (Ultra Precision)' : 'Free AI Multimodal Vision Ready'}
+              </div>
+            </div>
+          </div>
+          <span className="ios-tag-pill ios-tag-pill-blue" style={{ fontSize: 10 }}>
+            {hasGeminiApiKey() ? 'Active' : 'Optional'}
+          </span>
+        </div>
+
+        <div style={{ paddingTop: 12 }}>
+          <div className="ios-input-group" style={{ marginBottom: 10 }}>
+            <label className="ios-input-label">Gemini API Key</label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input 
+                type="password"
+                className="ios-input"
+                defaultValue={getStoredGeminiApiKey()}
+                placeholder="Paste your Gemini API key (AIzaSy...)"
+                id="gemini-settings-key-input"
+                style={{ fontSize: 12 }}
+              />
+              <button
+                type="button"
+                className="ios-btn-primary"
+                style={{ width: 'auto', padding: '8px 14px', fontSize: 12 }}
+                onClick={() => {
+                  const input = document.getElementById('gemini-settings-key-input') as HTMLInputElement;
+                  if (input) {
+                    saveStoredGeminiApiKey(input.value);
+                    triggerSuccessHaptic();
+                    alert('Gemini API key saved successfully!');
+                  }
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5 }}>
+            <a 
+              href="https://aistudio.google.com/app/apikey" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ color: 'var(--ios-blue)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
+            >
+              <span>Get a free API key from Google AI Studio</span>
+              <ExternalLink size={11} />
+            </a>
           </div>
         </div>
       </div>
