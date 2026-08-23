@@ -1724,46 +1724,176 @@ input:checked + .ios-toggle-slider:before {
   margin-top: 2px;
 }
 
-/* Camera Scanner Container */
+/* ======================================================== */
+/* FUTURISTIC AI DOCUMENT SCANNER HUD & ANIMATIONS         */
+/* ======================================================== */
 .scanner-container {
   position: relative;
   width: 100%;
-  height: 290px;
-  background: #0B0F17;
-  border-radius: var(--ios-radius-md);
+  height: 240px;
+  background: radial-gradient(circle at center, #1E293B 0%, #0F172A 70%, #090D16 100%);
+  border-radius: 20px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   margin-bottom: 14px;
-  border: 1px solid var(--ios-card-border);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.6), 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.scanner-blueprint-grid {
+  position: absolute;
+  inset: 0;
+  background-size: 24px 24px;
+  background-image: 
+    linear-gradient(to right, rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+  pointer-events: none;
 }
 
 .scanner-frame-guide {
   position: absolute;
-  width: 82%;
-  height: 72%;
-  border: 2px dashed rgba(255, 255, 255, 0.8);
-  border-radius: 12px;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+  width: 84%;
+  height: 76%;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 14px;
+  box-shadow: 0 0 0 9999px rgba(11, 15, 25, 0.65);
   pointer-events: none;
+  z-index: 4;
 }
 
+/* 4 Corner Bracket Accents */
+.scanner-corner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: #38BDF8;
+  border-style: solid;
+  pointer-events: none;
+  z-index: 5;
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.8));
+}
+
+.scanner-corner-tl {
+  top: 12%;
+  left: 8%;
+  border-width: 3px 0 0 3px;
+  border-top-left-radius: 8px;
+}
+
+.scanner-corner-tr {
+  top: 12%;
+  right: 8%;
+  border-width: 3px 3px 0 0;
+  border-top-right-radius: 8px;
+}
+
+.scanner-corner-bl {
+  bottom: 12%;
+  left: 8%;
+  border-width: 0 0 3px 3px;
+  border-bottom-left-radius: 8px;
+}
+
+.scanner-corner-br {
+  bottom: 12%;
+  right: 8%;
+  border-width: 0 3px 3px 0;
+  border-bottom-right-radius: 8px;
+}
+
+/* High-tech Sweep Laser Beam */
 .scanner-laser {
   position: absolute;
-  left: 9%;
-  right: 9%;
-  height: 2px;
-  background: var(--ios-blue);
-  box-shadow: 0 0 10px var(--ios-blue);
-  animation: scanLaser 2s infinite ease-in-out;
+  left: 8%;
+  right: 8%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, #38BDF8 25%, #60A5FA 50%, #818CF8 75%, transparent 100%);
+  box-shadow: 0 0 16px 2px #38BDF8, 0 0 32px 6px rgba(96, 165, 250, 0.5);
+  animation: scanLaser 2.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  z-index: 6;
+}
+
+.scanner-laser-light-wash {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  height: 60px;
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.15) 0%, transparent 100%);
+  animation: scanLaserWash 2.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  pointer-events: none;
+  z-index: 5;
 }
 
 @keyframes scanLaser {
-  0% { top: 16%; opacity: 0.8; }
-  50% { top: 84%; opacity: 1; }
-  100% { top: 16%; opacity: 0.8; }
+  0% { top: 13%; opacity: 0.2; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { top: 84%; opacity: 0.2; }
+}
+
+@keyframes scanLaserWash {
+  0% { top: 13%; opacity: 0.1; }
+  15% { opacity: 0.8; }
+  85% { opacity: 0.8; }
+  100% { top: 70%; opacity: 0.1; }
+}
+
+/* AI Neural Pulse Glow */
+.ai-processing-orb {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 12px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-processing-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: #38BDF8;
+  border-right-color: #818CF8;
+  animation: spinOrb 1.2s linear infinite;
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.7));
+}
+
+.ai-processing-ring-outer {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  animation: spinOrbReverse 8s linear infinite;
+}
+
+@keyframes spinOrb {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spinOrbReverse {
+  to { transform: rotate(-360deg); }
+}
+
+.ai-progress-bar-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.ai-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38BDF8, #6366F1, #EC4899);
+  border-radius: 999px;
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
 }
 
 /* ======================================================== */

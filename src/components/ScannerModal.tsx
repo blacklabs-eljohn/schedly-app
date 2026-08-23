@@ -8,14 +8,10 @@ import {
   Camera, 
   Upload, 
   X, 
-  Loader2, 
   Sparkles, 
   FileText, 
-  Key, 
-  CheckCircle2, 
   ExternalLink,
-  Cpu,
-  Image as ImageIcon
+  Zap
 } from 'lucide-react';
 
 interface ScannerModalProps {
@@ -33,6 +29,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
   const [engine, setEngine] = useState<ScanEngine>('auto');
   const [isScanning, setIsScanning] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+  const [currentStep, setCurrentStep] = useState<number>(1);
   const [progressPercent, setProgressPercent] = useState(0);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
@@ -67,7 +64,8 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
   const handleProcessImage = async (imageSrc: string) => {
     setPreviewImage(imageSrc);
     setIsScanning(true);
-    setStatusMessage('Preparing document image...');
+    setCurrentStep(1);
+    setStatusMessage('Enhancing document contrast & clarity...');
     setProgressPercent(15);
     triggerLightHaptic();
 
@@ -77,6 +75,10 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
         (status, pct) => {
           setStatusMessage(status);
           setProgressPercent(pct);
+          if (pct < 35) setCurrentStep(1);
+          else if (pct < 70) setCurrentStep(2);
+          else if (pct < 90) setCurrentStep(3);
+          else setCurrentStep(4);
         },
         engine,
         apiKeyInput
@@ -108,8 +110,9 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
   const handleProcessPastedText = () => {
     if (!pastedText.trim()) return;
     setIsScanning(true);
-    setStatusMessage('Parsing pasted COR text...');
-    setProgressPercent(50);
+    setCurrentStep(3);
+    setStatusMessage('Parsing pasted COR timetable with AI engine...');
+    setProgressPercent(60);
     triggerLightHaptic();
 
     setTimeout(() => {
@@ -120,7 +123,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
       setIsScanning(false);
       triggerSuccessHaptic();
       onScanComplete(courses, profile, totalUnits);
-    }, 400);
+    }, 450);
   };
 
   const handleLoadSampleNEMSUCOR = () => {
@@ -165,33 +168,70 @@ Total Units: 26
 
   return (
     <div className="ios-modal-overlay" onClick={onClose}>
-      <div className="ios-modal-sheet" onClick={e => e.stopPropagation()} style={{ maxHeight: '92vh', overflowY: 'auto' }}>
-        <div className="ios-modal-handle" />
+      <div 
+        className="ios-modal-sheet" 
+        onClick={e => e.stopPropagation()} 
+        style={{ 
+          maxHeight: '94vh', 
+          overflowY: 'auto',
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+          padding: '16px 20px 32px 20px'
+        }}
+      >
+        <div className="ios-modal-handle" style={{ marginBottom: 12 }} />
 
         {/* Modal Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <h2 className="ios-modal-title" style={{ margin: 0 }}>Smart COR Scanner</h2>
-              <span className="ios-tag-pill ios-tag-pill-blue" style={{ fontSize: 10, padding: '2px 6px' }}>
-                AI Powered
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 className="ios-modal-title" style={{ margin: 0, fontSize: 20 }}>
+                Smart COR Scanner
+              </h2>
+              <span 
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '3px 8px',
+                  borderRadius: 999,
+                  background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%)',
+                  color: '#38BDF8',
+                  fontSize: 10.5,
+                  fontWeight: 800,
+                  border: '1px solid rgba(56, 189, 248, 0.35)',
+                  letterSpacing: '0.04em'
+                }}
+              >
+                <Zap size={11} /> AI VISION ACTIVE
               </span>
             </div>
             <div style={{ fontSize: 12, color: 'var(--ios-text-muted)', marginTop: 2 }}>
-              Extracts NEMSU subjects, times, units, & student ID
+              Upload or snap your Certificate of Registration to extract schedule & ID
             </div>
           </div>
           <button 
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: 'var(--ios-text-muted)', cursor: 'pointer', padding: 4 }}
+            style={{ 
+              background: 'var(--ios-card-bg)', 
+              border: '1px solid var(--ios-card-border)', 
+              borderRadius: '50%', 
+              width: 32, 
+              height: 32, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              color: 'var(--ios-text-muted)', 
+              cursor: 'pointer' 
+            }}
             aria-label="Close"
           >
-            <X size={20} />
+            <X size={16} />
           </button>
         </div>
 
         {/* Mode Selector Tabs */}
-        <div style={{ display: 'flex', background: 'var(--ios-bg-secondary)', borderRadius: 10, padding: 3, marginBottom: 12 }}>
+        <div style={{ display: 'flex', background: 'var(--ios-bg-secondary)', borderRadius: 12, padding: 4, marginBottom: 14 }}>
           <button
             type="button"
             onClick={() => {
@@ -200,8 +240,8 @@ Total Units: 26
             }}
             style={{
               flex: 1,
-              padding: '8px 0',
-              borderRadius: 8,
+              padding: '9px 0',
+              borderRadius: 9,
               border: 'none',
               fontSize: 12.5,
               fontWeight: 700,
@@ -211,12 +251,13 @@ Total Units: 26
               gap: 6,
               background: activeTab === 'upload' ? 'var(--ios-card-bg)' : 'transparent',
               color: activeTab === 'upload' ? 'var(--ios-text-primary)' : 'var(--ios-text-muted)',
-              boxShadow: activeTab === 'upload' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              boxShadow: activeTab === 'upload' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
           >
-            <Camera size={14} /> Photo / Upload
+            <Camera size={15} color={activeTab === 'upload' ? 'var(--ios-blue)' : 'currentColor'} /> 
+            <span>Photo / Upload COR</span>
           </button>
 
           <button
@@ -227,8 +268,8 @@ Total Units: 26
             }}
             style={{
               flex: 1,
-              padding: '8px 0',
-              borderRadius: 8,
+              padding: '9px 0',
+              borderRadius: 9,
               border: 'none',
               fontSize: 12.5,
               fontWeight: 700,
@@ -238,34 +279,48 @@ Total Units: 26
               gap: 6,
               background: activeTab === 'paste' ? 'var(--ios-card-bg)' : 'transparent',
               color: activeTab === 'paste' ? 'var(--ios-text-primary)' : 'var(--ios-text-muted)',
-              boxShadow: activeTab === 'paste' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              boxShadow: activeTab === 'paste' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
           >
-            <FileText size={14} /> Paste Portal Text
+            <FileText size={15} color={activeTab === 'paste' ? 'var(--ios-blue)' : 'currentColor'} /> 
+            <span>Paste Portal Text</span>
           </button>
         </div>
 
         {/* AI Key Status & Engine Selector Banner */}
         <div style={{
-          background: 'var(--ios-blue-light)',
-          border: '1px solid var(--ios-blue)',
-          borderRadius: 12,
-          padding: '10px 12px',
-          marginBottom: 12,
+          background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%)',
+          border: '1px solid rgba(37, 99, 235, 0.25)',
+          borderRadius: 14,
+          padding: '10px 14px',
+          marginBottom: 14,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-            <Sparkles size={16} color="var(--ios-blue)" style={{ flexShrink: 0 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: 'var(--ios-blue-light)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--ios-blue)',
+              flexShrink: 0
+            }}>
+              <Sparkles size={17} />
+            </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ios-blue)' }}>
-                {hasKey ? 'Gemini AI Vision Active' : 'Gemini AI Vision Ready'}
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ios-text-primary)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span>Google Gemini 3.6 Flash</span>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
               </div>
-              <div style={{ fontSize: 11, color: 'var(--ios-text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {hasKey ? 'High-accuracy multimodal extraction' : 'Use free Google AI Studio key or offline OCR'}
+              <div style={{ fontSize: 11, color: 'var(--ios-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                High-precision multimodal timetable extraction
               </div>
             </div>
           </div>
@@ -280,7 +335,7 @@ Total Units: 26
               background: 'var(--ios-card-bg)',
               border: '1px solid var(--ios-card-border)',
               borderRadius: 8,
-              padding: '4px 8px',
+              padding: '5px 10px',
               fontSize: 11,
               fontWeight: 700,
               color: 'var(--ios-blue)',
@@ -288,25 +343,25 @@ Total Units: 26
               flexShrink: 0
             }}
           >
-            {hasKey ? 'Manage Key' : 'Add Free Key'}
+            {hasKey ? 'Key Active' : 'Configure Key'}
           </button>
         </div>
 
         {/* Gemini API Key Drawer */}
         {showKeyConfig && (
-          <div className="ios-card" style={{ marginBottom: 12, background: 'var(--ios-bg-secondary)' }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 4 }}>
-              Google Gemini API Key (Optional)
+          <div className="ios-card" style={{ marginBottom: 14, background: 'var(--ios-bg-secondary)', border: '1px solid var(--ios-card-border)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
+              Google Gemini API Key
             </div>
-            <p style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginBottom: 8, lineHeight: 1.4 }}>
-              Gemini Vision provides near-100% reading accuracy on photos. Keys are 100% free from Google AI Studio.
+            <p style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginBottom: 10, lineHeight: 1.4 }}>
+              Google Gemini Vision provides human-level accuracy on photographs of paper CORs.
             </p>
 
             <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
               <input
                 type="password"
                 className="ios-input"
-                style={{ fontSize: 12, padding: '8px 10px' }}
+                style={{ fontSize: 12, padding: '8px 12px' }}
                 placeholder="AIzaSy..."
                 value={apiKeyInput}
                 onChange={e => setApiKeyInput(e.target.value)}
@@ -314,44 +369,34 @@ Total Units: 26
               <button
                 type="button"
                 className="ios-btn-primary"
-                style={{ width: 'auto', padding: '8px 14px', fontSize: 12 }}
+                style={{ width: 'auto', padding: '8px 16px', fontSize: 12 }}
                 onClick={handleSaveApiKey}
               >
                 Save
               </button>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11 }}>
               <a
                 href="https://aistudio.google.com/app/apikey"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ fontSize: 11, color: 'var(--ios-blue)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}
+                style={{ color: 'var(--ios-blue)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}
               >
-                <span>Get Free Gemini Key</span> <ExternalLink size={11} />
+                <span>Get a free key from Google AI Studio</span> <ExternalLink size={11} />
               </a>
-
-              {hasKey && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setApiKeyInput('');
-                    saveStoredGeminiApiKey('');
-                    setHasKey(false);
-                  }}
-                  style={{ background: 'none', border: 'none', color: 'var(--ios-red)', fontSize: 11, cursor: 'pointer' }}
-                >
-                  Remove Key
-                </button>
-              )}
             </div>
           </div>
         )}
 
         {activeTab === 'upload' ? (
           <>
-            {/* Viewport Frame with Laser & Live Preview */}
-            <div className="scanner-container" style={{ minHeight: 180, position: 'relative', overflow: 'hidden' }}>
+            {/* Futuristic Scanning Viewport Frame */}
+            <div className="scanner-container">
+              {/* Blueprint Grid Lines */}
+              <div className="scanner-blueprint-grid" />
+
+              {/* Optional Background Thumbnail Preview if Loaded */}
               {previewImage && (
                 <img 
                   src={previewImage} 
@@ -364,28 +409,103 @@ Total Units: 26
                     height: '100%',
                     objectFit: 'cover',
                     opacity: 0.35,
-                    filter: 'blur(1px)'
+                    filter: 'contrast(1.2) brightness(0.8)'
                   }} 
                 />
               )}
 
+              {/* Holographic Frame & Corner Brackets */}
               <div className="scanner-frame-guide" />
-              {isScanning && <div className="scanner-laser" />}
+              <div className="scanner-corner scanner-corner-tl" />
+              <div className="scanner-corner scanner-corner-tr" />
+              <div className="scanner-corner scanner-corner-bl" />
+              <div className="scanner-corner scanner-corner-br" />
 
+              {/* Animated Laser Sweep & Light Wash */}
+              {isScanning && (
+                <>
+                  <div className="scanner-laser" />
+                  <div className="scanner-laser-light-wash" />
+                </>
+              )}
+
+              {/* Inner Content depending on scanning state */}
               {isScanning ? (
-                <div style={{ textAlign: 'center', color: '#FFFFFF', padding: 20, zIndex: 10 }}>
-                  <Loader2 size={36} className="animate-spin" style={{ margin: '0 auto 10px auto', color: 'var(--ios-blue)' }} />
-                  <div style={{ fontWeight: 700, fontSize: 14.5 }}>{statusMessage}</div>
-                  <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>
+                <div style={{ textAlign: 'center', color: '#FFFFFF', padding: 20, zIndex: 10, width: '88%' }}>
+                  {/* Multi-ring Neural AI Orb */}
+                  <div className="ai-processing-orb">
+                    <div className="ai-processing-ring-outer" />
+                    <div className="ai-processing-ring" />
+                    <Sparkles size={26} color="#38BDF8" style={{ filter: 'drop-shadow(0 0 6px #38BDF8)' }} />
+                  </div>
+
+                  <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: '-0.01em', color: '#FFFFFF' }}>
+                    {statusMessage}
+                  </div>
+
+                  {/* Step Progress Tracker */}
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 8 }}>
+                    {[
+                      { step: 1, label: 'Image Prep' },
+                      { step: 2, label: 'Gemini Vision' },
+                      { step: 3, label: 'Decomposing Table' },
+                      { step: 4, label: 'Verification' }
+                    ].map(s => {
+                      const isDone = currentStep > s.step;
+                      const isCurrent = currentStep === s.step;
+                      return (
+                        <span 
+                          key={s.step}
+                          style={{
+                            padding: '2px 7px',
+                            borderRadius: 6,
+                            fontSize: 9.5,
+                            fontWeight: 700,
+                            background: isDone 
+                              ? 'rgba(16, 185, 129, 0.25)' 
+                              : isCurrent 
+                              ? 'rgba(56, 189, 248, 0.3)' 
+                              : 'rgba(255, 255, 255, 0.1)',
+                            color: isDone ? '#34D399' : isCurrent ? '#38BDF8' : 'rgba(255, 255, 255, 0.5)',
+                            border: isCurrent ? '1px solid #38BDF8' : '1px solid transparent'
+                          }}
+                        >
+                          {isDone ? '✓ ' : ''}{s.label}
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  {/* Smooth Gradient Progress Fill */}
+                  <div className="ai-progress-bar-track">
+                    <div className="ai-progress-bar-fill" style={{ width: `${progressPercent}%` }} />
+                  </div>
+                  <div style={{ fontSize: 11, opacity: 0.75, marginTop: 4, fontWeight: 700 }}>
                     {progressPercent}% Complete
                   </div>
                 </div>
               ) : (
-                <div style={{ textAlign: 'center', color: '#FFFFFF', padding: 20, zIndex: 10 }}>
-                  <ImageIcon size={38} style={{ margin: '0 auto 8px auto', opacity: 0.85 }} />
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>Position NEMSU COR Inside Frame</div>
-                  <div style={{ fontSize: 11.5, opacity: 0.75, marginTop: 2 }}>
-                    Supports JPG, JPEG, PNG, HEIC from Camera or Gallery
+                <div style={{ textAlign: 'center', color: '#FFFFFF', padding: 24, zIndex: 10 }}>
+                  <div style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 14,
+                    background: 'rgba(56, 189, 248, 0.15)',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 10px auto',
+                    color: '#38BDF8',
+                    boxShadow: '0 0 16px rgba(56, 189, 248, 0.25)'
+                  }}>
+                    <Camera size={24} />
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: '-0.01em' }}>
+                    Position NEMSU COR Inside Frame
+                  </div>
+                  <div style={{ fontSize: 11.5, opacity: 0.75, marginTop: 3, maxWidth: 260, margin: '3px auto 0 auto' }}>
+                    Keep document flat • Good lighting • Supports JPG, PNG & HEIC
                   </div>
                 </div>
               )}
@@ -409,34 +529,72 @@ Total Units: 26
             />
 
             {/* Primary Action Buttons */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 6 }}>
               <button 
                 className="ios-btn-primary"
                 onClick={() => cameraInputRef.current?.click()}
                 disabled={isScanning}
+                style={{ height: 48, fontSize: 14 }}
               >
-                <Camera size={15} /> Take Photo
+                <Camera size={17} /> Take Photo
               </button>
 
               <button 
                 className="ios-btn-primary"
-                style={{ background: 'var(--ios-indigo)' }}
+                style={{ background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)', height: 48, fontSize: 14 }}
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isScanning}
               >
-                <Upload size={15} /> Upload Photo
+                <Upload size={17} /> Upload Photo
               </button>
             </div>
 
-            {/* Test Sample Button */}
-            <button 
-              className="ios-btn-secondary"
+            {/* Official Sample Card */}
+            <div 
               onClick={handleLoadSampleNEMSUCOR}
-              disabled={isScanning}
-              style={{ marginTop: 10 }}
+              role="button"
+              tabIndex={0}
+              style={{
+                marginTop: 12,
+                padding: '12px 14px',
+                borderRadius: 14,
+                background: 'var(--ios-bg-secondary)',
+                border: '1px solid var(--ios-card-border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
             >
-              <Sparkles size={15} color="var(--ios-blue)" /> Test with Official NEMSU Cantilan Sample
-            </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  background: 'var(--ios-blue-light)',
+                  color: 'var(--ios-blue)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Sparkles size={16} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ios-text-primary)' }}>
+                    Test Official NEMSU Cantilan Sample
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--ios-text-muted)' }}>
+                    BSCS 1st Year · 9 Subjects · 26 Total Units
+                  </div>
+                </div>
+              </div>
+
+              <span className="ios-tag-pill ios-tag-pill-blue" style={{ fontSize: 10, padding: '2px 8px' }}>
+                Try Sample
+              </span>
+            </div>
           </>
         ) : (
           /* Paste COR Text Mode */
@@ -445,7 +603,7 @@ Total Units: 26
               <label className="ios-input-label">Paste Certificate of Registration Text</label>
               <textarea
                 className="ios-input"
-                style={{ height: 160, fontFamily: 'monospace', fontSize: 12, resize: 'none' }}
+                style={{ height: 160, fontFamily: 'monospace', fontSize: 12, resize: 'none', borderRadius: 14 }}
                 placeholder={`Paste your COR text here e.g.:
 NORTH EASTERN MINDANAO STATE UNIVERSITY
 IDNO: 2026-01537 Last Name: CRISOSTOMO First Name: ELJOHN
@@ -460,17 +618,18 @@ GE-MMW Mathematics in the Modern World 2:30-4:00 MTH TBA 3.0`}
               className="ios-btn-primary"
               onClick={handleProcessPastedText}
               disabled={!pastedText.trim() || isScanning}
+              style={{ height: 46 }}
             >
-              <Sparkles size={15} /> Parse Text & Generate Schedule
+              <Sparkles size={16} /> Parse Text & Generate Schedule
             </button>
 
             <button 
               className="ios-btn-secondary"
               onClick={handleLoadSampleNEMSUCOR}
               disabled={isScanning}
-              style={{ marginTop: 10 }}
+              style={{ marginTop: 10, height: 44 }}
             >
-              <Sparkles size={15} color="var(--ios-blue)" /> Load Sample Text
+              <Sparkles size={15} color="var(--ios-blue)" /> Load Official NEMSU Sample
             </button>
           </div>
         )}
