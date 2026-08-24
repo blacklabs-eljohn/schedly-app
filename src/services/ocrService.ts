@@ -58,10 +58,6 @@ export async function scanCORImage(
 ): Promise<{ rawText: string; courses: Course[]; profile?: Partial<StudentProfile>; totalUnits?: number; usedEngine: 'gemini' }> {
   const apiKey = (geminiApiKey || getStoredGeminiApiKey()).trim();
 
-  if (!apiKey && !hasGeminiApiKey()) {
-    throw new Error('Google AI API Key is required. Please provide a valid Gemini API key in Settings or the Scan modal.');
-  }
-
   if (onProgress) onProgress('📸 Optimizing document geometry & sharpness...', 20);
   const processedUri = await preprocessImage(imageUri);
 

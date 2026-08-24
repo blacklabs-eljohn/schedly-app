@@ -2,9 +2,12 @@ import { Course, DayOfWeek, StudentProfile } from '../types';
 import { parseDays, normalizeTime } from './corParser';
 
 const GEMINI_API_KEY_STORAGE = 'schedly_gemini_api_key';
+const BUILTIN_GEMINI_API_KEY = 'AIzaSyBEbsm_HQuxEWy1QlO4iOtOh3mYkGYbNBs';
 
 export function getStoredGeminiApiKey(): string {
-  return localStorage.getItem(GEMINI_API_KEY_STORAGE) || import.meta.env.VITE_GEMINI_API_KEY || '';
+  const envKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const storageKey = localStorage.getItem(GEMINI_API_KEY_STORAGE);
+  return (envKey || storageKey || BUILTIN_GEMINI_API_KEY).trim();
 }
 
 export function saveStoredGeminiApiKey(key: string): void {
@@ -16,7 +19,7 @@ export function saveStoredGeminiApiKey(key: string): void {
 }
 
 export function hasGeminiApiKey(): boolean {
-  return !!getStoredGeminiApiKey();
+  return true;
 }
 
 const COLOR_PALETTE = [
