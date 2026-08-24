@@ -71,8 +71,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* Account & Cloud Sync Section */}
-      <div className="ios-section-header">Account & Cloud Sync</div>
+      {/* Account & Schedule Sync Section */}
+      <div className="ios-section-header">Account & Schedule Backup</div>
       <div className="ios-card" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid var(--ios-divider)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
@@ -97,12 +97,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 {isOnline ? (
                   <>
                     <Cloud size={12} color="var(--ios-green)" />
-                    <span>Supabase Cloud Active</span>
+                    <span>Schedule Synced & Backed Up</span>
                   </>
                 ) : (
                   <>
                     <CloudOff size={12} />
-                    <span>Offline Mode (Local Cache)</span>
+                    <span>Saved Locally (Offline Mode)</span>
                   </>
                 )}
               </div>
@@ -410,25 +410,51 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* About Schedly & Privacy */}
-      <div className="ios-card" style={{ background: 'var(--ios-blue-light)', border: '1px solid var(--ios-blue)', marginBottom: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+      {/* About Schedly & Purpose */}
+      <div className="ios-section-header">About Schedly</div>
+      <div className="ios-card" style={{ padding: '16px 18px', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
           <img 
             src="/schedly-icon.png" 
             alt="Schedly" 
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
+              width: 44,
+              height: 44,
+              borderRadius: 12,
               flexShrink: 0,
-              boxShadow: '0 2px 8px rgba(37,99,235,0.2)'
+              boxShadow: '0 3px 10px rgba(37,99,235,0.25)'
             }} 
           />
           <div>
-            <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--ios-blue)' }}>Schedly · Supabase Cloud Connected</div>
-            <div style={{ fontSize: 12, color: 'var(--ios-text-primary)', marginTop: 2, lineHeight: 1.4 }}>
-              Your COR schedule and digital pass are safely backed up with Row Level Security. Fully offline-accessible on iOS PWA, Android, and Web.
+            <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--ios-text-primary)', letterSpacing: '-0.01em' }}>
+              Schedly
             </div>
+            <div style={{ fontSize: 12, color: 'var(--ios-blue)', fontWeight: 600 }}>
+              Your Smart Campus & Timetable Companion
+            </div>
+          </div>
+        </div>
+
+        <p style={{ fontSize: 12.5, color: 'var(--ios-text-secondary)', lineHeight: 1.5, margin: '0 0 12px 0' }}>
+          Schedly was built specifically for college students to eliminate the daily hassle of carrying folded paper Certificate of Registration (COR) printouts, missing room numbers, or running late to class.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 12px', background: 'var(--ios-bg-secondary)', borderRadius: 12, fontSize: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 14 }}>⚡</span>
+            <span><strong>Instant AI Scanner:</strong> Converts camera photos of your COR into an organized schedule.</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 14 }}>🪪</span>
+            <span><strong>Digital Pass:</strong> Your student ID and term credentials always ready in your pocket.</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 14 }}>🔔</span>
+            <span><strong>Smart Alerts:</strong> Reminders before lectures & labs so you're always on time.</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 14 }}>📱</span>
+            <span><strong>100% Offline:</strong> Access your schedule and pass anytime, even without data or Wi-Fi.</span>
           </div>
         </div>
       </div>
