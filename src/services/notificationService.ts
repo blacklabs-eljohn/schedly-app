@@ -53,6 +53,8 @@ export async function setupNotificationChannel(): Promise<void> {
   }
 }
 
+let lastScheduledFingerprint = '';
+
 /**
  * Schedule automated recurring weekly push notifications for all classes
  */
@@ -60,15 +62,22 @@ export async function scheduleClassReminders(
   courses: Course[],
   settings: NotificationSettings
 ): Promise<void> {
-  if (!settings.remindersEnabled) {
+  if (!settings || !settings.remindersEnabled) {
     try {
       const pending = await LocalNotifications.getPending();
-      if (pending.notifications.length > 0) {
+      if (pending.notifications && pending.notifications.length > 0) {
         await LocalNotifications.cancel({ notifications: pending.notifications });
       }
+      lastScheduledFingerprint = '';
     } catch (e) {
       // Ignore
     }
+    return;
+  }
+
+  // Prevent duplicate redundant reschedulings if data hasn't changed
+  const currentFingerprint = `${courses.length}-${courses.map(c => `${c.id}:${c.startTime}:${c.days?.join(',')}`).join('|')}-${settings.reminderMinutes}-${settings.soundEnabled}`;
+  if (currentFingerprint === lastScheduledFingerprint) {
     return;
   }
 
@@ -78,9 +87,9 @@ export async function scheduleClassReminders(
   try {
     await setupNotificationChannel();
 
-    // 1. Cancel all previous scheduled reminders to avoid duplicates
+    // 1. Cancel previous reminders
     const pending = await LocalNotifications.getPending();
-    if (pending.notifications.length > 0) {
+    if (pending.notifications && pending.notifications.length > 0) {
       await LocalNotifications.cancel({ notifications: pending.notifications });
     }
 
@@ -143,6 +152,7 @@ export async function scheduleClassReminders(
       await LocalNotifications.schedule({
         notifications: notificationsToSchedule
       });
+      lastScheduledFingerprint = currentFingerprint;
     }
   } catch (err) {
     console.warn('[NotificationService] Fallback on scheduling notifications:', err);
@@ -158,7 +168,7 @@ export async function triggerTestClassNotification(leadMins: number = 15): Promi
   try {
     const hasPermission = await requestNotificationPermissions();
     if (!hasPermission) {
-      showSystemToast('Permission Required', 'Please allow notifications in your device settings.');
+      alert('Please allow notifications in your device settings to receive class alerts.');
       return;
     }
 
@@ -180,23 +190,13 @@ export async function triggerTestClassNotification(leadMins: number = 15): Promi
 
     triggerSuccessHaptic();
   } catch (err) {
-    showSystemToast('🔔 Class Alert', `CS111 starts in ${leadMins} mins · ComLab 101 · 8:30 AM`);
+    console.warn('[NotificationService] Test notification fallback:', err);
   }
 }
 
 /**
- * Display an in-app system toast / banner
+ * In-app haptic alert (does NOT pop up system OS notifications for regular in-app actions)
  */
-export function showSystemToast(title: string, body: string): void {
+export function showSystemToast(_title: string, _body: string): void {
   triggerLightHaptic();
-  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-    try {
-      new Notification(title, { 
-        body, 
-        icon: '/schedly-icon.png' 
-      });
-    } catch (e) {
-      // Ignore
-    }
-  }
 }
