@@ -1384,33 +1384,33 @@ main {
 /* ======================================================== */
 .ios-tab-bar-container {
   position: fixed;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
-  width: calc(100% - 32px);
-  max-width: 420px;
+  width: calc(100% - 24px);
+  max-width: 400px;
   z-index: 250;
   pointer-events: auto;
 }
 
 .ios-tab-bar-dock {
   width: 100%;
-  height: 60px;
+  height: 54px;
   background: var(--ios-glass-pill-bg);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
   border: 1px solid var(--ios-glass-pill-border);
   border-radius: var(--ios-radius-pill);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 4px;
+  padding: 3px 6px;
   position: relative;
 }
 
 [data-theme="dark"] .ios-tab-bar-dock {
-  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .ios-tab-item {
@@ -1424,13 +1424,14 @@ main {
   background: transparent;
   border: none;
   color: var(--ios-text-muted);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   cursor: pointer;
   position: relative;
   z-index: 2;
   border-radius: var(--ios-radius-pill);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 2px 0;
 }
 
 .ios-tab-item:hover {
@@ -1444,6 +1445,108 @@ main {
 
 .ios-tab-item:active {
   transform: scale(0.92);
+}
+
+/* ======================================================== */
+/* SKELETON SHIMMER LOADERS & SYNC INDICATOR                */
+/* ======================================================== */
+.ios-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.04) 0%,
+    rgba(0, 0, 0, 0.09) 50%,
+    rgba(0, 0, 0, 0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: ios-shimmer 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+[data-theme="dark"] .ios-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+}
+
+@keyframes ios-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.ios-skeleton-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.ios-skeleton-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 100%
+  );
+  animation: ios-card-shimmer 1.8s infinite;
+  pointer-events: none;
+}
+
+[data-theme="dark"] .ios-skeleton-card::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.07) 50%,
+    transparent 100%
+  );
+}
+
+@keyframes ios-card-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.sync-indicator-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--ios-text-secondary);
+  border: 1px solid var(--ios-glass-pill-border);
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .sync-indicator-pill {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ios-text-secondary);
+}
+
+.sync-spinner {
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--ios-blue);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: ios-spin 0.8s linear infinite;
+}
+
+@keyframes ios-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ======================================================== */

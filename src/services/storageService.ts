@@ -1,8 +1,30 @@
 import { Course, NotificationSettings, StudentProfile } from '../types';
 
-const getCoursesKey = (userId?: string) => `schedly_courses_${userId || 'guest'}`;
-const getProfileKey = (userId?: string) => `schedly_profile_${userId || 'guest'}`;
-const getSettingsKey = (userId?: string) => `schedly_settings_${userId || 'guest'}`;
+const LAST_USER_ID_KEY = 'schedly_last_active_user_id';
+
+export function getLastActiveUserId(): string | undefined {
+  try {
+    return localStorage.getItem(LAST_USER_ID_KEY) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function setLastActiveUserId(userId?: string): void {
+  try {
+    if (userId) {
+      localStorage.setItem(LAST_USER_ID_KEY, userId);
+    } else {
+      localStorage.removeItem(LAST_USER_ID_KEY);
+    }
+  } catch (err) {
+    console.error('Failed to set last active user id', err);
+  }
+}
+
+const getCoursesKey = (userId?: string) => `schedly_courses_${userId || getLastActiveUserId() || 'guest'}`;
+const getProfileKey = (userId?: string) => `schedly_profile_${userId || getLastActiveUserId() || 'guest'}`;
+const getSettingsKey = (userId?: string) => `schedly_settings_${userId || getLastActiveUserId() || 'guest'}`;
 
 export const DEFAULT_SETTINGS: NotificationSettings = {
   remindersEnabled: true,

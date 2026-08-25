@@ -105,3 +105,21 @@ export interface StudentProfile {
   emergencyContactPhone?: string;
   bloodType?: string;
 }
+
+/* In-App Developer Announcements & Remote Notices */
+export type AnnouncementType = 'modal' | 'banner' | 'toast';
+export type AnnouncementVariant = 'info' | 'update' | 'warning' | 'alert';
+
+export interface Announcement {
+  id: string;
+  title: string;
+  message: string;
+  type: AnnouncementType;
+  variant: AnnouncementVariant;
+  targetUserId?: string | null;
+  actionText?: string | null;
+  actionUrl?: string | null;
+  isActive: boolean;
+  dismissible: boolean;
+  createdAt?: string;
+}
