@@ -508,10 +508,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* Legal Disclaimer & App Info Footer */}
       <div style={{ textAlign: 'center', padding: '6px 12px 16px 12px', color: 'var(--ios-text-muted)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 6, color: 'var(--ios-text-secondary)' }}>
-          Schedly • v1.0.0 (Build 2026)
+          Schedly • v1.2.0 (Build 2026)
         </div>
         <p style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--ios-text-muted)', margin: 0, maxWidth: 360, marginLeft: 'auto', marginRight: 'auto' }}>
-          <strong>Disclaimer:</strong> Schedly is an independent student timetable companion and digital ID tool. It is not officially affiliated with, sponsored by, or endorsed by North Eastern Mindanao State University (NEMSU). All university names, marks, and curriculum data belong to their respective institution.
+          <strong>Disclaimer:</strong> Schedly is an independent student timetable companion and digital ID tool built for university and college students. It is not officially affiliated with, sponsored by, or endorsed by any specific university or academic institution. All university names, marks, logos, and curriculum data belong to their respective institutions.
         </p>
       </div>
     </div>

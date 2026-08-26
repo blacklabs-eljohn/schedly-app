@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Course } from '../types';
 import { getActiveClassState, formatTime12H, timeToMinutes } from '../services/scheduleEngine';
 import { triggerLightHaptic } from '../services/hapticsService';
-import { CheckCircle2, Code2, Atom, Cpu, BookOpen, GraduationCap } from 'lucide-react';
+import { DayOfWeek } from '../types';
+import { Sparkles, CheckCircle2, Code2, Atom, Cpu, BookOpen, GraduationCap } from 'lucide-react';
 
 interface NextClassHeroProps {
   courses: Course[];
@@ -40,16 +41,60 @@ export const NextClassHero: React.FC<NextClassHeroProps> = ({
     return () => clearInterval(timer);
   }, [courses]);
 
-  if (courses.length === 0 || activeState.type === 'NONE' || !activeState.course) {
+  if (courses.length === 0) {
+    return null;
+  }
+
+  const todayDayName = (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()]) as DayOfWeek;
+  const todayCourses = courses.filter(c => c.days.includes(todayDayName));
+
+  if (activeState.type === 'NONE' || !activeState.course) {
+    const isDayCompleted = todayCourses.length > 0;
+
     return (
-      <div className="ios-notification-banner" style={{ cursor: 'default' }}>
+      <div 
+        className="ios-notification-banner" 
+        style={{ 
+          cursor: 'default',
+          border: isDayCompleted ? '1px solid rgba(16, 185, 129, 0.3)' : undefined,
+          background: isDayCompleted 
+            ? 'linear-gradient(135deg, var(--ios-card-bg) 0%, rgba(16, 185, 129, 0.05) 100%)' 
+            : 'var(--ios-card-bg)'
+        }}
+      >
         <div className="ios-notification-main">
-          <div className="ios-notification-icon" style={{ background: 'var(--ios-green-light)', color: 'var(--ios-green)' }}>
-            <CheckCircle2 size={18} />
+          <div 
+            className="ios-notification-icon" 
+            style={{ 
+              background: isDayCompleted ? 'var(--ios-green-light)' : 'var(--ios-blue-light)', 
+              color: isDayCompleted ? 'var(--ios-green)' : 'var(--ios-blue)' 
+            }}
+          >
+            {isDayCompleted ? <CheckCircle2 size={19} /> : <Sparkles size={19} />}
           </div>
           <div className="ios-notification-content">
-            <div className="ios-notification-title">All Classes Finished Today</div>
-            <div className="ios-notification-subtitle">No active or upcoming classes right now</div>
+            <div className="ios-notification-title">
+              {isDayCompleted ? 'All Classes Done for Today! 🎉' : `No Classes Scheduled Today`}
+            </div>
+            <div className="ios-notification-subtitle">
+              {isDayCompleted 
+                ? "Congrats! You've finished all your lectures & labs." 
+                : `Enjoy your free ${todayDayName} and take time to recharge!`}
+            </div>
+          </div>
+          <div className="ios-notification-right">
+            <span 
+              className="ios-tag-pill"
+              style={{
+                background: isDayCompleted ? 'var(--ios-green-light)' : 'var(--ios-blue-light)',
+                color: isDayCompleted ? 'var(--ios-green)' : 'var(--ios-blue)',
+                fontWeight: 800,
+                fontSize: 10,
+                padding: '3px 7px'
+              }}
+            >
+              {isDayCompleted ? 'ALL DONE' : 'FREE DAY'}
+            </span>
           </div>
         </div>
       </div>

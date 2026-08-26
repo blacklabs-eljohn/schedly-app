@@ -189,33 +189,14 @@ export function getActiveClassState(courses: Course[], refDate = new Date()): Ac
     };
   }
 
-  // Check upcoming days if no classes left today
-  for (let offset = 1; offset <= 7; offset++) {
-    const nextDayIdx = (dayIndex + offset) % 7;
-    const nextDayName = dayNames[nextDayIdx];
-    const nextDayCourses = courses
-      .filter(c => c.days.includes(nextDayName))
-      .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
-
-    if (nextDayCourses.length > 0) {
-      const firstUpcoming = nextDayCourses[0];
-      const dayLabel = offset === 1 ? 'Tomorrow' : nextDayName;
-      return {
-        type: 'NEXT',
-        course: firstUpcoming,
-        minutesRemaining: 1440,
-        formattedCountdown: `${dayLabel} at ${formatTime12H(firstUpcoming.startTime)}`,
-        statusText: `Next class on ${dayLabel} at ${formatTime12H(firstUpcoming.startTime)}`
-      };
-    }
-  }
-
+  // If no more classes today, do not show tomorrow's class as UP NEXT
+  // so the Home screen can celebrate finishing all classes for the day
   return {
     type: 'NONE',
     course: null,
     minutesRemaining: 0,
     formattedCountdown: '',
-    statusText: 'No scheduled classes'
+    statusText: todayCourses.length > 0 ? 'All classes completed today' : 'No scheduled classes today'
   };
 }
 

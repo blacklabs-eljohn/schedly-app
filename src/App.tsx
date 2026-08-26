@@ -13,7 +13,7 @@ import {
   getLastActiveUserId,
   setLastActiveUserId
 } from './services/storageService';
-import { detectScheduleConflicts, getDayScheduleInfo, formatTime12H, timeToMinutes, getSubjectCardGradient } from './services/scheduleEngine';
+import { detectScheduleConflicts, getDayScheduleInfo, formatTime12H, timeToMinutes, getSubjectCardGradient, DAYS_OF_WEEK } from './services/scheduleEngine';
 import { scheduleClassReminders, showSystemToast, triggerTestClassNotification } from './services/notificationService';
 import { onAuthStateChange, getCurrentUser, signOutUser } from './services/authService';
 import { 
@@ -95,13 +95,19 @@ export function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isInitialSyncing, setIsInitialSyncing] = useState(true);
 
+  const getTodayDayOfWeek = (): DayOfWeek => {
+    const dayNames: DayOfWeek[] = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayName = dayNames[new Date().getDay()];
+    return DAYS_OF_WEEK.includes(dayName) ? dayName : 'Mon';
+  };
+
   // Eagerly hydrate from local cache on first frame to prevent blank flashes
   const [courses, setCourses] = useState<Course[]>(() => getStoredCourses(initialUserId));
   const [settings, setSettings] = useState<NotificationSettings>(() => getStoredSettings(initialUserId));
   const [profile, setProfile] = useState<StudentProfile>(() => getStoredStudentProfile(initialUserId));
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [theme, setTheme] = useState<'light' | 'dark'>(() => getStoredSettings(initialUserId).appearanceMode === 'dark' ? 'dark' : 'light');
-  const [selectedTimetableDay, setSelectedTimetableDay] = useState<DayOfWeek>('Mon');
+  const [selectedTimetableDay, setSelectedTimetableDay] = useState<DayOfWeek>(getTodayDayOfWeek);
 
   // Modals & Flows
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -444,6 +450,13 @@ export function App() {
     setActiveTab('schedule');
   };
 
+  const handleSelectTab = (tab: TabType) => {
+    if (tab === 'schedule' && activeTab !== 'schedule') {
+      setSelectedTimetableDay(getTodayDayOfWeek());
+    }
+    setActiveTab(tab);
+  };
+
   const conflicts = detectScheduleConflicts(courses);
   const today = new Date();
   const todayDayName = (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][today.getDay()]) as DayOfWeek;
@@ -639,7 +652,7 @@ export function App() {
                               onClick={() => {
                                 triggerLightHaptic();
                                 setSelectedTimetableDay(todayDayName);
-                                setActiveTab('schedule');
+                                handleSelectTab('schedule');
                               }}
                               style={{ background: 'none', border: 'none', color: 'var(--ios-blue)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
                             >
@@ -805,6 +818,7 @@ export function App() {
                         onSelectCourse={setSelectedCourse}
                         onOpenScanner={() => setIsScannerOpen(true)}
                         initialDay={selectedTimetableDay}
+                        onSelectDay={setSelectedTimetableDay}
                         onToggleTheme={handleToggleTheme}
                         theme={theme}
                       />
@@ -856,7 +870,7 @@ export function App() {
 
           {/* Floating Bottom Tab Bar */}
           {!isCorrectionOpen && (
-            <BottomTabBar activeTab={activeTab} onSelectTab={setActiveTab} />
+            <BottomTabBar activeTab={activeTab} onSelectTab={handleSelectTab} />
           )}
 
           {/* Document Scanner Modal */}

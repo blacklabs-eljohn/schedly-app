@@ -27,6 +27,7 @@ interface TimelineScheduleProps {
   onSelectCourse: (course: Course) => void;
   onOpenScanner?: () => void;
   initialDay?: DayOfWeek;
+  onSelectDay?: (day: DayOfWeek) => void;
   onToggleTheme?: () => void;
   theme?: 'light' | 'dark';
 }
@@ -44,7 +45,8 @@ interface PositionedEvent {
 export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({ 
   courses, 
   onSelectCourse, 
-  initialDay
+  initialDay,
+  onSelectDay
 }) => {
   const todayDayName = (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()]) as DayOfWeek;
   const [selectedDay, setSelectedDay] = useState<DayOfWeek>(
@@ -254,19 +256,40 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
       <div className="schedule-days-vertical-strip">
         {DAYS_OF_WEEK.map(day => {
           const isSelected = selectedDay === day;
+          const isCurrentToday = todayDayName === day;
           const dayCount = courses.filter(c => c.days.includes(day)).length;
 
           return (
             <button
               key={day}
               type="button"
-              className={`schedule-vertical-pill ${isSelected ? 'active' : ''}`}
+              className={`schedule-vertical-pill ${isSelected ? 'active' : ''} ${isCurrentToday ? 'is-today' : ''}`}
               onClick={() => {
                 triggerSelectionHaptic();
                 setSelectedDay(day);
+                onSelectDay?.(day);
               }}
             >
-              <span className="pill-day-name">{day}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                <span className="pill-day-name">{day}</span>
+                {isCurrentToday && (
+                  <span 
+                    style={{
+                      fontSize: 8,
+                      fontWeight: 900,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      padding: '1px 4px',
+                      borderRadius: 4,
+                      lineHeight: 1.1,
+                      background: isSelected ? 'rgba(255, 255, 255, 0.28)' : 'var(--ios-blue-light)',
+                      color: isSelected ? '#FFFFFF' : 'var(--ios-blue)'
+                    }}
+                  >
+                    TODAY
+                  </span>
+                )}
+              </div>
               <div className="pill-count-bubble">
                 {dayCount}
               </div>
@@ -409,8 +432,15 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
         /* TIMELINE GRID MATRIX (Non-Overlapping Multi-Column Calendar Layout) */
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <div className="ios-section-header" style={{ margin: 0 }}>
-              Timeline Grid ({dayCourses.length} {dayCourses.length === 1 ? 'Class' : 'Classes'})
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="ios-section-header" style={{ margin: 0 }}>
+                {selectedDay} Timeline Grid ({dayCourses.length} {dayCourses.length === 1 ? 'Class' : 'Classes'})
+              </div>
+              {isToday && (
+                <span className="ios-tag-pill ios-tag-pill-green" style={{ fontSize: 10 }}>
+                  ● TODAY
+                </span>
+              )}
             </div>
             <span style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
               <CalendarIcon size={12} /> {START_HOUR === 12 ? '12 PM' : START_HOUR > 12 ? `${START_HOUR - 12}:00 PM` : `${START_HOUR}:00 AM`} – {END_HOUR === 12 ? '12 PM' : END_HOUR > 12 ? `${END_HOUR - 12}:00 PM` : `${END_HOUR}:00 AM`}
