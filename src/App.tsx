@@ -55,6 +55,7 @@ import { AuthScreen } from './components/AuthScreen';
 import { syncWidgetsData } from './services/widgetBridge';
 
 import { Camera, ArrowRight, MapPin, User as UserIcon, Sun, Moon, Sparkles, CheckCircle2, Clock, CalendarDays, Edit3, ChevronUp, Code2, Atom, Cpu, BookOpen, GraduationCap } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 import './styles/apple-design-system.css';
 
 const VIBRANT_PALETTES = [
@@ -927,6 +928,7 @@ export function App() {
           )}
         </>
       )}
+      <Analytics />
     </div>
   );
 }
