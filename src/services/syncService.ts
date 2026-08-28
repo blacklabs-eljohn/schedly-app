@@ -8,7 +8,8 @@ import {
   getStoredSettings, 
   saveSettings,
   getStoredEvents,
-  saveEvents
+  saveEvents,
+  getSubjectIconsMap
 } from './storageService';
 import { 
   getPendingSyncMutations, 
@@ -123,7 +124,7 @@ export async function flushSyncQueue(userId: string): Promise<{ success: boolean
 
 /**
  * Pull cloud data for the authenticated user and merge with local storage
- * Protects pending un-synced offline edits from being overwritten
+ * Protects pending un-synced offline edits and custom icons from being overwritten
  */
 export async function pullCloudData(userId: string, defaultFullName?: string): Promise<{
   courses: Course[];
@@ -233,8 +234,10 @@ export async function pullCloudData(userId: string, defaultFullName?: string): P
       }
     }
 
-    // 3. Courses & Schedules Sync
+    // 3. Courses & Schedules Sync (with custom icons & color retention)
     let userCourses = getStoredCourses(userId);
+    const iconMap = getSubjectIconsMap(userId);
+
     if (!hasPendingCourses) {
       const { data: coursesRows } = await supabase
         .from('courses')
@@ -252,6 +255,11 @@ export async function pullCloudData(userId: string, defaultFullName?: string): P
           const days = matchingSchedules.map(s => s.day as DayOfWeek);
           const firstSched = matchingSchedules[0];
 
+          // Preserve local customizations (custom icon, color, etc.) if cloud returns null/default
+          const localMatch = userCourses.find(lc => lc.id === cRow.id || (lc.courseCode && lc.courseCode === cRow.course_code));
+          const resolvedIcon = (cRow as any).icon || localMatch?.icon || iconMap[cRow.id] || (cRow.course_code ? iconMap[cRow.course_code] : undefined) || undefined;
+          const resolvedColor = cRow.color || localMatch?.color || '#2563EB';
+
           return {
             id: cRow.id,
             courseCode: cRow.course_code,
@@ -259,8 +267,8 @@ export async function pullCloudData(userId: string, defaultFullName?: string): P
             instructor: cRow.instructor || '',
             room: cRow.room || 'TBA',
             units: Number(cRow.units) || 3,
-            color: cRow.color || '#2563EB',
-            icon: (cRow as any).icon || undefined,
+            color: resolvedColor,
+            icon: resolvedIcon,
             days: days.length > 0 ? days : ['Mon', 'Thu'],
             startTime: firstSched?.start_time || '08:00',
             endTime: firstSched?.end_time || '09:30'
@@ -334,7 +342,7 @@ export async function pushProfileToCloud(userId: string, profile: StudentProfile
   if (!isNetworkOnline()) return;
 
   try {
-    await supabase.from('profiles').upsert({
+    const { error } = await supabase.from('profiles').upsert({
       id: userId,
       full_name: profile.fullName,
       student_number: profile.studentNumber,
@@ -353,6 +361,10 @@ export async function pushProfileToCloud(userId: string, profile: StudentProfile
       blood_type: profile.bloodType,
       updated_at: new Date().toISOString()
     });
+
+    if (error) {
+      console.warn('[SyncService] Profile upsert warning:', error);
+    }
   } catch (err) {
     console.error('Failed to push profile to cloud:', err);
     throw err;
@@ -366,7 +378,7 @@ export async function pushSettingsToCloud(userId: string, settings: Notification
   if (!isNetworkOnline()) return;
 
   try {
-    await supabase.from('user_settings').upsert({
+    const { error } = await supabase.from('user_settings').upsert({
       user_id: userId,
       reminders_enabled: settings.remindersEnabled,
       reminder_minutes: settings.reminderMinutes,
@@ -375,6 +387,10 @@ export async function pushSettingsToCloud(userId: string, settings: Notification
       color_theme: settings.colorTheme || settings.subjectCardTheme || 'bluebook',
       updated_at: new Date().toISOString()
     });
+
+    if (error) {
+      console.warn('[SyncService] Settings upsert warning:', error);
+    }
   } catch (err) {
     console.error('Failed to push settings to cloud:', err);
     throw err;
@@ -382,7 +398,7 @@ export async function pushSettingsToCloud(userId: string, settings: Notification
 }
 
 /**
- * Push local Courses and Schedules to Supabase
+ * Push local Courses and Schedules to Supabase (with schema-safe fallback for custom columns)
  */
 export async function pushCoursesToCloud(userId: string, courses: Course[]): Promise<void> {
   if (!isNetworkOnline()) return;
@@ -409,7 +425,7 @@ export async function pushCoursesToCloud(userId: string, courses: Course[]): Pro
 
     if (courses.length === 0) return;
 
-    // 2. Upsert courses
+    // 2. Upsert courses with icon
     const coursePayloads = courses.map(c => ({
       id: c.id,
       user_id: userId,
@@ -423,7 +439,20 @@ export async function pushCoursesToCloud(userId: string, courses: Course[]): Pro
       updated_at: new Date().toISOString()
     }));
 
-    await supabase.from('courses').upsert(coursePayloads);
+    const { error: upsertErr } = await supabase.from('courses').upsert(coursePayloads);
+
+    if (upsertErr) {
+      // If icon column does not exist in Supabase Postgres schema, retry without icon column
+      if (upsertErr.message?.includes('icon') || upsertErr.code === '42703' || upsertErr.code === 'PGRST204') {
+        const fallbackPayloads = coursePayloads.map(({ icon, ...rest }) => rest);
+        const { error: fallbackErr } = await supabase.from('courses').upsert(fallbackPayloads);
+        if (fallbackErr) {
+          console.warn('[SyncService] Fallback courses upsert warning:', fallbackErr);
+        }
+      } else {
+        console.warn('[SyncService] Courses upsert warning:', upsertErr);
+      }
+    }
 
     // 3. Rebuild schedules
     const courseIds = courses.map(c => c.id);

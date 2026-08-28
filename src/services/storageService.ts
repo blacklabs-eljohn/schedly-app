@@ -27,6 +27,7 @@ export const getCoursesKey = (userId?: string) => `schedly_courses_${userId || g
 export const getProfileKey = (userId?: string) => `schedly_profile_${userId || getLastActiveUserId() || 'guest'}`;
 export const getSettingsKey = (userId?: string) => `schedly_settings_${userId || getLastActiveUserId() || 'guest'}`;
 export const getEventsKey = (userId?: string) => `schedly_custom_events_${userId || getLastActiveUserId() || 'guest'}`;
+export const getIconsKey = (userId?: string) => `schedly_custom_icons_${userId || getLastActiveUserId() || 'guest'}`;
 
 export const DEFAULT_SETTINGS: NotificationSettings = {
   remindersEnabled: true,
@@ -57,6 +58,34 @@ export const createBlankProfile = (userId?: string, fullName?: string): StudentP
 });
 
 /**
+ * Get dedicated custom icons map
+ */
+export function getSubjectIconsMap(userId?: string): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(getIconsKey(userId));
+    if (!raw) return {};
+    return JSON.parse(raw) || {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Save custom icon for a course
+ */
+export function saveSubjectIcon(identifier: string, iconId: string, userId?: string): void {
+  try {
+    const map = getSubjectIconsMap(userId);
+    map[identifier] = iconId;
+    const key = getIconsKey(userId);
+    localStorage.setItem(key, JSON.stringify(map));
+    idbSet(key, map);
+  } catch (err) {
+    console.error('Failed to save custom subject icon', err);
+  }
+}
+
+/**
  * Get courses synchronously on frame 0 (from localStorage mirror / fast memory)
  */
 export function getStoredCourses(userId?: string): Course[] {
@@ -64,7 +93,13 @@ export function getStoredCourses(userId?: string): Course[] {
     const raw = localStorage.getItem(getCoursesKey(userId));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+
+    const iconMap = getSubjectIconsMap(userId);
+    return parsed.map((c: Course) => ({
+      ...c,
+      icon: c.icon || iconMap[c.id] || iconMap[c.courseCode] || undefined
+    }));
   } catch (err) {
     console.error('Failed to parse stored courses', err);
     return [];
@@ -79,6 +114,20 @@ export function saveCourses(courses: Course[], userId?: string, queueForSync: bo
   const resolvedUserId = userId || getLastActiveUserId();
   const key = getCoursesKey(resolvedUserId);
   const safeList = courses || [];
+
+  // Update icons map for permanent retention
+  const iconMap = getSubjectIconsMap(resolvedUserId);
+  safeList.forEach(c => {
+    if (c.icon) {
+      iconMap[c.id] = c.icon;
+      if (c.courseCode) iconMap[c.courseCode] = c.icon;
+    }
+  });
+  try {
+    const iconsKey = getIconsKey(resolvedUserId);
+    localStorage.setItem(iconsKey, JSON.stringify(iconMap));
+    idbSet(iconsKey, iconMap);
+  } catch {}
 
   // 1. Synchronous mirror for instant frame-0 render
   try {
@@ -214,10 +263,14 @@ export function saveEvents(events: CustomEvent[], userId?: string, queueForSync:
 export function resetScheduleData(userId?: string): void {
   const resolvedUserId = userId || getLastActiveUserId();
   const key = getCoursesKey(resolvedUserId);
+  const iconsKey = getIconsKey(resolvedUserId);
+
   try {
     localStorage.removeItem(key);
+    localStorage.removeItem(iconsKey);
   } catch {}
   idbDelete(key);
+  idbDelete(iconsKey);
 
   if (resolvedUserId && resolvedUserId !== 'guest') {
     enqueueSyncMutation({
@@ -235,18 +288,21 @@ export function clearUserStorage(userId?: string): void {
   const profileKey = getProfileKey(resolvedUserId);
   const settingsKey = getSettingsKey(resolvedUserId);
   const eventsKey = getEventsKey(resolvedUserId);
+  const iconsKey = getIconsKey(resolvedUserId);
 
   try {
     localStorage.removeItem(coursesKey);
     localStorage.removeItem(profileKey);
     localStorage.removeItem(settingsKey);
     localStorage.removeItem(eventsKey);
+    localStorage.removeItem(iconsKey);
   } catch {}
 
   idbDelete(coursesKey);
   idbDelete(profileKey);
   idbDelete(settingsKey);
   idbDelete(eventsKey);
+  idbDelete(iconsKey);
 
   if (resolvedUserId) {
     clearSyncQueue(resolvedUserId);
