@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Course, DayOfWeek } from '../types';
 import { DAYS_OF_WEEK } from '../services/scheduleEngine';
-import { X, Palette, Trash2, Check } from 'lucide-react';
+import { X, Palette, Trash2, Check, ChevronRight } from 'lucide-react';
+import { SubjectIconPickerModal } from './SubjectIconPickerModal';
+import { getSubjectIconComponent, detectSubjectIcon, SUBJECT_ICONS } from '../services/iconService';
+import { triggerLightHaptic } from '../services/hapticsService';
 
 interface EditSubjectModalProps {
   course: Course | null;
@@ -31,6 +34,7 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
   onDelete
 }) => {
   const [course, setCourse] = useState<Course | null>(initialCourse);
+  const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
 
   useEffect(() => {
     if (initialCourse) {
@@ -61,6 +65,9 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
     }
   };
 
+  const activeIconId = course.icon || detectSubjectIcon(course.courseCode, course.courseName);
+  const activeIconDef = SUBJECT_ICONS.find(i => i.id === activeIconId);
+
   return (
     <div className="ios-modal-overlay" onClick={onClose}>
       <div className="ios-modal-sheet" onClick={e => e.stopPropagation()}>
@@ -70,16 +77,73 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
           <div>
             <h2 className="ios-modal-title" style={{ margin: 0 }}>Edit Subject</h2>
             <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 1 }}>
-              Customize vibrant color tag, venue, instructor, and schedule
+              Customize subject icon, vibrant color tag, venue & schedule
             </div>
           </div>
           <button 
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: 'var(--ios-text-muted)', cursor: 'pointer', padding: 4 }}
+            className="ios-modal-close-btn"
             aria-label="Close"
           >
-            <X size={20} />
+            <X size={16} />
           </button>
+        </div>
+
+        {/* Subject Icon Selector Row */}
+        <div style={{ marginBottom: 14 }}>
+          <div 
+            onClick={() => {
+              triggerLightHaptic();
+              setIsIconPickerOpen(true);
+            }}
+            role="button"
+            tabIndex={0}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 14px',
+              borderRadius: 14,
+              border: '1.5px solid var(--ios-card-border)',
+              background: 'var(--ios-bg-secondary)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div 
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  background: course.color || 'var(--ios-blue)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
+                }}
+              >
+                {getSubjectIconComponent(course.icon, course.courseCode, course.courseName, 20, '#FFFFFF')}
+              </div>
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ios-text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>{activeIconDef?.name || 'Subject Icon'}</span>
+                  {course.icon ? (
+                    <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 999, background: 'var(--ios-blue-light)', color: 'var(--ios-blue)', fontWeight: 700 }}>Custom</span>
+                  ) : (
+                    <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 999, background: 'var(--ios-bg-primary)', color: 'var(--ios-text-muted)', fontWeight: 700 }}>Auto-matched</span>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--ios-text-muted)', marginTop: 1 }}>
+                  Tap to choose from 35+ academic icons
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2, color: 'var(--ios-blue)', fontSize: 12, fontWeight: 700 }}>
+              Change <ChevronRight size={14} />
+            </div>
+          </div>
         </div>
 
         {/* Vibrant Color Swatches Matching Card Deck */}
@@ -248,6 +312,17 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
             </button>
           )}
         </div>
+
+        {/* Interactive Subject Icon Picker Modal */}
+        <SubjectIconPickerModal 
+          isOpen={isIconPickerOpen}
+          selectedIconId={course.icon}
+          courseCode={course.courseCode}
+          courseName={course.courseName}
+          courseColor={course.color}
+          onSelectIcon={(iconId) => handleUpdate('icon', iconId)}
+          onClose={() => setIsIconPickerOpen(false)}
+        />
       </div>
     </div>
   );

@@ -20,6 +20,7 @@ export interface Course {
   endTime: string;   // 24h format e.g. "09:00"
   units?: number;
   color?: string;
+  icon?: string;     // Custom subject icon ID e.g. 'code', 'flask', 'calculator'
   confidence?: FieldConfidence;
   rawTextSnippet?: string;
 }
@@ -68,14 +69,31 @@ export interface ActiveClassState {
   statusText: string;
 }
 
-export type SubjectCardTheme = 'blue-cascade' | 'dual-tone' | 'rainbow';
+/* Schedly Personality Color Themes */
+export type SchedlyColorTheme = 
+  | 'bluebook' 
+  | 'crimson' 
+  | 'bini' 
+  | 'ube' 
+  | 'coffee' 
+  | 'matcha' 
+  | 'duos' 
+  | 'highlighter'
+  | 'obsidian'
+  | 'monochrome'   // alias for obsidian
+  | 'blue-cascade' // legacy alias for bluebook
+  | 'dual-tone'    // legacy alias for duos
+  | 'rainbow';     // legacy alias for highlighter
+
+export type SubjectCardTheme = SchedlyColorTheme;
 
 export interface NotificationSettings {
   remindersEnabled: boolean;
   reminderMinutes: number; // e.g. 30
   soundEnabled: boolean;
   appearanceMode: 'system' | 'light' | 'dark';
-  subjectCardTheme?: SubjectCardTheme;
+  colorTheme?: SchedlyColorTheme;
+  subjectCardTheme?: SchedlyColorTheme;
 }
 
 export interface CORScanResult {
@@ -86,7 +104,14 @@ export interface CORScanResult {
 }
 
 /* Digital Student ID Data Models */
-export type IDTheme = 'y2k-pink' | 'digital-blue' | 'lime-tech' | 'lavender' | 'silver-specular' | 'minimal-white';
+export type IDTheme = 
+  | 'app-dynamic'
+  | 'digital-blue' 
+  | 'silver-specular' 
+  | 'lime-tech' 
+  | 'y2k-pink' 
+  | 'lavender' 
+  | 'minimal-white';
 
 export interface StudentProfile {
   id: string;
@@ -101,6 +126,7 @@ export interface StudentProfile {
   schoolLogo?: string;
   selectedTheme: IDTheme;
   accentColor: string;
+  useAppTheme?: boolean; // When true (default), ID automatically adapts to active Schedly color theme
   emergencyContactName?: string;
   emergencyContactPhone?: string;
   bloodType?: string;
@@ -123,3 +149,23 @@ export interface Announcement {
   dismissible: boolean;
   createdAt?: string;
 }
+
+/* User Custom Academic & Campus Events */
+export type EventCategory = 'exam' | 'assignment' | 'meeting' | 'activity' | 'personal';
+
+export interface CustomEvent {
+  id: string;
+  title: string;
+  category: EventCategory;
+  date: string; // 'YYYY-MM-DD'
+  startTime?: string; // 'HH:mm' (24H)
+  endTime?: string; // 'HH:mm' (24H)
+  isAllDay: boolean;
+  location?: string;
+  reminderMinutes: number; // e.g. -1 (none), 0 (at time), 15, 30, 60, 1440 (1 day before)
+  notes?: string;
+  color?: string;
+  isCompleted?: boolean;
+  createdAt: string;
+}
+

@@ -95,6 +95,219 @@
   --ios-glass-pill-border: rgba(255, 255, 255, 0.12);
 }
 
+/* ======================================================== */
+/* 8 SCHEDLY PERSONALITY COLOR THEMES (Centralized Tokens)  */
+/* Same Schedly. Different Personality.                     */
+/* ======================================================== */
+
+/* 1. BLUEBOOK (🔵 Academic, familiar, classic Schedly) */
+:root,
+[data-color-theme="bluebook"],
+[data-color-theme="blue-cascade"] {
+  --ios-blue: #2563EB;
+  --ios-blue-light: rgba(37, 99, 235, 0.08);
+  --ios-blue-hover: #1D4ED8;
+  --ios-primary-gradient: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  --ios-id-gradient: linear-gradient(145deg, #0F2042 0%, #1A365D 50%, #0F172A 100%);
+  --ios-id-highlight-bg: rgba(245, 158, 11, 0.2);
+  --ios-id-highlight-text: #FCD34D;
+  --ios-id-highlight-border: rgba(245, 158, 11, 0.3);
+}
+[data-theme="dark"][data-color-theme="bluebook"],
+[data-theme="dark"][data-color-theme="blue-cascade"],
+[data-theme="dark"]:not([data-color-theme]) {
+  --ios-blue: #3B82F6;
+  --ios-blue-light: rgba(59, 130, 246, 0.16);
+  --ios-blue-hover: #60A5FA;
+  --ios-primary-gradient: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+  --ios-id-gradient: linear-gradient(145deg, #0F2042 0%, #1A365D 50%, #0F172A 100%);
+  --ios-id-highlight-bg: rgba(245, 158, 11, 0.2);
+  --ios-id-highlight-text: #FCD34D;
+  --ios-id-highlight-border: rgba(245, 158, 11, 0.3);
+}
+
+/* 2. CRIMSON (🔴 Bold, energetic, confident) */
+[data-color-theme="crimson"] {
+  --ios-blue: #DC2626;
+  --ios-blue-light: rgba(220, 38, 38, 0.08);
+  --ios-blue-hover: #B91C1C;
+  --ios-primary-gradient: linear-gradient(135deg, #DC2626 0%, #991B1B 100%);
+  --ios-id-gradient: linear-gradient(145deg, #450A0A 0%, #991B1B 55%, #1C0404 100%);
+  --ios-id-highlight-bg: rgba(254, 202, 202, 0.2);
+  --ios-id-highlight-text: #FCA5A5;
+  --ios-id-highlight-border: rgba(254, 202, 202, 0.35);
+}
+[data-theme="dark"][data-color-theme="crimson"] {
+  --ios-blue: #EF4444;
+  --ios-blue-light: rgba(239, 68, 68, 0.18);
+  --ios-blue-hover: #F87171;
+  --ios-primary-gradient: linear-gradient(135deg, #EF4444 0%, #991B1B 100%);
+  --ios-id-gradient: linear-gradient(145deg, #450A0A 0%, #991B1B 55%, #1C0404 100%);
+  --ios-id-highlight-bg: rgba(254, 202, 202, 0.2);
+  --ios-id-highlight-text: #FCA5A5;
+  --ios-id-highlight-border: rgba(254, 202, 202, 0.35);
+}
+
+/* 3. BINI (🌸 Fun, youthful, playful, modern) */
+[data-color-theme="bini"] {
+  --ios-blue: #DB2777;
+  --ios-blue-light: rgba(219, 39, 119, 0.09);
+  --ios-blue-hover: #BE185D;
+  --ios-primary-gradient: linear-gradient(135deg, #EC4899 0%, #BE185D 100%);
+  --ios-id-gradient: linear-gradient(145deg, #500724 0%, #BE185D 55%, #1C030D 100%);
+  --ios-id-highlight-bg: rgba(251, 207, 232, 0.22);
+  --ios-id-highlight-text: #F9A8D4;
+  --ios-id-highlight-border: rgba(251, 207, 232, 0.35);
+}
+[data-theme="dark"][data-color-theme="bini"] {
+  --ios-blue: #F472B6;
+  --ios-blue-light: rgba(244, 114, 182, 0.18);
+  --ios-blue-hover: #FB7185;
+  --ios-primary-gradient: linear-gradient(135deg, #F472B6 0%, #BE185D 100%);
+  --ios-id-gradient: linear-gradient(145deg, #500724 0%, #BE185D 55%, #1C030D 100%);
+  --ios-id-highlight-bg: rgba(251, 207, 232, 0.22);
+  --ios-id-highlight-text: #F9A8D4;
+  --ios-id-highlight-border: rgba(251, 207, 232, 0.35);
+}
+
+/* 4. UBE (🟣 Filipino, playful, distinctive, premium) */
+[data-color-theme="ube"] {
+  --ios-blue: #7C3AED;
+  --ios-blue-light: rgba(124, 58, 237, 0.09);
+  --ios-blue-hover: #6D28D9;
+  --ios-primary-gradient: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
+  --ios-id-gradient: linear-gradient(145deg, #2E1065 0%, #6D28D9 55%, #13032A 100%);
+  --ios-id-highlight-bg: rgba(221, 214, 254, 0.2);
+  --ios-id-highlight-text: #DDD6FE;
+  --ios-id-highlight-border: rgba(221, 214, 254, 0.35);
+}
+[data-theme="dark"][data-color-theme="ube"] {
+  --ios-blue: #A78BFA;
+  --ios-blue-light: rgba(167, 139, 250, 0.18);
+  --ios-blue-hover: #C4B5FD;
+  --ios-primary-gradient: linear-gradient(135deg, #A78BFA 0%, #6D28D9 100%);
+  --ios-id-gradient: linear-gradient(145deg, #2E1065 0%, #6D28D9 55%, #13032A 100%);
+  --ios-id-highlight-bg: rgba(221, 214, 254, 0.2);
+  --ios-id-highlight-text: #DDD6FE;
+  --ios-id-highlight-border: rgba(221, 214, 254, 0.35);
+}
+
+/* 5. COFFEE (☕ Cozy, productive, warm, calm) */
+[data-color-theme="coffee"] {
+  --ios-blue: #92400E;
+  --ios-blue-light: rgba(146, 64, 14, 0.09);
+  --ios-blue-hover: #78350F;
+  --ios-primary-gradient: linear-gradient(135deg, #92400E 0%, #5C2C16 100%);
+  --ios-id-gradient: linear-gradient(145deg, #2A1208 0%, #78350F 55%, #150803 100%);
+  --ios-id-highlight-bg: rgba(254, 243, 199, 0.2);
+  --ios-id-highlight-text: #FDE68A;
+  --ios-id-highlight-border: rgba(254, 243, 199, 0.35);
+}
+[data-theme="dark"][data-color-theme="coffee"] {
+  --ios-blue: #D97706;
+  --ios-blue-light: rgba(217, 119, 6, 0.18);
+  --ios-blue-hover: #F59E0B;
+  --ios-primary-gradient: linear-gradient(135deg, #D97706 0%, #78350F 100%);
+  --ios-id-gradient: linear-gradient(145deg, #2A1208 0%, #78350F 55%, #150803 100%);
+  --ios-id-highlight-bg: rgba(254, 243, 199, 0.2);
+  --ios-id-highlight-text: #FDE68A;
+  --ios-id-highlight-border: rgba(254, 243, 199, 0.35);
+}
+
+/* 6. MATCHA (🍵 Fresh, calm, organized, natural) */
+[data-color-theme="matcha"] {
+  --ios-blue: #16A34A;
+  --ios-blue-light: rgba(22, 163, 74, 0.09);
+  --ios-blue-hover: #15803D;
+  --ios-primary-gradient: linear-gradient(135deg, #16A34A 0%, #14532D 100%);
+  --ios-id-gradient: linear-gradient(145deg, #052E16 0%, #15803D 55%, #02170B 100%);
+  --ios-id-highlight-bg: rgba(187, 247, 208, 0.2);
+  --ios-id-highlight-text: #86EFAC;
+  --ios-id-highlight-border: rgba(187, 247, 208, 0.35);
+}
+[data-theme="dark"][data-color-theme="matcha"] {
+  --ios-blue: #4ADE80;
+  --ios-blue-light: rgba(74, 222, 128, 0.18);
+  --ios-blue-hover: #86EFAC;
+  --ios-primary-gradient: linear-gradient(135deg, #4ADE80 0%, #166534 100%);
+  --ios-id-gradient: linear-gradient(145deg, #052E16 0%, #15803D 55%, #02170B 100%);
+  --ios-id-highlight-bg: rgba(187, 247, 208, 0.2);
+  --ios-id-highlight-text: #86EFAC;
+  --ios-id-highlight-border: rgba(187, 247, 208, 0.35);
+}
+
+/* 7. DUOS (🎨 Simple two-color aesthetic) */
+[data-color-theme="duos"],
+[data-color-theme="dual-tone"] {
+  --ios-blue: #4F46E5;
+  --ios-blue-light: rgba(79, 70, 229, 0.09);
+  --ios-blue-hover: #4338CA;
+  --ios-primary-gradient: linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);
+  --ios-id-gradient: linear-gradient(145deg, #1E1B4B 0%, #4338CA 50%, #083344 100%);
+  --ios-id-highlight-bg: rgba(165, 243, 252, 0.2);
+  --ios-id-highlight-text: #67E8F9;
+  --ios-id-highlight-border: rgba(165, 243, 252, 0.35);
+}
+[data-theme="dark"][data-color-theme="duos"],
+[data-theme="dark"][data-color-theme="dual-tone"] {
+  --ios-blue: #6366F1;
+  --ios-blue-light: rgba(99, 102, 241, 0.18);
+  --ios-blue-hover: #818CF8;
+  --ios-primary-gradient: linear-gradient(135deg, #6366F1 0%, #22D3EE 100%);
+  --ios-id-gradient: linear-gradient(145deg, #1E1B4B 0%, #4338CA 50%, #083344 100%);
+  --ios-id-highlight-bg: rgba(165, 243, 252, 0.2);
+  --ios-id-highlight-text: #67E8F9;
+  --ios-id-highlight-border: rgba(165, 243, 252, 0.35);
+}
+
+/* 8. HIGHLIGHTER (🌈 Study highlighter multicolor spectrum) */
+[data-color-theme="highlighter"],
+[data-color-theme="rainbow"] {
+  --ios-blue: #0284C7;
+  --ios-blue-light: rgba(2, 132, 199, 0.09);
+  --ios-blue-hover: #0369A1;
+  --ios-primary-gradient: linear-gradient(135deg, #EC4899 0%, #8B5CF6 50%, #3B82F6 100%);
+  --ios-id-gradient: linear-gradient(145deg, #31103F 0%, #9D174D 40%, #1E40AF 100%);
+  --ios-id-highlight-bg: rgba(253, 230, 138, 0.25);
+  --ios-id-highlight-text: #FDE68A;
+  --ios-id-highlight-border: rgba(253, 230, 138, 0.4);
+}
+[data-theme="dark"][data-color-theme="highlighter"],
+[data-theme="dark"][data-color-theme="rainbow"] {
+  --ios-blue: #38BDF8;
+  --ios-blue-light: rgba(56, 189, 248, 0.18);
+  --ios-blue-hover: #7DD3FC;
+  --ios-primary-gradient: linear-gradient(135deg, #F472B6 0%, #A78BFA 50%, #60A5FA 100%);
+  --ios-id-gradient: linear-gradient(145deg, #31103F 0%, #9D174D 40%, #1E40AF 100%);
+  --ios-id-highlight-bg: rgba(253, 230, 138, 0.25);
+  --ios-id-highlight-text: #FDE68A;
+  --ios-id-highlight-border: rgba(253, 230, 138, 0.4);
+}
+
+/* 9. OBSIDIAN (⚫ Sleek, stealth, minimalist monochrome) */
+[data-color-theme="obsidian"],
+[data-color-theme="monochrome"] {
+  --ios-blue: #0F172A;
+  --ios-blue-light: rgba(15, 23, 42, 0.08);
+  --ios-blue-hover: #000000;
+  --ios-primary-gradient: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+  --ios-id-gradient: linear-gradient(145deg, #1E293B 0%, #0F172A 60%, #020617 100%);
+  --ios-id-highlight-bg: rgba(255, 255, 255, 0.16);
+  --ios-id-highlight-text: #F8FAFC;
+  --ios-id-highlight-border: rgba(255, 255, 255, 0.3);
+}
+[data-theme="dark"][data-color-theme="obsidian"],
+[data-theme="dark"][data-color-theme="monochrome"] {
+  --ios-blue: #94A3B8;
+  --ios-blue-light: rgba(148, 163, 184, 0.14);
+  --ios-blue-hover: #CBD5E1;
+  --ios-primary-gradient: linear-gradient(135deg, #334155 0%, #0F172A 100%);
+  --ios-id-gradient: linear-gradient(145deg, #1E293B 0%, #0F172A 60%, #000000 100%);
+  --ios-id-highlight-bg: rgba(255, 255, 255, 0.18);
+  --ios-id-highlight-text: #FFFFFF;
+  --ios-id-highlight-border: rgba(255, 255, 255, 0.35);
+}
+
 /* Global Reset & Container */
 * {
   box-sizing: border-box;
@@ -464,6 +677,19 @@ main {
 }
 
 /* Card Themes */
+.theme-app-dynamic {
+  background: var(--ios-id-gradient, linear-gradient(145deg, #0F2042 0%, #1A365D 50%, #0F172A 100%));
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.15);
+  transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.theme-app-dynamic .id-badge-highlight {
+  background: var(--ios-id-highlight-bg, rgba(255, 255, 255, 0.16));
+  color: var(--ios-id-highlight-text, #FFFFFF);
+  border: 1px solid var(--ios-id-highlight-border, rgba(255, 255, 255, 0.3));
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .theme-navy-gold {
   background: linear-gradient(145deg, #0F2042 0%, #1A365D 50%, #0F172A 100%);
   color: #FFFFFF;
@@ -1598,6 +1824,32 @@ main {
   font-weight: 800;
   color: var(--ios-text-primary);
   letter-spacing: -0.02em;
+}
+
+.ios-modal-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--ios-card-bg);
+  border: 1px solid var(--ios-card-border);
+  color: var(--ios-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.ios-modal-close-btn:hover {
+  background: var(--ios-bg-secondary);
+  color: var(--ios-text-primary);
+  transform: scale(1.05);
+}
+
+.ios-modal-close-btn:active {
+  transform: scale(0.92);
 }
 
 /* Inset Grouped Detail List for Bottom Sheets */

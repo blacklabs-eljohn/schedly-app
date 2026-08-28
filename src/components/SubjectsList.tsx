@@ -13,14 +13,9 @@ import {
   LayoutList, 
   CalendarDays, 
   Edit3, 
-  ChevronUp,
-  BookOpen,
-  Code2,
-  Atom,
-  Cpu,
-  GraduationCap
+  ChevronUp
 } from 'lucide-react';
-import { triggerSelectionHaptic, triggerLightHaptic } from '../services/hapticsService';
+import { triggerSelectionHaptic } from '../services/hapticsService';
 import { EditSubjectModal } from './EditSubjectModal';
 
 interface SubjectsListProps {
@@ -37,18 +32,6 @@ interface SubjectsListProps {
 
 type FilterType = 'all' | 'lecture' | 'lab' | 'conflicts';
 type DisplayMode = 'stack' | 'list';
-
-// Curated Rich Vibrant Gradients matching the Edit Color picker exactly
-const VIBRANT_PALETTES = [
-  'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)', // Electric Indigo
-  'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', // Ocean Blue
-  'linear-gradient(135deg, #10B981 0%, #059669 100%)', // Emerald Green
-  'linear-gradient(135deg, #F43F5E 0%, #E11D48 100%)', // Sunset Rose
-  'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)', // Royal Purple
-  'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', // Amber Gold
-  'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)', // Cyber Teal
-  'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)'  // Neon Pink
-];
 
 // Helper to format days cleanly without repeating strings
 const formatCleanDays = (days: any[]): string => {
@@ -85,22 +68,7 @@ const formatCleanDays = (days: any[]): string => {
   return uniqueNames.join('·');
 };
 
-const getSubjectIcon = (code: string, name: string) => {
-  const text = `${code} ${name}`.toLowerCase();
-  if (text.includes('cs') || text.includes('it') || text.includes('comp') || text.includes('prog') || text.includes('struct')) {
-    return <Code2 size={17} color="#FFFFFF" />;
-  }
-  if (text.includes('phys') || text.includes('chem') || text.includes('sci') || text.includes('bio')) {
-    return <Atom size={17} color="#FFFFFF" />;
-  }
-  if (text.includes('eng') || text.includes('tech') || text.includes('circ')) {
-    return <Cpu size={17} color="#FFFFFF" />;
-  }
-  if (text.includes('math') || text.includes('calc') || text.includes('stat') || text.includes('alg')) {
-    return <BookOpen size={17} color="#FFFFFF" />;
-  }
-  return <GraduationCap size={17} color="#FFFFFF" />;
-};
+import { getSubjectIconComponent } from '../services/iconService';
 
 export const SubjectsList: React.FC<SubjectsListProps> = ({
   courses,
@@ -286,7 +254,7 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
             const isConflicting = conflicts.some(c => c.course1.id === course.id || c.course2.id === course.id);
             const durationMins = timeToMinutes(course.endTime) - timeToMinutes(course.startTime);
             const formattedDuration = formatDuration(Math.max(durationMins, 0));
-            const customBg = getSubjectCardGradient(idx, filteredCourses.length, subjectCardTheme || 'blue-cascade');
+            const customBg = getSubjectCardGradient(idx, filteredCourses.length, subjectCardTheme || 'bluebook');
             const cleanDays = formatCleanDays(course.days);
             const cleanInstructor = course.instructor 
               ? course.instructor.startsWith('Prof.') ? course.instructor : `Prof. ${course.instructor}`
@@ -306,7 +274,7 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
                 <div className="wallet-card-header">
                   <div className="wallet-card-header-left">
                     <div className="wallet-card-avatar-circle">
-                      {getSubjectIcon(course.courseCode, course.courseName)}
+                      {getSubjectIconComponent(course.icon, course.courseCode, course.courseName, 17, '#FFFFFF')}
                     </div>
 
                     <div className="wallet-card-text-group">

@@ -4,6 +4,7 @@ import { formatTime12H, timeToMinutes, formatDuration } from '../services/schedu
 import { MapPin, User, Clock, Calendar, X, AlertTriangle, ChevronRight, CalendarDays, Copy, Edit3, Palette, Check } from 'lucide-react';
 import { showSystemToast } from '../services/notificationService';
 import { EditSubjectModal } from './EditSubjectModal';
+import { getSubjectIconComponent } from '../services/iconService';
 
 interface SubjectDetailModalProps {
   course: Course | null;
@@ -63,36 +64,55 @@ export const SubjectDetailModal: React.FC<SubjectDetailModalProps> = ({
 
           {/* Modal Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <span style={{ 
-                  fontSize: 13, 
-                  fontWeight: 800, 
-                  color: course.color || 'var(--ios-blue)',
-                  background: course.color ? `${course.color}18` : 'var(--ios-blue-light)',
-                  padding: '3px 9px',
-                  borderRadius: 8
-                }}>
-                  {course.courseCode}
-                </span>
-                {isLab ? (
-                  <span className="ios-tag-pill ios-tag-pill-purple">LABORATORY</span>
-                ) : (
-                  <span className="ios-tag-pill">LECTURE</span>
-                )}
-                {course.units && (
-                  <span className="ios-tag-pill ios-tag-pill-green">
-                    {course.units} {course.units === 1 ? 'Unit' : 'Units'}
-                  </span>
-                )}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div 
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: course.color || 'var(--ios-blue)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 3px 10px rgba(0,0,0,0.12)',
+                  flexShrink: 0,
+                  marginTop: 2
+                }}
+              >
+                {getSubjectIconComponent(course.icon, course.courseCode, course.courseName, 22, '#FFFFFF')}
               </div>
-              
-              <h2 className="ios-modal-title" style={{ marginTop: 2, marginBottom: 0, fontSize: 19 }}>
-                {course.courseName}
-              </h2>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <span style={{ 
+                    fontSize: 13, 
+                    fontWeight: 800, 
+                    color: course.color || 'var(--ios-blue)',
+                    background: course.color ? `${course.color}18` : 'var(--ios-blue-light)',
+                    padding: '3px 9px',
+                    borderRadius: 8
+                  }}>
+                    {course.courseCode}
+                  </span>
+                  {isLab ? (
+                    <span className="ios-tag-pill ios-tag-pill-purple">LABORATORY</span>
+                  ) : (
+                    <span className="ios-tag-pill">LECTURE</span>
+                  )}
+                  {course.units && (
+                    <span className="ios-tag-pill ios-tag-pill-green">
+                      {course.units} {course.units === 1 ? 'Unit' : 'Units'}
+                    </span>
+                  )}
+                </div>
+                
+                <h2 className="ios-modal-title" style={{ marginTop: 2, marginBottom: 0, fontSize: 18 }}>
+                  {course.courseName}
+                </h2>
+              </div>
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <button 
                 onClick={() => setIsEditing(true)}
                 style={{ background: 'var(--ios-bg-primary)', border: '1px solid var(--ios-card-border)', color: 'var(--ios-text-secondary)', cursor: 'pointer', padding: '6px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
@@ -102,10 +122,10 @@ export const SubjectDetailModal: React.FC<SubjectDetailModalProps> = ({
               </button>
               <button 
                 onClick={onClose}
-                style={{ background: 'none', border: 'none', color: 'var(--ios-text-muted)', cursor: 'pointer', padding: 4 }}
+                className="ios-modal-close-btn"
                 aria-label="Close"
               >
-                <X size={20} />
+                <X size={16} />
               </button>
             </div>
           </div>

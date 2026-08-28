@@ -22,14 +22,11 @@ import {
   ArrowRight,
   ArrowLeft,
   Building2,
-  BookOpen,
-  Calendar,
-  Layers,
   Hash
 } from 'lucide-react';
 import { triggerSelectionHaptic, triggerSuccessHaptic, triggerLightHaptic } from '../services/hapticsService';
 import { showSystemToast } from '../services/notificationService';
-import { createBlankProfile, saveStudentProfile } from '../services/storageService';
+import { saveStudentProfile } from '../services/storageService';
 import { pushProfileToCloud } from '../services/syncService';
 
 type AuthMode = 'signin' | 'signup_step1' | 'signup_step2' | 'forgot_password';

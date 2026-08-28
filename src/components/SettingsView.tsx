@@ -217,8 +217,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       </div>
 
       {/* Subject Card Aesthetic Style Group */}
-      <div className="ios-section-header">Subject Cards Theme</div>
-      <div className="ios-card" style={{ padding: '14px 16px' }}>
+      {/* Color Theme (8 Schedly Personalities) */}
+      <div className="ios-section-header">Color Theme</div>
+      <div className="ios-card" style={{ padding: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
           <div style={{
             width: 36,
@@ -234,125 +235,171 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <Palette size={18} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 14.5 }}>Card Stack Aesthetics</div>
-            <div style={{ fontSize: 12, color: 'var(--ios-text-muted)', marginTop: 1 }}>Choose your subject palette style</div>
+            <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: '-0.01em' }}>Visual Personality</div>
+            <div style={{ fontSize: 12, color: 'var(--ios-text-muted)', marginTop: 1 }}>Same Schedly. Different personality.</div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {/* Option 1: Blue Cascade (Reference Style) */}
-          <div 
-            onClick={() => {
-              triggerLightHaptic();
-              onUpdateSettings({ ...settings, subjectCardTheme: 'blue-cascade' });
-            }}
-            role="button"
-            tabIndex={0}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '12px 14px',
-              borderRadius: 14,
-              border: `1.5px solid ${(settings.subjectCardTheme || 'blue-cascade') === 'blue-cascade' ? 'var(--ios-blue)' : 'var(--ios-card-border)'}`,
-              background: (settings.subjectCardTheme || 'blue-cascade') === 'blue-cascade' ? 'var(--ios-blue-light)' : 'var(--ios-bg-secondary)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13.5, color: (settings.subjectCardTheme || 'blue-cascade') === 'blue-cascade' ? 'var(--ios-blue)' : 'var(--ios-text-primary)' }}>
-                🌊 Brand Blue Cascade
-              </div>
-              <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 2 }}>
-                Tonal gradient cascade (Editorial & Clean)
-              </div>
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            {
+              id: 'bluebook' as const,
+              name: 'Bluebook',
+              badge: 'Classic',
+              emoji: '🔵',
+              personality: 'Academic, familiar, classic Schedly',
+              swatches: ['#60A5FA', '#2563EB', '#1E3A8A', '#0F172A'],
+              aliases: ['blue-cascade']
+            },
+            {
+              id: 'crimson' as const,
+              name: 'Crimson',
+              badge: 'Bold',
+              emoji: '🔴',
+              personality: 'Bold, energetic, confident',
+              swatches: ['#F87171', '#EF4444', '#DC2626', '#991B1B'],
+              aliases: []
+            },
+            {
+              id: 'bini' as const,
+              name: 'Bini',
+              badge: 'Playful',
+              emoji: '🌸',
+              personality: 'Fun, youthful, stylish & modern',
+              swatches: ['#F472B6', '#EC4899', '#DB2777', '#BE185D'],
+              aliases: []
+            },
+            {
+              id: 'ube' as const,
+              name: 'Ube',
+              badge: 'Distinctive',
+              emoji: '🟣',
+              personality: 'Filipino, distinctive, playful & premium',
+              swatches: ['#C4B5FD', '#A78BFA', '#7C3AED', '#5B21B6'],
+              aliases: []
+            },
+            {
+              id: 'coffee' as const,
+              name: 'Coffee',
+              badge: 'Cozy',
+              emoji: '☕',
+              personality: 'Cozy, productive, espresso & mocha',
+              swatches: ['#FDE68A', '#D97706', '#92400E', '#78350F'],
+              aliases: []
+            },
+            {
+              id: 'matcha' as const,
+              name: 'Matcha',
+              badge: 'Fresh',
+              emoji: '🍵',
+              personality: 'Fresh, calm, organized & natural',
+              swatches: ['#86EFAC', '#4ADE80', '#16A34A', '#14532D'],
+              aliases: []
+            },
+            {
+              id: 'duos' as const,
+              name: 'Duos',
+              badge: 'Two-Tone',
+              emoji: '🎨',
+              personality: 'Simple two-color contrast aesthetic',
+              swatches: ['#4F46E5', '#0284C7', '#4F46E5', '#0F172A'],
+              aliases: ['dual-tone'] as string[]
+            },
+            {
+              id: 'highlighter' as const,
+              name: 'Highlighter',
+              badge: 'Spectrum',
+              emoji: '🌈',
+              personality: 'Colorful study & notes highlighter aesthetic',
+              swatches: ['#6366F1', '#10B981', '#F43F5E', '#F59E0B'],
+              aliases: ['rainbow'] as string[]
+            },
+            {
+              id: 'obsidian' as const,
+              name: 'Obsidian',
+              badge: 'Mono',
+              emoji: '🖤',
+              personality: 'Sleek, stealth & minimalist monochrome',
+              swatches: ['#94A3B8', '#475569', '#1E293B', '#0F172A'],
+              aliases: ['monochrome'] as string[]
+            }
+          ].map((themeItem) => {
+            const currentTheme = (settings.colorTheme || settings.subjectCardTheme || 'bluebook') as string;
+            const isSelected = currentTheme === themeItem.id || (themeItem.aliases as string[]).includes(currentTheme);
 
-            {/* Visual Color Pill Preview */}
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#60A5FA' }} />
-              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#2563EB' }} />
-              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#1E3A8A' }} />
-              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#0F172A' }} />
-            </div>
-          </div>
+            return (
+              <div 
+                key={themeItem.id}
+                onClick={() => {
+                  triggerLightHaptic();
+                  onUpdateSettings({ 
+                    ...settings, 
+                    colorTheme: themeItem.id,
+                    subjectCardTheme: themeItem.id 
+                  });
+                }}
+                role="button"
+                tabIndex={0}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '11px 13px',
+                  borderRadius: 14,
+                  border: `1.5px solid ${isSelected ? 'var(--ios-blue)' : 'var(--ios-card-border)'}`,
+                  background: isSelected ? 'var(--ios-blue-light)' : 'var(--ios-bg-secondary)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ fontSize: 20 }}>{themeItem.emoji}</div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ 
+                        fontWeight: 800, 
+                        fontSize: 14, 
+                        color: isSelected ? 'var(--ios-blue)' : 'var(--ios-text-primary)' 
+                      }}>
+                        {themeItem.name}
+                      </span>
+                      {isSelected && (
+                        <span style={{ 
+                          fontSize: 9.5, 
+                          fontWeight: 800, 
+                          padding: '1px 6px', 
+                          borderRadius: 999, 
+                          background: 'var(--ios-blue)', 
+                          color: '#FFFFFF' 
+                        }}>
+                          ACTIVE
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 1 }}>
+                      {themeItem.personality}
+                    </div>
+                  </div>
+                </div>
 
-          {/* Option 2: 2-Tone Alternating */}
-          <div 
-            onClick={() => {
-              triggerLightHaptic();
-              onUpdateSettings({ ...settings, subjectCardTheme: 'dual-tone' });
-            }}
-            role="button"
-            tabIndex={0}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '12px 14px',
-              borderRadius: 14,
-              border: `1.5px solid ${settings.subjectCardTheme === 'dual-tone' ? 'var(--ios-blue)' : 'var(--ios-card-border)'}`,
-              background: settings.subjectCardTheme === 'dual-tone' ? 'var(--ios-blue-light)' : 'var(--ios-bg-secondary)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13.5, color: settings.subjectCardTheme === 'dual-tone' ? 'var(--ios-blue)' : 'var(--ios-text-primary)' }}>
-                🌗 2-Tone Cobalt & Slate
+                {/* Visual 4-Color Swatch Preview */}
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0, marginLeft: 8 }}>
+                  {themeItem.swatches.map((color, cIdx) => (
+                    <div 
+                      key={cIdx} 
+                      style={{ 
+                        width: 13, 
+                        height: 13, 
+                        borderRadius: 3.5, 
+                        background: color,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                      }} 
+                    />
+                  ))}
+                </div>
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 2 }}>
-                Alternating royal blue & midnight cards
-              </div>
-            </div>
-
-            {/* Visual Color Pill Preview */}
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#2563EB' }} />
-              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#0F172A' }} />
-              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#2563EB' }} />
-              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#0F172A' }} />
-            </div>
-          </div>
-
-          {/* Option 3: Rainbow Spectrum */}
-          <div 
-            onClick={() => {
-              triggerLightHaptic();
-              onUpdateSettings({ ...settings, subjectCardTheme: 'rainbow' });
-            }}
-            role="button"
-            tabIndex={0}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '12px 14px',
-              borderRadius: 14,
-              border: `1.5px solid ${settings.subjectCardTheme === 'rainbow' ? 'var(--ios-blue)' : 'var(--ios-card-border)'}`,
-              background: settings.subjectCardTheme === 'rainbow' ? 'var(--ios-blue-light)' : 'var(--ios-bg-secondary)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13.5, color: settings.subjectCardTheme === 'rainbow' ? 'var(--ios-blue)' : 'var(--ios-text-primary)' }}>
-                🎨 Multicolor Spectrum
-              </div>
-              <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 2 }}>
-                Vibrant multi-colored rainbow cards
-              </div>
-            </div>
-
-            {/* Visual Color Pill Preview */}
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#6366F1' }} />
-              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#10B981' }} />
-              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#F43F5E' }} />
-              <div style={{ width: 14, height: 14, borderRadius: 4, background: '#F59E0B' }} />
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
 

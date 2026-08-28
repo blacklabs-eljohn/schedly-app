@@ -2,12 +2,11 @@ import { Course, DayOfWeek, StudentProfile } from '../types';
 import { parseDays, normalizeTime } from './corParser';
 
 const GEMINI_API_KEY_STORAGE = 'schedly_gemini_api_key';
-const BUILTIN_GEMINI_API_KEY = 'AIzaSyBEbsm_HQuxEWy1QlO4iOtOh3mYkGYbNBs';
 
 export function getStoredGeminiApiKey(): string {
-  const envKey = import.meta.env.VITE_GEMINI_API_KEY;
-  const storageKey = localStorage.getItem(GEMINI_API_KEY_STORAGE);
-  return (envKey || storageKey || BUILTIN_GEMINI_API_KEY).trim();
+  const envKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+  const storageKey = localStorage.getItem(GEMINI_API_KEY_STORAGE) || '';
+  return (storageKey || envKey).trim();
 }
 
 export function saveStoredGeminiApiKey(key: string): void {
@@ -19,7 +18,7 @@ export function saveStoredGeminiApiKey(key: string): void {
 }
 
 export function hasGeminiApiKey(): boolean {
-  return true;
+  return !!getStoredGeminiApiKey();
 }
 
 const COLOR_PALETTE = [
@@ -155,6 +154,13 @@ Return ONLY a JSON object with this structure:
         const errorData = await response.json().catch(() => ({}));
         const message = errorData?.error?.message || `HTTP ${response.status}: ${response.statusText}`;
         console.warn(`[Gemini Vision] Model ${model} returned ${response.status}:`, message);
+
+        if (response.status === 429 || message.toLowerCase().includes('quota') || message.toLowerCase().includes('resource_exhausted') || message.toLowerCase().includes('rate limit')) {
+          const quotaErr = new Error('QUOTA_EXCEEDED: Google Gemini Free Tier daily token limit reached.');
+          quotaErr.name = 'QuotaExceededError';
+          throw quotaErr;
+        }
+
         throw new Error(message);
       }
 
@@ -257,9 +263,12 @@ Return ONLY a JSON object with this structure:
         profile,
         totalUnits: parsed.totalUnits || courses.reduce((acc, cur) => acc + (cur.units || 3), 0),
       };
-    } catch (err) {
+    } catch (err: any) {
       lastError = err;
-      console.warn(`Gemini model ${model} failed, trying next fallback:`, err);
+      console.warn(`Gemini model ${model} failed:`, err);
+      if (err.name === 'QuotaExceededError' || err.message?.includes('QUOTA_EXCEEDED')) {
+        throw err;
+      }
     }
   }
 

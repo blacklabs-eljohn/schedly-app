@@ -1,5 +1,5 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { Course, NotificationSettings, DayOfWeek } from '../types';
+import { Course, NotificationSettings, DayOfWeek, CustomEvent } from '../types';
 import { formatTime12H, timeToMinutes } from './scheduleEngine';
 import { triggerSuccessHaptic, triggerLightHaptic } from './hapticsService';
 
@@ -200,3 +200,108 @@ export async function triggerTestClassNotification(leadMins: number = 15): Promi
 export function showSystemToast(_title: string, _body: string): void {
   triggerLightHaptic();
 }
+
+/**
+ * Generate a consistent positive 32-bit integer ID for LocalNotifications from string ID
+ */
+function getNotificationIdForEvent(eventId: string): number {
+  let hash = 0;
+  for (let i = 0; i < eventId.length; i++) {
+    hash = (hash << 5) - hash + eventId.charCodeAt(i);
+    hash |= 0;
+  }
+  return 500000 + (Math.abs(hash) % 400000);
+}
+
+/**
+ * Schedule a local notification alarm for a single custom event
+ */
+export async function scheduleCustomEventNotification(event: CustomEvent): Promise<void> {
+  if (event.reminderMinutes < 0 || event.isCompleted) return;
+
+  const hasPermission = await requestNotificationPermissions();
+  if (!hasPermission) return;
+
+  try {
+    await setupNotificationChannel();
+    const notifId = getNotificationIdForEvent(event.id);
+
+    // Cancel any existing notification for this event first
+    try {
+      await LocalNotifications.cancel({ notifications: [{ id: notifId }] });
+    } catch {
+      // ignore
+    }
+
+    const [year, month, day] = event.date.split('-').map(Number);
+    let startHour = 8;
+    let startMinute = 0;
+
+    if (!event.isAllDay && event.startTime) {
+      const [h, m] = event.startTime.split(':').map(Number);
+      startHour = h || 0;
+      startMinute = m || 0;
+    }
+
+    const eventDate = new Date(year, month - 1, day, startHour, startMinute, 0);
+    const triggerTimestamp = eventDate.getTime() - event.reminderMinutes * 60 * 1000;
+
+    // Only schedule if trigger time is in the future
+    if (triggerTimestamp > Date.now()) {
+      const formattedTime = event.startTime ? formatTime12H(event.startTime) : 'All Day';
+      const locationText = event.location ? ` · ${event.location}` : '';
+
+      let reminderLabel = 'Starting soon';
+      if (event.reminderMinutes === 0) reminderLabel = 'Starting now';
+      else if (event.reminderMinutes < 60) reminderLabel = `In ${event.reminderMinutes} minutes`;
+      else if (event.reminderMinutes === 60) reminderLabel = 'In 1 hour';
+      else if (event.reminderMinutes === 1440) reminderLabel = 'Tomorrow';
+
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: notifId,
+            title: `📌 ${event.title}`,
+            body: `${reminderLabel} (${formattedTime})${locationText}`,
+            schedule: { at: new Date(triggerTimestamp) },
+            channelId: 'class_reminders_channel',
+            smallIcon: 'ic_launcher',
+            iconColor: event.color || '#2563EB',
+            extra: {
+              eventId: event.id,
+              category: event.category
+            }
+          }
+        ]
+      });
+    }
+  } catch (err) {
+    console.warn('[NotificationService] Custom event notification scheduling error:', err);
+  }
+}
+
+/**
+ * Cancel notification for a deleted or completed event
+ */
+export async function cancelCustomEventNotification(eventId: string): Promise<void> {
+  try {
+    const notifId = getNotificationIdForEvent(eventId);
+    await LocalNotifications.cancel({ notifications: [{ id: notifId }] });
+  } catch (err) {
+    // ignore
+  }
+}
+
+/**
+ * Sync all active custom events with local notifications
+ */
+export async function syncAllCustomEventsNotifications(events: CustomEvent[]): Promise<void> {
+  for (const ev of events) {
+    if (!ev.isCompleted && ev.reminderMinutes >= 0) {
+      await scheduleCustomEventNotification(ev);
+    } else {
+      await cancelCustomEventNotification(ev.id);
+    }
+  }
+}
+

@@ -1,8 +1,8 @@
 import React from 'react';
-import { Home, Calendar, BookOpen, Settings } from 'lucide-react';
+import { Home, Clock, CalendarDays, BookOpen, Settings } from 'lucide-react';
 import { triggerSelectionHaptic } from '../services/hapticsService';
 
-export type TabType = 'home' | 'schedule' | 'subjects' | 'settings';
+export type TabType = 'home' | 'schedule' | 'calendar' | 'subjects' | 'settings';
 
 interface BottomTabBarProps {
   activeTab: TabType;
@@ -11,7 +11,8 @@ interface BottomTabBarProps {
 
 const TABS: { key: TabType; label: string; icon: React.FC<{ size?: number }> }[] = [
   { key: 'home', label: 'Home', icon: Home },
-  { key: 'schedule', label: 'Schedule', icon: Calendar },
+  { key: 'schedule', label: 'Schedule', icon: Clock },
+  { key: 'calendar', label: 'Calendar', icon: CalendarDays },
   { key: 'subjects', label: 'Subjects', icon: BookOpen },
   { key: 'settings', label: 'Settings', icon: Settings }
 ];

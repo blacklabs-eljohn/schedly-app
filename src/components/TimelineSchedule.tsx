@@ -7,6 +7,7 @@ import {
   formatTime12H, 
   detectScheduleConflicts 
 } from '../services/scheduleEngine';
+import { getHolidayForDayInCurrentWeek } from '../services/phHolidaysService';
 import { 
   MapPin, 
   User, 
@@ -18,7 +19,8 @@ import {
   Sparkles, 
   List, 
   Layers, 
-  CheckCircle2
+  CheckCircle2,
+  Palmtree
 } from 'lucide-react';
 import { triggerSelectionHaptic, triggerLightHaptic } from '../services/hapticsService';
 
@@ -28,6 +30,7 @@ interface TimelineScheduleProps {
   onOpenScanner?: () => void;
   initialDay?: DayOfWeek;
   onSelectDay?: (day: DayOfWeek) => void;
+  onOpenHolidays?: () => void;
   onToggleTheme?: () => void;
   theme?: 'light' | 'dark';
 }
@@ -46,7 +49,8 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
   courses, 
   onSelectCourse, 
   initialDay,
-  onSelectDay
+  onSelectDay,
+  onOpenHolidays
 }) => {
   const todayDayName = (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()]) as DayOfWeek;
   const [selectedDay, setSelectedDay] = useState<DayOfWeek>(
@@ -217,15 +221,32 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
     return { icon: <Sparkles size={13} color="var(--ios-blue)" />, label: 'Study Time & Campus Walk' };
   };
 
+  const selectedDayHoliday = getHolidayForDayInCurrentWeek(selectedDay);
+
   return (
     <div className="ios-section" style={{ paddingBottom: 78, paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))' }}>
-      {/* App Bar Header: Left Title "Schedule", Right Toggle Switch [List | Grid] */}
+      {/* App Bar Header: Left Title "Schedule", Right Toggle Switch [List | Grid] & Calendar Button */}
       <div className="schedule-top-bar">
         <h1 className="schedule-title-left">
           Schedule
         </h1>
 
-        <div className="schedule-top-actions">
+        <div className="schedule-top-actions" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {onOpenHolidays && (
+            <button
+              type="button"
+              className="schedule-view-btn"
+              onClick={() => {
+                triggerLightHaptic();
+                onOpenHolidays();
+              }}
+              style={{ padding: '6px 10px', fontSize: 12, color: 'var(--ios-green)' }}
+              title="Philippine Holidays & Long Weekends"
+            >
+              <Palmtree size={13} /> Holidays
+            </button>
+          )}
+
           {/* View Switcher: List vs Grid */}
           <div className="schedule-view-switcher" style={{ margin: 0 }}>
             <button 
@@ -257,6 +278,7 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
         {DAYS_OF_WEEK.map(day => {
           const isSelected = selectedDay === day;
           const isCurrentToday = todayDayName === day;
+          const dayHoliday = getHolidayForDayInCurrentWeek(day);
           const dayCount = courses.filter(c => c.days.includes(day)).length;
 
           return (
@@ -272,7 +294,7 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
             >
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                 <span className="pill-day-name">{day}</span>
-                {isCurrentToday && (
+                {isCurrentToday ? (
                   <span 
                     style={{
                       fontSize: 8,
@@ -288,7 +310,22 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
                   >
                     TODAY
                   </span>
-                )}
+                ) : dayHoliday ? (
+                  <span 
+                    style={{
+                      fontSize: 8,
+                      fontWeight: 900,
+                      padding: '1px 3px',
+                      borderRadius: 4,
+                      lineHeight: 1.1,
+                      background: isSelected ? 'rgba(255, 255, 255, 0.28)' : 'var(--ios-green-light)',
+                      color: isSelected ? '#FFFFFF' : 'var(--ios-green)'
+                    }}
+                    title={dayHoliday.name}
+                  >
+                    🌴 HOLIDAY
+                  </span>
+                ) : null}
               </div>
               <div className="pill-count-bubble">
                 {dayCount}
@@ -297,6 +334,54 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
           );
         })}
       </div>
+
+      {/* Holiday Announcement Banner for Selected Day (if holiday) */}
+      {selectedDayHoliday && (
+        <div 
+          className="ios-card" 
+          onClick={() => {
+            triggerLightHaptic();
+            onOpenHolidays?.();
+          }}
+          style={{
+            padding: '12px 14px',
+            marginBottom: 14,
+            background: 'linear-gradient(135deg, var(--ios-card-bg) 0%, rgba(16, 185, 129, 0.08) 100%)',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: 'var(--ios-green-light)',
+              color: 'var(--ios-green)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Palmtree size={17} />
+            </div>
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ios-text-primary)' }}>
+                🌴 {selectedDayHoliday.name}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--ios-text-muted)', marginTop: 1 }}>
+                {selectedDayHoliday.typeLabel} • Regular campus classes suspended
+              </div>
+            </div>
+          </div>
+          <span className="ios-tag-pill ios-tag-pill-green" style={{ fontSize: 10, padding: '2px 7px' }}>
+            NO CLASSES
+          </span>
+        </div>
+      )}
 
       {/* View Content */}
       {viewMode === 'agenda' ? (

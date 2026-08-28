@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { Course, StudentProfile, NotificationSettings, DayOfWeek } from '../types';
+import { Course, StudentProfile, NotificationSettings, DayOfWeek, CustomEvent } from '../types';
 import { 
   getStoredCourses, 
   saveCourses, 
@@ -7,11 +7,32 @@ import {
   saveStudentProfile, 
   getStoredSettings, 
   saveSettings,
-  createBlankProfile
+  getStoredEvents,
+  saveEvents
 } from './storageService';
+import { 
+  getPendingSyncMutations, 
+  removeSyncMutation, 
+  updateSyncMutation
+} from './indexedDbService';
+
+export type SyncState = 'ONLINE' | 'OFFLINE' | 'SYNCING' | 'SYNC_ERROR';
+
+let currentSyncState: SyncState = typeof navigator !== 'undefined' && !navigator.onLine ? 'OFFLINE' : 'ONLINE';
+const syncListeners = new Set<(state: SyncState) => void>();
 
 /**
- * Check if the browser currently has internet connectivity
+ * Notify all subscribers of sync state change
+ */
+function setSyncState(newState: SyncState) {
+  if (currentSyncState !== newState) {
+    currentSyncState = newState;
+    syncListeners.forEach(fn => fn(newState));
+  }
+}
+
+/**
+ * Check if the device currently has network connectivity
  */
 export function isNetworkOnline(): boolean {
   return typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean' 
@@ -20,144 +41,288 @@ export function isNetworkOnline(): boolean {
 }
 
 /**
+ * Get current sync state
+ */
+export function getSyncState(): SyncState {
+  return currentSyncState;
+}
+
+/**
+ * Subscribe to sync state changes
+ */
+export function subscribeSyncState(listener: (state: SyncState) => void): () => void {
+  syncListeners.add(listener);
+  listener(currentSyncState);
+  return () => {
+    syncListeners.delete(listener);
+  };
+}
+
+// Global network event listeners
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    setSyncState('ONLINE');
+  });
+  window.addEventListener('offline', () => {
+    setSyncState('OFFLINE');
+  });
+}
+
+/**
+ * Process pending offline sync mutations for a user
+ */
+export async function flushSyncQueue(userId: string): Promise<{ success: boolean; processed: number; errors: number }> {
+  if (!isNetworkOnline() || !userId || userId === 'guest') {
+    return { success: false, processed: 0, errors: 0 };
+  }
+
+  const mutations = await getPendingSyncMutations(userId);
+  if (!mutations || mutations.length === 0) {
+    setSyncState('ONLINE');
+    return { success: true, processed: 0, errors: 0 };
+  }
+
+  setSyncState('SYNCING');
+  let processed = 0;
+  let errors = 0;
+
+  for (const item of mutations) {
+    try {
+      if (item.table === 'profiles') {
+        await pushProfileToCloud(userId, item.payload);
+      } else if (item.table === 'user_settings') {
+        await pushSettingsToCloud(userId, item.payload);
+      } else if (item.table === 'courses') {
+        await pushCoursesToCloud(userId, item.payload);
+      } else if (item.table === 'custom_events') {
+        await pushEventsToCloud(userId, item.payload);
+      }
+
+      await removeSyncMutation(item.id, userId);
+      processed++;
+    } catch (err: any) {
+      console.warn(`[SyncQueue] Failed to process mutation ${item.id}:`, err);
+      errors++;
+      await updateSyncMutation({
+        ...item,
+        retryCount: item.retryCount + 1,
+        syncStatus: 'error',
+        lastError: err?.message || 'Sync failed'
+      });
+    }
+  }
+
+  if (errors > 0) {
+    setSyncState('SYNC_ERROR');
+  } else {
+    setSyncState('ONLINE');
+  }
+
+  return { success: errors === 0, processed, errors };
+}
+
+/**
  * Pull cloud data for the authenticated user and merge with local storage
+ * Protects pending un-synced offline edits from being overwritten
  */
 export async function pullCloudData(userId: string, defaultFullName?: string): Promise<{
   courses: Course[];
   profile: StudentProfile;
   settings: NotificationSettings;
+  customEvents: CustomEvent[];
 }> {
+  // 1. If offline, return local data instantly
   if (!isNetworkOnline()) {
+    setSyncState('OFFLINE');
     return {
       courses: getStoredCourses(userId),
       profile: getStoredStudentProfile(userId, defaultFullName),
-      settings: getStoredSettings(userId)
+      settings: getStoredSettings(userId),
+      customEvents: getStoredEvents(userId)
     };
   }
 
+  setSyncState('SYNCING');
+
   try {
-    // 1. Fetch Profile
-    const { data: profileRow } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    // Check pending mutations before pulling to avoid clobbering uncommitted local changes
+    const pending = await getPendingSyncMutations(userId);
+    const hasPendingCourses = pending.some(p => p.table === 'courses');
+    const hasPendingProfile = pending.some(p => p.table === 'profiles');
+    const hasPendingSettings = pending.some(p => p.table === 'user_settings');
+    const hasPendingEvents = pending.some(p => p.table === 'custom_events');
 
+    // First flush pending changes if any exist
+    if (pending.length > 0) {
+      await flushSyncQueue(userId);
+    }
+
+    // 1. Profile Sync
     let userProfile = getStoredStudentProfile(userId, defaultFullName);
+    if (!hasPendingProfile) {
+      const { data: profileRow } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
 
-    const isCorruptedName = (name?: string) => {
-      if (!name) return true;
-      const upper = name.toUpperCase().trim();
-      return upper.includes('MIDDLE NAME') || upper.includes('SEX FIRST') || upper.includes('FIRST NAME') || upper === 'STUDENT NAME';
-    };
-
-    if (profileRow) {
-      const resolvedName = (profileRow.full_name && !isCorruptedName(profileRow.full_name))
-        ? profileRow.full_name
-        : (defaultFullName && !isCorruptedName(defaultFullName))
-        ? defaultFullName
-        : (!isCorruptedName(userProfile.fullName))
-        ? userProfile.fullName
-        : defaultFullName || 'Student';
-
-      userProfile = {
-        id: profileRow.id,
-        fullName: resolvedName,
-        studentNumber: profileRow.student_number || userProfile.studentNumber || '',
-        program: profileRow.program || userProfile.program || '',
-        yearLevel: profileRow.year_level || userProfile.yearLevel || '1ST YEAR',
-        section: profileRow.section || userProfile.section || '',
-        schoolName: profileRow.school_name || userProfile.schoolName || 'NEMSU',
-        academicYear: profileRow.academic_year || userProfile.academicYear || '2026–2027',
-        profilePhoto: profileRow.profile_photo_url || userProfile.profilePhoto,
-        schoolLogo: profileRow.school_logo_url || userProfile.schoolLogo || 'nemsu_star',
-        selectedTheme: (profileRow.selected_theme as any) || userProfile.selectedTheme || 'digital-blue',
-        accentColor: profileRow.accent_color || userProfile.accentColor || '#2563EB',
-        emergencyContactName: profileRow.emergency_contact_name || userProfile.emergencyContactName || '',
-        emergencyContactPhone: profileRow.emergency_contact_phone || userProfile.emergencyContactPhone || '',
-        bloodType: profileRow.blood_type || userProfile.bloodType || 'O+'
+      const isCorruptedName = (name?: string) => {
+        if (!name) return true;
+        const upper = name.toUpperCase().trim();
+        return upper.includes('MIDDLE NAME') || upper.includes('SEX FIRST') || upper.includes('FIRST NAME') || upper === 'STUDENT NAME';
       };
-      saveStudentProfile(userProfile, userId);
-    } else {
-      // Initialize fresh cloud profile for this new user
-      const cleanDefaultName = defaultFullName && !isCorruptedName(defaultFullName) ? defaultFullName : 'Student';
-      const newBlankProfile = { ...userProfile, fullName: userProfile.fullName && !isCorruptedName(userProfile.fullName) ? userProfile.fullName : cleanDefaultName };
-      await pushProfileToCloud(userId, newBlankProfile);
-      userProfile = newBlankProfile;
-      saveStudentProfile(userProfile, userId);
-    }
 
-    // 2. Fetch Settings
-    const { data: settingsRow } = await supabase
-      .from('user_settings')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
+      if (profileRow) {
+        const resolvedName = (profileRow.full_name && !isCorruptedName(profileRow.full_name))
+          ? profileRow.full_name
+          : (defaultFullName && !isCorruptedName(defaultFullName))
+          ? defaultFullName
+          : (!isCorruptedName(userProfile.fullName))
+          ? userProfile.fullName
+          : defaultFullName || 'Student';
 
-    let userSettings = getStoredSettings(userId);
-
-    if (settingsRow) {
-      userSettings = {
-        remindersEnabled: settingsRow.reminders_enabled ?? userSettings.remindersEnabled,
-        reminderMinutes: settingsRow.reminder_minutes ?? userSettings.reminderMinutes,
-        soundEnabled: settingsRow.sound_enabled ?? userSettings.soundEnabled,
-        appearanceMode: settingsRow.appearance_mode ?? userSettings.appearanceMode
-      };
-      saveSettings(userSettings, userId);
-    } else {
-      await pushSettingsToCloud(userId, userSettings);
-    }
-
-    // 3. Fetch Courses & Schedules strictly belonging to this userId
-    const { data: coursesRows } = await supabase
-      .from('courses')
-      .select('*')
-      .eq('user_id', userId);
-
-    const { data: scheduleRows } = await supabase
-      .from('course_schedules')
-      .select('*')
-      .eq('user_id', userId);
-
-    let userCourses: Course[] = [];
-
-    if (coursesRows && coursesRows.length > 0) {
-      userCourses = coursesRows.map(cRow => {
-        const matchingSchedules = (scheduleRows || []).filter(s => s.course_id === cRow.id);
-        const days = matchingSchedules.map(s => s.day as DayOfWeek);
-        const firstSched = matchingSchedules[0];
-
-        return {
-          id: cRow.id,
-          courseCode: cRow.course_code,
-          courseName: cRow.course_name,
-          instructor: cRow.instructor || '',
-          room: cRow.room || 'TBA',
-          units: Number(cRow.units) || 3,
-          color: cRow.color || '#2563EB',
-          days: days.length > 0 ? days : ['Mon', 'Thu'],
-          startTime: firstSched?.start_time || '08:00',
-          endTime: firstSched?.end_time || '09:30'
+        userProfile = {
+          id: profileRow.id,
+          fullName: resolvedName,
+          studentNumber: profileRow.student_number || userProfile.studentNumber || '',
+          program: profileRow.program || userProfile.program || '',
+          yearLevel: profileRow.year_level || userProfile.yearLevel || '1ST YEAR',
+          section: profileRow.section || userProfile.section || '',
+          schoolName: profileRow.school_name || userProfile.schoolName || 'NEMSU',
+          academicYear: profileRow.academic_year || userProfile.academicYear || '2026–2027',
+          profilePhoto: profileRow.profile_photo_url || userProfile.profilePhoto,
+          schoolLogo: profileRow.school_logo_url || userProfile.schoolLogo || 'nemsu_star',
+          selectedTheme: (profileRow.selected_theme as any) || userProfile.selectedTheme || 'app-dynamic',
+          accentColor: profileRow.accent_color || userProfile.accentColor || '#2563EB',
+          useAppTheme: (profileRow as any)?.use_app_theme ?? userProfile.useAppTheme ?? true,
+          emergencyContactName: profileRow.emergency_contact_name || userProfile.emergencyContactName || '',
+          emergencyContactPhone: profileRow.emergency_contact_phone || userProfile.emergencyContactPhone || '',
+          bloodType: profileRow.blood_type || userProfile.bloodType || 'O+'
         };
-      });
-      saveCourses(userCourses, userId);
-    } else {
-      // New user with no courses in cloud -> empty timetable
-      userCourses = [];
-      saveCourses([], userId);
+        saveStudentProfile(userProfile, userId, false);
+      } else {
+        const cleanDefaultName = defaultFullName && !isCorruptedName(defaultFullName) ? defaultFullName : 'Student';
+        const newBlankProfile = { ...userProfile, fullName: userProfile.fullName && !isCorruptedName(userProfile.fullName) ? userProfile.fullName : cleanDefaultName };
+        await pushProfileToCloud(userId, newBlankProfile);
+        userProfile = newBlankProfile;
+        saveStudentProfile(userProfile, userId, false);
+      }
     }
+
+    // 2. Settings Sync
+    let userSettings = getStoredSettings(userId);
+    if (!hasPendingSettings) {
+      const { data: settingsRow } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (settingsRow) {
+        userSettings = {
+          remindersEnabled: settingsRow.reminders_enabled ?? userSettings.remindersEnabled,
+          reminderMinutes: settingsRow.reminder_minutes ?? userSettings.reminderMinutes,
+          soundEnabled: settingsRow.sound_enabled ?? userSettings.soundEnabled,
+          appearanceMode: settingsRow.appearance_mode ?? userSettings.appearanceMode,
+          colorTheme: (settingsRow as any).color_theme ?? userSettings.colorTheme ?? 'bluebook',
+          subjectCardTheme: (settingsRow as any).color_theme ?? userSettings.subjectCardTheme ?? 'bluebook'
+        };
+        saveSettings(userSettings, userId, false);
+      } else {
+        await pushSettingsToCloud(userId, userSettings);
+      }
+    }
+
+    // 3. Courses & Schedules Sync
+    let userCourses = getStoredCourses(userId);
+    if (!hasPendingCourses) {
+      const { data: coursesRows } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('user_id', userId);
+
+      const { data: scheduleRows } = await supabase
+        .from('course_schedules')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (coursesRows && coursesRows.length > 0) {
+        userCourses = coursesRows.map(cRow => {
+          const matchingSchedules = (scheduleRows || []).filter(s => s.course_id === cRow.id);
+          const days = matchingSchedules.map(s => s.day as DayOfWeek);
+          const firstSched = matchingSchedules[0];
+
+          return {
+            id: cRow.id,
+            courseCode: cRow.course_code,
+            courseName: cRow.course_name,
+            instructor: cRow.instructor || '',
+            room: cRow.room || 'TBA',
+            units: Number(cRow.units) || 3,
+            color: cRow.color || '#2563EB',
+            icon: (cRow as any).icon || undefined,
+            days: days.length > 0 ? days : ['Mon', 'Thu'],
+            startTime: firstSched?.start_time || '08:00',
+            endTime: firstSched?.end_time || '09:30'
+          };
+        });
+        saveCourses(userCourses, userId, false);
+      } else if (userCourses.length > 0) {
+        // If cloud is empty but local has courses, push local courses to cloud backup
+        await pushCoursesToCloud(userId, userCourses);
+      }
+    }
+
+    // 4. Custom Events & Tasks Sync (Graceful)
+    let userEvents = getStoredEvents(userId);
+    if (!hasPendingEvents) {
+      try {
+        const { data: eventRows, error: eventErr } = await supabase
+          .from('custom_events')
+          .select('*')
+          .eq('user_id', userId);
+
+        if (!eventErr && eventRows && eventRows.length > 0) {
+          userEvents = eventRows.map((r: any) => ({
+            id: r.id,
+            title: r.title,
+            category: r.category,
+            date: r.date,
+            startTime: r.start_time || undefined,
+            endTime: r.end_time || undefined,
+            isAllDay: Boolean(r.is_all_day),
+            location: r.location || '',
+            reminderMinutes: r.reminder_minutes ?? 30,
+            notes: r.notes || '',
+            color: r.color || undefined,
+            isCompleted: Boolean(r.is_completed),
+            createdAt: r.created_at || new Date().toISOString()
+          }));
+          saveEvents(userEvents, userId, false);
+        } else if (!eventErr && userEvents.length > 0) {
+          await pushEventsToCloud(userId, userEvents);
+        }
+      } catch {
+        // custom_events table is optional in older schemas
+      }
+    }
+
+    setSyncState('ONLINE');
 
     return {
       courses: userCourses,
       profile: userProfile,
-      settings: userSettings
+      settings: userSettings,
+      customEvents: userEvents
     };
   } catch (err) {
     console.error('Error during pullCloudData:', err);
+    setSyncState(isNetworkOnline() ? 'SYNC_ERROR' : 'OFFLINE');
     return {
       courses: getStoredCourses(userId),
       profile: getStoredStudentProfile(userId, defaultFullName),
-      settings: getStoredSettings(userId)
+      settings: getStoredSettings(userId),
+      customEvents: getStoredEvents(userId)
     };
   }
 }
@@ -182,6 +347,7 @@ export async function pushProfileToCloud(userId: string, profile: StudentProfile
       school_logo_url: profile.schoolLogo,
       selected_theme: profile.selectedTheme,
       accent_color: profile.accentColor,
+      use_app_theme: profile.useAppTheme ?? true,
       emergency_contact_name: profile.emergencyContactName,
       emergency_contact_phone: profile.emergencyContactPhone,
       blood_type: profile.bloodType,
@@ -189,6 +355,7 @@ export async function pushProfileToCloud(userId: string, profile: StudentProfile
     });
   } catch (err) {
     console.error('Failed to push profile to cloud:', err);
+    throw err;
   }
 }
 
@@ -205,10 +372,12 @@ export async function pushSettingsToCloud(userId: string, settings: Notification
       reminder_minutes: settings.reminderMinutes,
       sound_enabled: settings.soundEnabled,
       appearance_mode: settings.appearanceMode,
+      color_theme: settings.colorTheme || settings.subjectCardTheme || 'bluebook',
       updated_at: new Date().toISOString()
     });
   } catch (err) {
     console.error('Failed to push settings to cloud:', err);
+    throw err;
   }
 }
 
@@ -250,6 +419,7 @@ export async function pushCoursesToCloud(userId: string, courses: Course[]): Pro
       room: c.room,
       units: c.units || 3,
       color: c.color || '#2563EB',
+      icon: c.icon || null,
       updated_at: new Date().toISOString()
     }));
 
@@ -279,6 +449,62 @@ export async function pushCoursesToCloud(userId: string, courses: Course[]): Pro
     }
   } catch (err) {
     console.error('Failed to push courses to cloud:', err);
+    throw err;
+  }
+}
+
+/**
+ * Push local Custom Events / Tasks to Supabase
+ */
+export async function pushEventsToCloud(userId: string, events: CustomEvent[]): Promise<void> {
+  if (!isNetworkOnline()) return;
+
+  try {
+    const { data: existingEvents, error: fetchErr } = await supabase
+      .from('custom_events')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (fetchErr) {
+      // Table may not exist yet in Supabase schema
+      return;
+    }
+
+    const localIds = new Set(events.map(e => e.id));
+    const toDeleteIds = (existingEvents || [])
+      .map(e => e.id)
+      .filter(id => !localIds.has(id));
+
+    if (toDeleteIds.length > 0) {
+      await supabase
+        .from('custom_events')
+        .delete()
+        .eq('user_id', userId)
+        .in('id', toDeleteIds);
+    }
+
+    if (events.length === 0) return;
+
+    const payloads = events.map(e => ({
+      id: e.id,
+      user_id: userId,
+      title: e.title,
+      category: e.category,
+      date: e.date,
+      start_time: e.startTime || null,
+      end_time: e.endTime || null,
+      is_all_day: e.isAllDay,
+      location: e.location || null,
+      reminder_minutes: e.reminderMinutes,
+      notes: e.notes || null,
+      color: e.color || null,
+      is_completed: e.isCompleted || false,
+      updated_at: new Date().toISOString()
+    }));
+
+    await supabase.from('custom_events').upsert(payloads);
+  } catch (err) {
+    console.warn('[SyncService] Custom events cloud sync skipped:', err);
   }
 }
 

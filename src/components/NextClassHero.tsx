@@ -3,30 +3,15 @@ import { Course } from '../types';
 import { getActiveClassState, formatTime12H, timeToMinutes } from '../services/scheduleEngine';
 import { triggerLightHaptic } from '../services/hapticsService';
 import { DayOfWeek } from '../types';
-import { Sparkles, CheckCircle2, Code2, Atom, Cpu, BookOpen, GraduationCap } from 'lucide-react';
+import { getTodayHoliday } from '../services/phHolidaysService';
+import { Sparkles, CheckCircle2, Palmtree } from 'lucide-react';
+import { getSubjectIconComponent } from '../services/iconService';
 
 interface NextClassHeroProps {
   courses: Course[];
   onSelectCourse: (course: Course) => void;
-  onOpenScanner: () => void;
+  onOpenScanner?: () => void;
 }
-
-const getSubjectIcon = (code: string, name: string) => {
-  const text = `${code} ${name}`.toLowerCase();
-  if (text.includes('cs') || text.includes('it') || text.includes('comp') || text.includes('prog') || text.includes('struct')) {
-    return <Code2 size={18} />;
-  }
-  if (text.includes('phys') || text.includes('chem') || text.includes('sci') || text.includes('bio')) {
-    return <Atom size={18} />;
-  }
-  if (text.includes('eng') || text.includes('tech') || text.includes('circ')) {
-    return <Cpu size={18} />;
-  }
-  if (text.includes('math') || text.includes('calc') || text.includes('stat') || text.includes('alg')) {
-    return <BookOpen size={18} />;
-  }
-  return <GraduationCap size={18} />;
-};
 
 export const NextClassHero: React.FC<NextClassHeroProps> = ({
   courses,
@@ -47,9 +32,58 @@ export const NextClassHero: React.FC<NextClassHeroProps> = ({
 
   const todayDayName = (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()]) as DayOfWeek;
   const todayCourses = courses.filter(c => c.days.includes(todayDayName));
+  const todayHoliday = getTodayHoliday();
 
   if (activeState.type === 'NONE' || !activeState.course) {
     const isDayCompleted = todayCourses.length > 0;
+
+    // 1. If today is an official Philippine National Holiday
+    if (todayHoliday) {
+      return (
+        <div 
+          className="ios-notification-banner" 
+          style={{ 
+            cursor: 'default',
+            border: '1px solid rgba(16, 185, 129, 0.35)',
+            background: 'linear-gradient(135deg, var(--ios-card-bg) 0%, rgba(16, 185, 129, 0.06) 100%)'
+          }}
+        >
+          <div className="ios-notification-main">
+            <div 
+              className="ios-notification-icon" 
+              style={{ 
+                background: 'var(--ios-green-light)', 
+                color: 'var(--ios-green)' 
+              }}
+            >
+              <Palmtree size={19} />
+            </div>
+            <div className="ios-notification-content">
+              <div className="ios-notification-title">
+                🌴 {todayHoliday.name}
+              </div>
+              <div className="ios-notification-subtitle">
+                {todayHoliday.typeLabel} • Classes suspended today.
+              </div>
+            </div>
+            <div className="ios-notification-right">
+              <span 
+                className="ios-tag-pill"
+                style={{
+                  background: 'var(--ios-green-light)',
+                  color: 'var(--ios-green)',
+                  fontWeight: 800,
+                  fontSize: 10,
+                  padding: '3px 7px'
+                }}
+              >
+                HOLIDAY
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div 
@@ -163,7 +197,7 @@ export const NextClassHero: React.FC<NextClassHeroProps> = ({
               : (isImminent ? '#D97706' : 'var(--ios-blue)')
           }}
         >
-          {getSubjectIcon(course.courseCode, course.courseName)}
+          {getSubjectIconComponent(course.icon, course.courseCode, course.courseName, 18, 'currentColor')}
         </div>
 
         {/* Content: Subject Title + Room & Prof Flush Left */}

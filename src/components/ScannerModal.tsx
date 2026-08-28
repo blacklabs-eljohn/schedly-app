@@ -2,30 +2,37 @@ import React, { useState, useRef } from 'react';
 import { scanCORImage } from '../services/ocrService';
 import { Course, StudentProfile } from '../types';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../services/hapticsService';
+import { isNetworkOnline } from '../services/syncService';
 import { 
   Camera, 
   Upload, 
   X, 
   Sparkles, 
-  Zap 
+  Zap,
+  Info,
+  WifiOff
 } from 'lucide-react';
+import { ScannerQuotaModal } from './ScannerQuotaModal';
 
 interface ScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onScanComplete: (extractedCourses: Course[], extractedProfile?: Partial<StudentProfile>, totalUnits?: number) => void;
+  onAddManually?: () => void;
 }
 
 export const ScannerModal: React.FC<ScannerModalProps> = ({
   isOpen,
   onClose,
-  onScanComplete
+  onScanComplete,
+  onAddManually
 }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [progressPercent, setProgressPercent] = useState(0);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -33,6 +40,11 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
   if (!isOpen) return null;
 
   const handleProcessImage = async (imageSrc: string) => {
+    if (!isNetworkOnline()) {
+      alert('AI Document Scanning requires an active internet connection to extract schedules. You can add your subjects manually while offline.');
+      return;
+    }
+
     setPreviewImage(imageSrc);
     setIsScanning(true);
     setCurrentStep(1);
@@ -59,7 +71,17 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
     } catch (err: any) {
       console.error('Scan failed:', err);
       setIsScanning(false);
-      alert(err.message || 'Scanning encountered an issue. Please try again with a clearer photo.');
+      if (
+        err.name === 'QuotaExceededError' || 
+        err.message?.includes('QUOTA_EXCEEDED') || 
+        err.message?.toLowerCase().includes('quota') || 
+        err.message?.toLowerCase().includes('resource_exhausted') ||
+        err.message?.includes('429')
+      ) {
+        setIsQuotaModalOpen(true);
+      } else {
+        alert(err.message || 'Scanning encountered an issue. Please try again with a clearer photo.');
+      }
     }
   };
 
@@ -75,6 +97,8 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
       reader.readAsDataURL(file);
     }
   };
+
+  const online = isNetworkOnline();
 
   return (
     <div className="ios-modal-overlay" onClick={onClose}>
@@ -122,23 +146,45 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
           </div>
           <button 
             onClick={onClose}
-            style={{ 
-              background: 'var(--ios-card-bg)', 
-              border: '1px solid var(--ios-card-border)', 
-              borderRadius: '50%', 
-              width: 32, 
-              height: 32, 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              color: 'var(--ios-text-muted)', 
-              cursor: 'pointer' 
-            }}
+            className="ios-modal-close-btn"
             aria-label="Close"
           >
             <X size={16} />
           </button>
         </div>
+
+        {!online && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            borderRadius: 14,
+            padding: '10px 14px',
+            marginBottom: 12,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            fontSize: 12.5,
+            color: 'var(--ios-text-primary)'
+          }}>
+            <WifiOff size={18} color="#EF4444" style={{ flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <strong>Device is currently offline.</strong> AI Scanning requires internet. You can still add subjects manually offline.
+            </div>
+            {onAddManually && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onAddManually();
+                }}
+                className="ios-btn-secondary"
+                style={{ width: 'auto', padding: '5px 10px', fontSize: 11.5, margin: 0 }}
+              >
+                Add Manually
+              </button>
+            )}
+          </div>
+        )}
 
         {/* AI Scanner Viewport Frame */}
         <div className="scanner-container">
@@ -297,6 +343,43 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
             <Upload size={17} /> Upload Photo
           </button>
         </div>
+
+        {/* Informative Gemini Free Tier notice link */}
+        <div style={{ marginTop: 14, textAlign: 'center' }}>
+          <button
+            type="button"
+            onClick={() => {
+              triggerLightHaptic();
+              setIsQuotaModalOpen(true);
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--ios-text-muted)',
+              fontSize: 11.5,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              cursor: 'pointer',
+              padding: '4px 8px'
+            }}
+          >
+            <Sparkles size={13} color="var(--ios-blue)" />
+            <span>Free AI Vision Tier • Daily Tokens & Quota Info</span>
+            <Info size={12} />
+          </button>
+        </div>
+
+        {/* Scanner Quota & Limits Informational Bottom Sheet */}
+        <ScannerQuotaModal 
+          isOpen={isQuotaModalOpen} 
+          onClose={() => setIsQuotaModalOpen(false)} 
+          onAddManually={() => {
+            setIsQuotaModalOpen(false);
+            onClose();
+            if (onAddManually) onAddManually();
+          }}
+        />
       </div>
     </div>
   );

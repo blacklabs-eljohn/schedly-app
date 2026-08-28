@@ -49,10 +49,10 @@ export const InstructorDetailModal: React.FC<InstructorDetailModalProps> = ({
           </div>
           <button 
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: 'var(--ios-text-muted)', cursor: 'pointer', padding: 4 }}
+            className="ios-modal-close-btn"
             aria-label="Close"
           >
-            <X size={20} />
+            <X size={16} />
           </button>
         </div>
 

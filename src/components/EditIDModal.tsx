@@ -9,7 +9,8 @@ interface EditIDModalProps {
   onSave: (updatedProfile: StudentProfile) => void;
 }
 
-const THEME_OPTIONS: { id: IDTheme; name: string; gradient: string }[] = [
+const THEME_OPTIONS: { id: IDTheme; name: string; gradient: string; isDynamic?: boolean }[] = [
+  { id: 'app-dynamic', name: '✨ Use App Theme (Auto)', gradient: 'var(--ios-primary-gradient, linear-gradient(135deg, #2563EB, #1D4ED8))', isDynamic: true },
   { id: 'digital-blue', name: 'Navy & Gold', gradient: 'linear-gradient(145deg, #0F2042, #1A365D)' },
   { id: 'silver-specular', name: 'Midnight Slate', gradient: 'linear-gradient(145deg, #1E293B, #0F172A)' },
   { id: 'lime-tech', name: 'Emerald Campus', gradient: 'linear-gradient(145deg, #064E3B, #065F46)' },
@@ -30,6 +31,7 @@ export const EditIDModal: React.FC<EditIDModalProps> = ({
   // Synchronize state every time modal opens or initialProfile updates
   useEffect(() => {
     if (initialProfile && isOpen) {
+      const isAuto = initialProfile.useAppTheme !== false || initialProfile.selectedTheme === 'app-dynamic';
       setProfile({
         ...initialProfile,
         schoolName: initialProfile.schoolName || 'NEMSU',
@@ -40,6 +42,8 @@ export const EditIDModal: React.FC<EditIDModalProps> = ({
         yearLevel: initialProfile.yearLevel || '1ST YEAR',
         section: initialProfile.section || '',
         profilePhoto: initialProfile.profilePhoto || '',
+        selectedTheme: isAuto ? 'app-dynamic' : initialProfile.selectedTheme,
+        useAppTheme: isAuto,
         emergencyContactName: initialProfile.emergencyContactName || '',
         emergencyContactPhone: initialProfile.emergencyContactPhone || '',
         bloodType: initialProfile.bloodType || 'O+'
@@ -51,6 +55,14 @@ export const EditIDModal: React.FC<EditIDModalProps> = ({
 
   const handleUpdateField = (field: keyof StudentProfile, value: any) => {
     setProfile(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSelectTheme = (themeId: IDTheme) => {
+    if (themeId === 'app-dynamic') {
+      setProfile(prev => ({ ...prev, selectedTheme: 'app-dynamic', useAppTheme: true }));
+    } else {
+      setProfile(prev => ({ ...prev, selectedTheme: themeId, useAppTheme: false }));
+    }
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,6 +85,10 @@ export const EditIDModal: React.FC<EditIDModalProps> = ({
     }
   };
 
+  const currentThemeId = (profile.useAppTheme !== false || profile.selectedTheme === 'app-dynamic') 
+    ? 'app-dynamic' 
+    : profile.selectedTheme;
+
   return (
     <div className="ios-modal-overlay" onClick={onClose}>
       <div className="ios-modal-sheet" onClick={e => e.stopPropagation()}>
@@ -87,10 +103,10 @@ export const EditIDModal: React.FC<EditIDModalProps> = ({
           </div>
           <button 
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: 'var(--ios-text-muted)', cursor: 'pointer', padding: 4 }}
+            className="ios-modal-close-btn"
             aria-label="Close"
           >
-            <X size={20} />
+            <X size={16} />
           </button>
         </div>
 
@@ -98,31 +114,17 @@ export const EditIDModal: React.FC<EditIDModalProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 16 }}>
           <div className="id-photo-container" style={{ width: 76, height: 90, marginBottom: 8, borderRadius: 14, overflow: 'hidden' }}>
             {profile.profilePhoto ? (
-              <img 
-                src={profile.profilePhoto} 
-                alt="Student" 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-              />
+              <img src={profile.profilePhoto} alt="Student" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
-              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ios-bg-primary)' }}>
-                <Camera size={22} color="var(--ios-text-muted)" />
-              </div>
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ios-bg-primary)', fontSize: 32 }}>🎓</div>
             )}
           </div>
-
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            accept="image/jpeg,image/png,image/jpg,image/webp,image/heic,image/*" 
-            style={{ display: 'none' }}
-            onChange={handlePhotoUpload} 
-          />
 
           <div style={{ display: 'flex', gap: 8 }}>
             <button 
               type="button"
               className="ios-btn-secondary" 
-              style={{ width: 'auto', padding: '6px 14px', fontSize: 12.5, margin: 0 }}
+              style={{ fontSize: 12, padding: '6px 12px', height: 32, width: 'auto', margin: 0 }}
               onClick={() => fileInputRef.current?.click()}
             >
               <Camera size={13} /> {profile.profilePhoto ? 'Change Photo' : 'Upload Photo'}
@@ -132,51 +134,68 @@ export const EditIDModal: React.FC<EditIDModalProps> = ({
               <button 
                 type="button"
                 className="ios-btn-secondary" 
-                style={{ width: 'auto', padding: '6px 10px', fontSize: 12.5, color: 'var(--ios-red)', margin: 0 }}
+                style={{ fontSize: 12, padding: '6px 10px', height: 32, color: 'var(--ios-red)', width: 'auto', margin: 0 }}
                 onClick={handleRemovePhoto}
-                title="Remove photo"
               >
                 <Trash2 size={13} />
               </button>
             )}
           </div>
+
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            accept="image/jpeg,image/png,image/jpg,image/webp,image/heic,image/*" 
+            style={{ display: 'none' }} 
+            onChange={handlePhotoUpload}
+          />
         </div>
 
         {/* Theme Picker */}
         <div className="ios-input-group" style={{ marginBottom: 16 }}>
-          <label className="ios-input-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Palette size={13} color="var(--ios-blue)" /> Card Style Theme
-          </label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <label className="ios-input-label" style={{ display: 'flex', alignItems: 'center', gap: 5, margin: 0 }}>
+              <Palette size={13} color="var(--ios-blue)" /> Card Style Theme
+            </label>
+            {profile.useAppTheme !== false && (
+              <span style={{ fontSize: 11, color: 'var(--ios-blue)', fontWeight: 700 }}>
+                Adapts to Schedly Theme
+              </span>
+            )}
+          </div>
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '4px 2px' }}>
-            {THEME_OPTIONS.map(theme => (
-              <div 
-                key={theme.id}
-                style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 10,
-                  background: theme.gradient,
-                  cursor: 'pointer',
-                  border: profile.selectedTheme === theme.id ? '2px solid var(--ios-blue)' : '1px solid rgba(0,0,0,0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transform: profile.selectedTheme === theme.id ? 'scale(1.08)' : 'scale(1)',
-                  transition: 'all 0.2s ease',
-                  boxShadow: profile.selectedTheme === theme.id ? '0 4px 12px rgba(37,99,235,0.3)' : 'none',
-                  flexShrink: 0
-                }}
-                onClick={() => handleUpdateField('selectedTheme', theme.id)}
-                title={theme.name}
-              >
-                {profile.selectedTheme === theme.id && (
-                  <Check size={16} color={theme.id === 'minimal-white' ? '#0F172A' : '#FFFFFF'} />
-                )}
-              </div>
-            ))}
+            {THEME_OPTIONS.map(theme => {
+              const isSelected = currentThemeId === theme.id;
+              return (
+                <div 
+                  key={theme.id}
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 10,
+                    background: theme.gradient,
+                    cursor: 'pointer',
+                    border: isSelected ? '2px solid var(--ios-blue)' : '1px solid rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transform: isSelected ? 'scale(1.08)' : 'scale(1)',
+                    transition: 'all 0.2s ease',
+                    boxShadow: isSelected ? '0 4px 12px rgba(37,99,235,0.3)' : 'none',
+                    flexShrink: 0
+                  }}
+                  onClick={() => handleSelectTheme(theme.id)}
+                  title={theme.name}
+                >
+                  {isSelected && (
+                    <Check size={16} color={theme.id === 'minimal-white' ? '#0F172A' : '#FFFFFF'} />
+                  )}
+                </div>
+              );
+            })}
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 4, fontWeight: 600 }}>
-            Theme: {THEME_OPTIONS.find(t => t.id === profile.selectedTheme)?.name || 'Navy & Gold'}
+            Theme: {THEME_OPTIONS.find(t => t.id === currentThemeId)?.name || '✨ Use App Theme'}
           </div>
         </div>
 

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { StudentProfile } from '../types';
 import { QrCode, Shield, Phone, Heart } from 'lucide-react';
-import { showSystemToast } from '../services/notificationService';
 
 interface DigitalIDCardProps {
   profile: StudentProfile;
@@ -13,9 +12,15 @@ export const DigitalIDCard: React.FC<DigitalIDCardProps> = ({
   profile,
   onCardClick
 }) => {
-  const [isFlipped, setIsFlipped] = useState(false);
+  const [isFlipped] = useState(false);
 
   const getThemeClass = () => {
+    if (!profile) return 'theme-app-dynamic';
+    // If user has 'Use App Theme' enabled (default), dynamically follow the active Schedly theme
+    if (profile.useAppTheme !== false || profile.selectedTheme === 'app-dynamic') {
+      return 'theme-app-dynamic';
+    }
+
     switch (profile.selectedTheme) {
       case 'digital-blue': return 'theme-navy-gold';
       case 'silver-specular': return 'theme-midnight-slate';
@@ -23,13 +28,11 @@ export const DigitalIDCard: React.FC<DigitalIDCardProps> = ({
       case 'y2k-pink': return 'theme-sunset-coral';
       case 'lavender': return 'theme-cyber-lavender';
       case 'minimal-white': return 'theme-clean-white';
-      default: return 'theme-navy-gold';
+      default: return 'theme-app-dynamic';
     }
   };
 
-  const handleToggleFlip = (e: React.MouseEvent) => {
-    // If user clicks on card, we can either flip or open fullscreen
-    // Let's trigger onCardClick to open the pass details modal where they have all options
+  const handleToggleFlip = () => {
     onCardClick();
   };
 
