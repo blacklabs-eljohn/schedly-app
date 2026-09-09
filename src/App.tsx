@@ -917,7 +917,8 @@ export function App() {
                           display: 'flex',
                           gap: 4,
                           border: '1px solid var(--ios-card-border)',
-                          boxShadow: 'var(--ios-shadow-sm)'
+                          boxShadow: 'var(--ios-shadow-sm)',
+                          alignItems: 'center'
                         }}
                       >
                         <button
@@ -928,24 +929,27 @@ export function App() {
                           }}
                           style={{
                             flex: 1,
+                            minHeight: 38,
+                            height: 38,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 6,
-                            padding: '9px 12px',
+                            gap: 5,
+                            padding: '6px 10px',
                             borderRadius: 11,
                             border: 'none',
                             background: homeViewMode === 'schedule' ? 'var(--ios-blue)' : 'transparent',
                             color: homeViewMode === 'schedule' ? '#FFFFFF' : 'var(--ios-text-secondary)',
-                            fontSize: 13,
+                            fontSize: 12.5,
                             fontWeight: homeViewMode === 'schedule' ? 800 : 600,
                             cursor: 'pointer',
                             transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-                            boxShadow: homeViewMode === 'schedule' ? '0 2px 8px rgba(37, 99, 235, 0.28)' : 'none'
+                            boxShadow: homeViewMode === 'schedule' ? '0 2px 8px rgba(37, 99, 235, 0.28)' : 'none',
+                            whiteSpace: 'nowrap'
                           }}
                         >
-                          <CalendarIcon size={14} />
-                          <span>Class Schedule</span>
+                          <CalendarIcon size={14} style={{ flexShrink: 0 }} />
+                          <span style={{ whiteSpace: 'nowrap' }}>Class Schedule</span>
                         </button>
 
                         <button
@@ -956,33 +960,38 @@ export function App() {
                           }}
                           style={{
                             flex: 1,
+                            minHeight: 38,
+                            height: 38,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 6,
-                            padding: '9px 12px',
+                            gap: 5,
+                            padding: '6px 8px',
                             borderRadius: 11,
                             border: 'none',
                             background: homeViewMode === 'tasks' ? 'var(--ios-blue)' : 'transparent',
                             color: homeViewMode === 'tasks' ? '#FFFFFF' : 'var(--ios-text-secondary)',
-                            fontSize: 13,
+                            fontSize: 12.5,
                             fontWeight: homeViewMode === 'tasks' ? 800 : 600,
                             cursor: 'pointer',
                             transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-                            boxShadow: homeViewMode === 'tasks' ? '0 2px 8px rgba(37, 99, 235, 0.28)' : 'none'
+                            boxShadow: homeViewMode === 'tasks' ? '0 2px 8px rgba(37, 99, 235, 0.28)' : 'none',
+                            whiteSpace: 'nowrap'
                           }}
                         >
-                          <CheckCircle2 size={14} />
-                          <span>Deadlines & Tasks</span>
+                          <CheckCircle2 size={14} style={{ flexShrink: 0 }} />
+                          <span style={{ whiteSpace: 'nowrap' }}>Deadlines & Tasks</span>
                           {customEvents.filter(e => !e.isCompleted).length > 0 && (
                             <span 
                               style={{
-                                fontSize: 10.5,
+                                fontSize: 10,
                                 fontWeight: 800,
-                                padding: '1px 6px',
-                                borderRadius: 10,
-                                background: homeViewMode === 'tasks' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(239, 68, 68, 0.14)',
-                                color: homeViewMode === 'tasks' ? '#FFFFFF' : '#EF4444'
+                                padding: '1px 5px',
+                                borderRadius: 8,
+                                background: homeViewMode === 'tasks' ? 'rgba(255, 255, 255, 0.28)' : 'rgba(239, 68, 68, 0.14)',
+                                color: homeViewMode === 'tasks' ? '#FFFFFF' : '#EF4444',
+                                flexShrink: 0,
+                                lineHeight: '14px'
                               }}
                             >
                               {customEvents.filter(e => !e.isCompleted).length}

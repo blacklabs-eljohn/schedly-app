@@ -195,11 +195,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   const getCategoryLabel = (cat: EventCategory) => {
     switch (cat) {
-      case 'exam': return '📝 Exam / Quiz';
-      case 'assignment': return '📌 Deadline';
-      case 'meeting': return '👥 Meeting';
-      case 'activity': return '🏆 Campus Event';
-      case 'personal': return '🎯 Personal';
+      case 'exam': return '📝 Major Exam';
+      case 'long_quiz': return '📋 Long Quiz';
+      case 'short_quiz': return '⚡ Short Quiz';
+      case 'assignment': return '📌 Assignment';
+      case 'reporting': return '🎤 Oral Reporting';
+      case 'project': return '💻 Project / Output';
+      case 'meeting': return '👥 Meeting / Defense';
+      case 'activity': return '🏆 Campus Life';
+      case 'personal':
+      default: return '🎯 Personal Task';
     }
   };
 

@@ -33,7 +33,7 @@ interface HomeTodoListProps {
   onSelectCourse?: (course: Course) => void;
 }
 
-type FilterCategory = 'all' | 'urgent' | 'exam' | 'assignment' | 'meeting';
+type FilterCategory = 'all' | 'urgent' | 'exam' | 'quiz' | 'assignment' | 'reporting' | 'project';
 
 export const HomeTodoList: React.FC<HomeTodoListProps> = ({
   events,
@@ -142,13 +142,21 @@ export const HomeTodoList: React.FC<HomeTodoListProps> = ({
   const getCategoryMeta = (cat?: EventCategory) => {
     switch (cat) {
       case 'exam':
-        return { label: 'Exam / Quiz', emoji: '📝', color: '#EF4444' };
+        return { label: 'Major Exam', emoji: '📝', color: '#EF4444' };
+      case 'long_quiz':
+        return { label: 'Long Quiz', emoji: '📋', color: '#F97316' };
+      case 'short_quiz':
+        return { label: 'Short Quiz', emoji: '⚡', color: '#F59E0B' };
       case 'assignment':
-        return { label: 'Assignment / Project', emoji: '📌', color: '#F59E0B' };
+        return { label: 'Assignment', emoji: '📌', color: '#3B82F6' };
+      case 'reporting':
+        return { label: 'Oral Reporting', emoji: '🎤', color: '#8B5CF6' };
+      case 'project':
+        return { label: 'Project / Output', emoji: '💻', color: '#06B6D4' };
       case 'meeting':
-        return { label: 'Meeting / Defense', emoji: '👥', color: '#2563EB' };
+        return { label: 'Meeting / Defense', emoji: '👥', color: '#6366F1' };
       case 'activity':
-        return { label: 'Campus Activity', emoji: '🏆', color: '#8B5CF6' };
+        return { label: 'Campus Life', emoji: '🏆', color: '#EC4899' };
       case 'personal':
       default:
         return { label: 'Personal Task', emoji: '🎯', color: '#10B981' };
@@ -164,9 +172,14 @@ export const HomeTodoList: React.FC<HomeTodoListProps> = ({
     if (activeFilter === 'all') return true;
     if (activeFilter === 'urgent') {
       const diff = getDaysDiff(e.date);
-      return diff <= 2 || e.category === 'exam';
+      return diff <= 2 || e.category === 'exam' || e.category === 'long_quiz' || e.category === 'short_quiz';
     }
-    return e.category === activeFilter;
+    if (activeFilter === 'exam') return e.category === 'exam';
+    if (activeFilter === 'quiz') return e.category === 'long_quiz' || e.category === 'short_quiz';
+    if (activeFilter === 'assignment') return e.category === 'assignment';
+    if (activeFilter === 'reporting') return e.category === 'reporting';
+    if (activeFilter === 'project') return e.category === 'project';
+    return true;
   });
 
   // Group filtered pending into buckets:
@@ -553,7 +566,28 @@ export const HomeTodoList: React.FC<HomeTodoListProps> = ({
             flexShrink: 0
           }}
         >
-          📝 Quizzes & Exams
+          📝 Major Exams
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            triggerLightHaptic();
+            setActiveFilter('quiz');
+          }}
+          style={{
+            padding: '6px 12px',
+            borderRadius: 10,
+            border: activeFilter === 'quiz' ? '1.5px solid #F97316' : '1px solid var(--ios-card-border)',
+            background: activeFilter === 'quiz' ? 'rgba(249, 115, 22, 0.12)' : 'var(--ios-card-bg)',
+            color: activeFilter === 'quiz' ? '#F97316' : 'var(--ios-text-secondary)',
+            fontSize: 11.5,
+            fontWeight: activeFilter === 'quiz' ? 800 : 600,
+            cursor: 'pointer',
+            flexShrink: 0
+          }}
+        >
+          📋 Quizzes
         </button>
 
         <button
@@ -565,9 +599,9 @@ export const HomeTodoList: React.FC<HomeTodoListProps> = ({
           style={{
             padding: '6px 12px',
             borderRadius: 10,
-            border: activeFilter === 'assignment' ? '1.5px solid #F59E0B' : '1px solid var(--ios-card-border)',
-            background: activeFilter === 'assignment' ? 'rgba(245, 158, 11, 0.12)' : 'var(--ios-card-bg)',
-            color: activeFilter === 'assignment' ? '#F59E0B' : 'var(--ios-text-secondary)',
+            border: activeFilter === 'assignment' ? '1.5px solid #3B82F6' : '1px solid var(--ios-card-border)',
+            background: activeFilter === 'assignment' ? 'rgba(59, 130, 246, 0.12)' : 'var(--ios-card-bg)',
+            color: activeFilter === 'assignment' ? '#3B82F6' : 'var(--ios-text-secondary)',
             fontSize: 11.5,
             fontWeight: activeFilter === 'assignment' ? 800 : 600,
             cursor: 'pointer',
@@ -581,21 +615,42 @@ export const HomeTodoList: React.FC<HomeTodoListProps> = ({
           type="button"
           onClick={() => {
             triggerLightHaptic();
-            setActiveFilter('meeting');
+            setActiveFilter('reporting');
           }}
           style={{
             padding: '6px 12px',
             borderRadius: 10,
-            border: activeFilter === 'meeting' ? '1.5px solid #2563EB' : '1px solid var(--ios-card-border)',
-            background: activeFilter === 'meeting' ? 'rgba(37, 99, 235, 0.12)' : 'var(--ios-card-bg)',
-            color: activeFilter === 'meeting' ? '#2563EB' : 'var(--ios-text-secondary)',
+            border: activeFilter === 'reporting' ? '1.5px solid #8B5CF6' : '1px solid var(--ios-card-border)',
+            background: activeFilter === 'reporting' ? 'rgba(139, 92, 246, 0.12)' : 'var(--ios-card-bg)',
+            color: activeFilter === 'reporting' ? '#8B5CF6' : 'var(--ios-text-secondary)',
             fontSize: 11.5,
-            fontWeight: activeFilter === 'meeting' ? 800 : 600,
+            fontWeight: activeFilter === 'reporting' ? 800 : 600,
             cursor: 'pointer',
             flexShrink: 0
           }}
         >
-          👥 Group Work
+          🎤 Reporting
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            triggerLightHaptic();
+            setActiveFilter('project');
+          }}
+          style={{
+            padding: '6px 12px',
+            borderRadius: 10,
+            border: activeFilter === 'project' ? '1.5px solid #06B6D4' : '1px solid var(--ios-card-border)',
+            background: activeFilter === 'project' ? 'rgba(6, 182, 212, 0.12)' : 'var(--ios-card-bg)',
+            color: activeFilter === 'project' ? '#06B6D4' : 'var(--ios-text-secondary)',
+            fontSize: 11.5,
+            fontWeight: activeFilter === 'project' ? 800 : 600,
+            cursor: 'pointer',
+            flexShrink: 0
+          }}
+        >
+          💻 Projects & Outputs
         </button>
       </div>
 

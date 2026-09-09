@@ -8,9 +8,12 @@ import {
   FileText, 
   Trash2, 
   Check,
-  BookOpen
+  BookOpen,
+  Sparkles,
+  Calendar
 } from 'lucide-react';
 import { ConfirmationModal } from './ConfirmationModal';
+import { formatTime12H } from '../services/scheduleEngine';
 import { triggerLightHaptic, triggerSelectionHaptic, triggerSuccessHaptic } from '../services/hapticsService';
 
 interface AddEventModalProps {
@@ -25,22 +28,27 @@ interface AddEventModalProps {
 }
 
 const CATEGORIES: { id: EventCategory; label: string; icon: string; defaultColor: string }[] = [
-  { id: 'exam', label: 'Exam / Quiz', icon: '📝', defaultColor: '#EF4444' },
-  { id: 'assignment', label: 'Deadline', icon: '📌', defaultColor: '#F59E0B' },
-  { id: 'meeting', label: 'Meeting', icon: '👥', defaultColor: '#2563EB' },
-  { id: 'activity', label: 'Campus Life', icon: '🏆', defaultColor: '#8B5CF6' },
+  { id: 'exam', label: 'Major Exam', icon: '📝', defaultColor: '#EF4444' },
+  { id: 'long_quiz', label: 'Long Quiz', icon: '📋', defaultColor: '#F97316' },
+  { id: 'short_quiz', label: 'Short Quiz', icon: '⚡', defaultColor: '#F59E0B' },
+  { id: 'assignment', label: 'Assignment', icon: '📌', defaultColor: '#3B82F6' },
+  { id: 'reporting', label: 'Reporting', icon: '🎤', defaultColor: '#8B5CF6' },
+  { id: 'project', label: 'Project / Output', icon: '💻', defaultColor: '#06B6D4' },
+  { id: 'meeting', label: 'Meeting / Defense', icon: '👥', defaultColor: '#6366F1' },
+  { id: 'activity', label: 'Campus Life', icon: '🏆', defaultColor: '#EC4899' },
   { id: 'personal', label: 'Personal', icon: '🎯', defaultColor: '#10B981' }
 ];
 
 const COLOR_PALETTES = [
   '#2563EB', // Bluebook (Classic Blue)
   '#EF4444', // Crimson (Bold Red)
+  '#F97316', // Tangerine (Vibrant Orange)
   '#EC4899', // Bini (Playful Pink)
   '#7C3AED', // Ube (Ube Purple)
-  '#92400E', // Coffee (Warm Amber/Mocha)
+  '#06B6D4', // Cyan (Electric Sky)
   '#16A34A', // Matcha (Fresh Green)
   '#4F46E5', // Duos (Electric Indigo)
-  '#0284C7', // Highlighter (Sky Cyan)
+  '#92400E', // Coffee (Warm Amber)
   '#1E293B'  // Obsidian (Stealth Slate)
 ];
 
@@ -77,6 +85,8 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   const [selectedColor, setSelectedColor] = useState('#EF4444');
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
 
+  const matchedCourse = courses.find(c => c.id === selectedSubjectId);
+
   useEffect(() => {
     if (isOpen) {
       if (initialEvent) {
@@ -98,18 +108,33 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
         setSelectedSubjectId(defaultSubId);
         setDate(getInitialDate());
         setIsAllDay(false);
-        setStartTime('09:00');
-        setEndTime('10:30');
-        setLocation('');
         setReminderMinutes(30);
         setNotes('');
         
-        // If preselected subject has a color, match it
+        // If preselected subject exists, auto-populate class schedule times, room & color
         const targetCourse = courses.find(c => c.id === defaultSubId);
-        if (targetCourse?.color) {
-          setSelectedColor(targetCourse.color);
+        if (targetCourse) {
+          if (targetCourse.color) setSelectedColor(targetCourse.color);
+          else setSelectedColor('#EF4444');
+          
+          if (targetCourse.startTime) {
+            setStartTime(targetCourse.startTime);
+            setEndTime(targetCourse.endTime || targetCourse.startTime);
+          } else {
+            setStartTime('09:00');
+            setEndTime('10:30');
+          }
+
+          if (targetCourse.room) {
+            setLocation(targetCourse.room);
+          } else {
+            setLocation('');
+          }
         } else {
           setSelectedColor('#EF4444');
+          setStartTime('09:00');
+          setEndTime('10:30');
+          setLocation('');
         }
       }
     }
@@ -134,6 +159,11 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       if (course?.color) {
         setSelectedColor(course.color);
       }
+      // Auto-populate course scheduled time if available
+      if (course?.startTime) {
+        setStartTime(course.startTime);
+        setEndTime(course.endTime || course.startTime);
+      }
       if (course?.room && !location) {
         setLocation(course.room);
       }
@@ -146,8 +176,6 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       alert('Please enter an event title.');
       return;
     }
-
-    const matchedCourse = courses.find(c => c.id === selectedSubjectId);
 
     const newEvent: CustomEvent = {
       id: initialEvent ? initialEvent.id : `evt_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
@@ -323,7 +351,60 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
           {/* Date & Time Inset Group */}
           <div className="detail-grouped-list" style={{ padding: '12px 14px', marginBottom: 14 }}>
             <div className="ios-input-group" style={{ marginBottom: 10 }}>
-              <label className="ios-input-label">Event Date</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <label className="ios-input-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Calendar size={12} /> Event Date
+                </label>
+                {/* Date Quick Presets */}
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerLightHaptic();
+                      const now = new Date();
+                      const y = now.getFullYear();
+                      const m = String(now.getMonth() + 1).padStart(2, '0');
+                      const d = String(now.getDate()).padStart(2, '0');
+                      setDate(`${y}-${m}-${d}`);
+                    }}
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      padding: '2px 7px',
+                      borderRadius: 6,
+                      border: '1px solid var(--ios-card-border)',
+                      background: 'var(--ios-bg-secondary)',
+                      color: 'var(--ios-text-secondary)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Today
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerLightHaptic();
+                      const tom = new Date(Date.now() + 86400000);
+                      const y = tom.getFullYear();
+                      const m = String(tom.getMonth() + 1).padStart(2, '0');
+                      const d = String(tom.getDate()).padStart(2, '0');
+                      setDate(`${y}-${m}-${d}`);
+                    }}
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      padding: '2px 7px',
+                      borderRadius: 6,
+                      border: '1px solid var(--ios-card-border)',
+                      background: 'var(--ios-bg-secondary)',
+                      color: 'var(--ios-text-secondary)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Tomorrow
+                  </button>
+                </div>
+              </div>
               <input 
                 type="date" 
                 className="ios-input" 
@@ -351,29 +432,101 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
 
             {/* Start & End Time if not all day */}
             {!isAllDay && (
-              <div style={{ display: 'flex', gap: 10, marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--ios-divider)' }}>
-                <div style={{ flex: 1 }}>
-                  <label className="ios-input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Clock size={11} /> Start Time
-                  </label>
-                  <input 
-                    type="time" 
-                    className="ios-input"
-                    value={startTime}
-                    onChange={e => setStartTime(e.target.value)}
-                  />
+              <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--ios-divider)' }}>
+                {/* Time Quick Chips */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+                  {matchedCourse?.startTime && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerLightHaptic();
+                        setStartTime(matchedCourse.startTime);
+                        setEndTime(matchedCourse.endTime || matchedCourse.startTime);
+                      }}
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: 8,
+                        border: '1px solid var(--ios-blue)',
+                        background: 'var(--ios-blue-light)',
+                        color: 'var(--ios-blue)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 3
+                      }}
+                    >
+                      <Sparkles size={10} />
+                      <span>Class Time ({formatTime12H(matchedCourse.startTime)})</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerLightHaptic();
+                      setStartTime('23:59');
+                      setEndTime('23:59');
+                    }}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: '3px 8px',
+                      borderRadius: 8,
+                      border: '1px solid var(--ios-card-border)',
+                      background: 'var(--ios-bg-secondary)',
+                      color: 'var(--ios-text-secondary)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🌙 11:59 PM (Midnight Deadline)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerLightHaptic();
+                      setStartTime('08:00');
+                      setEndTime('09:30');
+                    }}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: '3px 8px',
+                      borderRadius: 8,
+                      border: '1px solid var(--ios-card-border)',
+                      background: 'var(--ios-bg-secondary)',
+                      color: 'var(--ios-text-secondary)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ☀️ 8:00 AM
+                  </button>
                 </div>
 
-                <div style={{ flex: 1 }}>
-                  <label className="ios-input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Clock size={11} /> End Time
-                  </label>
-                  <input 
-                    type="time" 
-                    className="ios-input"
-                    value={endTime}
-                    onChange={e => setEndTime(e.target.value)}
-                  />
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <label className="ios-input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Clock size={11} /> Start Time
+                    </label>
+                    <input 
+                      type="time" 
+                      className="ios-input"
+                      value={startTime}
+                      onChange={e => setStartTime(e.target.value)}
+                    />
+                  </div>
+
+                  <div style={{ flex: 1 }}>
+                    <label className="ios-input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Clock size={11} /> End Time
+                    </label>
+                    <input 
+                      type="time" 
+                      className="ios-input"
+                      value={endTime}
+                      onChange={e => setEndTime(e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
             )}

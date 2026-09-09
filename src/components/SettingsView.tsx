@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { NotificationSettings } from '../types';
-import { 
-  Bell, 
-  Palette, 
-  Camera, 
-  RotateCcw, 
-  Volume2, 
-  Cloud, 
-  CloudOff, 
-  LogOut, 
-  RefreshCw, 
+import {
+  Bell,
+  Palette,
+  Camera,
+  RotateCcw,
+  Volume2,
+  Cloud,
+  CloudOff,
+  LogOut,
+  RefreshCw,
   UserCheck,
   ShieldCheck
 } from 'lucide-react';
@@ -60,15 +60,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <h1 className="subjects-title">Settings</h1>
 
         <div className="top-utility-right">
-          <div 
+          <div
             className="home-logo-circle"
             onClick={onToggleTheme}
             title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
             style={{ cursor: 'pointer' }}
           >
-            <img 
-              src="/schedly-logo.png" 
-              alt="Schedly" 
+            <img
+              src="/schedly-logo.png"
+              alt="Schedly"
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />
           </div>
@@ -114,7 +114,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
 
           {onManualSync && (
-            <button 
+            <button
               type="button"
               className="ios-btn-secondary"
               onClick={onManualSync}
@@ -130,7 +130,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
         {/* Sign Out Button */}
         {onSignOut && (
-          <div 
+          <div
             style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 12, cursor: 'pointer' }}
             onClick={handleLogoutConfirm}
             role="button"
@@ -180,9 +180,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div style={{ fontSize: 12, color: 'var(--ios-text-muted)', marginTop: 1 }}>Get notified before class begins</div>
             </div>
           </div>
-          
+
           <label className="ios-toggle-switch">
-            <input 
+            <input
               type="checkbox"
               checked={settings.remindersEnabled}
               onChange={e => onUpdateSettings({ ...settings, remindersEnabled: e.target.checked })}
@@ -195,7 +195,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div style={{ paddingTop: 14, borderTop: '1px solid var(--ios-divider)' }}>
             <div className="ios-input-group" style={{ marginBottom: 12 }}>
               <label className="ios-input-label">Reminder Alert Time</label>
-              <select 
+              <select
                 className="ios-input"
                 value={settings.reminderMinutes}
                 onChange={e => onUpdateSettings({ ...settings, reminderMinutes: Number(e.target.value) })}
@@ -208,7 +208,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </select>
             </div>
 
-            <button 
+            <button
               type="button"
               className="ios-btn-secondary"
               onClick={onTestNotification}
@@ -332,14 +332,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             const isSelected = currentTheme === themeItem.id || (themeItem.aliases as string[]).includes(currentTheme);
 
             return (
-              <div 
+              <div
                 key={themeItem.id}
                 onClick={() => {
                   triggerLightHaptic();
-                  onUpdateSettings({ 
-                    ...settings, 
+                  onUpdateSettings({
+                    ...settings,
                     colorTheme: themeItem.id,
-                    subjectCardTheme: themeItem.id 
+                    subjectCardTheme: themeItem.id
                   });
                 }}
                 role="button"
@@ -360,21 +360,21 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <div style={{ fontSize: 20 }}>{themeItem.emoji}</div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ 
-                        fontWeight: 800, 
-                        fontSize: 14, 
-                        color: isSelected ? 'var(--ios-blue)' : 'var(--ios-text-primary)' 
+                      <span style={{
+                        fontWeight: 800,
+                        fontSize: 14,
+                        color: isSelected ? 'var(--ios-blue)' : 'var(--ios-text-primary)'
                       }}>
                         {themeItem.name}
                       </span>
                       {isSelected && (
-                        <span style={{ 
-                          fontSize: 9.5, 
-                          fontWeight: 800, 
-                          padding: '1px 6px', 
-                          borderRadius: 999, 
-                          background: 'var(--ios-blue)', 
-                          color: '#FFFFFF' 
+                        <span style={{
+                          fontSize: 9.5,
+                          fontWeight: 800,
+                          padding: '1px 6px',
+                          borderRadius: 999,
+                          background: 'var(--ios-blue)',
+                          color: '#FFFFFF'
                         }}>
                           ACTIVE
                         </span>
@@ -389,15 +389,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 {/* Visual 4-Color Swatch Preview */}
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0, marginLeft: 8 }}>
                   {themeItem.swatches.map((color, cIdx) => (
-                    <div 
-                      key={cIdx} 
-                      style={{ 
-                        width: 13, 
-                        height: 13, 
-                        borderRadius: 3.5, 
+                    <div
+                      key={cIdx}
+                      style={{
+                        width: 13,
+                        height: 13,
+                        borderRadius: 3.5,
                         background: color,
                         boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                      }} 
+                      }}
                     />
                   ))}
                 </div>
@@ -410,7 +410,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* COR Management Group */}
       <div className="ios-section-header">COR & Schedule Data</div>
       <div className="ios-card">
-        <div 
+        <div
           style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 14, borderBottom: '1px solid var(--ios-divider)', cursor: 'pointer' }}
           onClick={onOpenScanner}
           role="button"
@@ -435,7 +435,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
 
-        <div 
+        <div
           style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 14, cursor: 'pointer' }}
           onClick={onResetData}
           role="button"
@@ -465,23 +465,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       <div className="ios-section-header">About Schedly</div>
       <div className="ios-card" style={{ padding: '16px 18px', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-          <img 
-            src="/schedly-icon.png" 
-            alt="Schedly" 
+          <img
+            src="/schedly-icon.png"
+            alt="Schedly"
             style={{
               width: 44,
               height: 44,
               borderRadius: 12,
               flexShrink: 0,
               boxShadow: '0 3px 10px rgba(37,99,235,0.25)'
-            }} 
+            }}
           />
           <div>
             <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--ios-text-primary)', letterSpacing: '-0.01em' }}>
               Schedly
             </div>
             <div style={{ fontSize: 12, color: 'var(--ios-blue)', fontWeight: 600 }}>
-              Your Smart Campus & Timetable Companion
+              Your College Life, Organized
             </div>
           </div>
         </div>
@@ -559,18 +559,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
       {/* Developer Credits (Hidden Easter Egg Link) */}
       <div className="ios-section-header">Developer & Credits</div>
-      <a 
-        href="https://www.instagram.com/ethan_sienes/" 
-        target="_blank" 
+      <a
+        href="https://www.instagram.com/ethan_sienes/"
+        target="_blank"
         rel="noopener noreferrer"
         onClick={() => triggerLightHaptic()}
-        className="ios-card" 
-        style={{ 
-          marginBottom: 16, 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 14, 
-          textDecoration: 'none', 
+        className="ios-card"
+        style={{
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          textDecoration: 'none',
           color: 'inherit',
           cursor: 'pointer',
           transition: 'transform 0.15s ease'
@@ -586,10 +586,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)',
           background: 'var(--ios-card-border)'
         }}>
-          <img 
-            src="/eljohn-sienes.png" 
-            alt="Ethan Sienes" 
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+          <img
+            src="/eljohn-sienes.png"
+            alt="Ethan Sienes"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         </div>
         <div style={{ flex: 1 }}>
@@ -606,7 +606,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* Legal Disclaimer & App Info Footer */}
       <div style={{ textAlign: 'center', padding: '6px 12px 16px 12px', color: 'var(--ios-text-muted)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 6, color: 'var(--ios-text-secondary)' }}>
-          Schedly • v1.2.0 (Build 2026)
+          Schedly • v1.4.0 (Build 2026)
         </div>
         <p style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--ios-text-muted)', margin: 0, maxWidth: 360, marginLeft: 'auto', marginRight: 'auto' }}>
           <strong>Disclaimer:</strong> Schedly is an independent student timetable companion and digital ID tool built for university and college students. It is not officially affiliated with, sponsored by, or endorsed by any specific university or academic institution. All university names, marks, logos, and curriculum data belong to their respective institutions.
