@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Course, CustomEvent, SubjectNote, ScheduleConflict, DayOfWeek, CourseLink, CourseTopic, AcademicTerm } from '../types';
 import { formatTime12H, timeToMinutes, formatDuration } from '../services/scheduleEngine';
 import { getSubjectIconComponent } from '../services/iconService';
@@ -37,6 +37,7 @@ import {
   Italic,
   Maximize2,
   Sparkles,
+  RotateCcw,
   X
 } from 'lucide-react';
 import { showSystemToast } from '../services/notificationService';
@@ -259,164 +260,174 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
   const [syllabusTerm, setSyllabusTerm] = useState<AcademicTerm | 'all'>('prelim');
   const [filterKeyExamsOnly, setFilterKeyExamsOnly] = useState(false);
 
-  // New Note Inline State & Rich Text
+  // New Note Modal & WYSIWYG Editor State
   const [isCreatingNote, setIsCreatingNote] = useState(false);
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
   const [readingNote, setReadingNote] = useState<SubjectNote | null>(null);
-  const noteTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const noteEditorRef = useRef<HTMLDivElement | null>(null);
 
-  // Helper to insert markdown formatting in note editor
-  const handleInsertFormat = (prefix: string, suffix: string = '', placeholder: string = 'text') => {
-    triggerLightHaptic();
-    const textarea = noteTextareaRef.current;
-    if (!textarea) {
-      setNoteContent(prev => prev + `${prefix}${placeholder}${suffix}`);
-      return;
+  // Sync contentEditable when modal opens
+  useEffect(() => {
+    if (isCreatingNote && noteEditorRef.current) {
+      noteEditorRef.current.innerHTML = noteContent || '';
+      setTimeout(() => {
+        if (noteEditorRef.current) {
+          noteEditorRef.current.focus();
+        }
+      }, 120);
+    }
+  }, [isCreatingNote]);
+
+  // Sync contentEditable back to state
+  const syncEditorContent = () => {
+    if (noteEditorRef.current) {
+      setNoteContent(noteEditorRef.current.innerHTML);
+    }
+  };
+
+  // Convert legacy markdown symbols (==highlight==, **bold**, *italic*, ### headings, lists) to clean visual HTML
+  const convertLegacyMarkdownOrTextToHtml = (raw: string): string => {
+    if (!raw) return '';
+    let text = raw;
+
+    // Convert legacy ==highlight== to <mark>
+    text = text.replace(/==([\s\S]+?)==/g, '<mark style="background: rgba(245, 158, 11, 0.35); color: inherit; padding: 1px 5px; border-radius: 4px; font-weight: 700;">$1</mark>');
+
+    // Convert legacy **bold** to <strong>
+    text = text.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
+
+    // Convert legacy *italic* to <em>
+    text = text.replace(/(^|[^\*])\*([^\*]+?)\*([^\*]|$)/g, '$1<em>$2</em>$3');
+
+    // Convert legacy `code` to <code>
+    text = text.replace(/`([^`]+?)`/g, '<code style="background: var(--ios-bg-secondary); padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 0.9em;">$1</code>');
+
+    // If text already has HTML tags (<p>, <div>, <mark>, <strong>, <em>, <h3>, <ul>, <li>, <br>), return cleaned text
+    if (/<(p|div|mark|strong|b|em|i|h1|h2|h3|ul|ol|li|br)[\s>]/i.test(text)) {
+      return text;
     }
 
-    const start = textarea.selectionStart || 0;
-    const end = textarea.selectionEnd || 0;
-    const selected = noteContent.substring(start, end);
-    const textToInsert = selected ? `${prefix}${selected}${suffix}` : `${prefix}${placeholder}${suffix}`;
+    // Otherwise split lines for paragraphs, headings and lists
+    const lines = text.split('\n');
+    const htmlLines = lines.map(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return '<p><br></p>';
+      if (trimmed.startsWith('### ')) return `<h3 style="font-size: 15px; font-weight: 800; margin: 8px 0 4px 0;">${trimmed.slice(4)}</h3>`;
+      if (trimmed.startsWith('## ')) return `<h2 style="font-size: 16.5px; font-weight: 800; margin: 10px 0 4px 0;">${trimmed.slice(3)}</h2>`;
+      if (trimmed.startsWith('# ')) return `<h1 style="font-size: 18px; font-weight: 800; margin: 12px 0 6px 0;">${trimmed.slice(2)}</h1>`;
+      if (/^[-*]\s/.test(trimmed)) return `<li style="margin-left: 18px; margin-bottom: 3px;">${trimmed.replace(/^[-*]\s/, '')}</li>`;
+      if (/^\d+\.\s/.test(trimmed)) return `<li style="margin-left: 18px; margin-bottom: 3px;">${trimmed.replace(/^\d+\.\s/, '')}</li>`;
+      return `<p style="margin: 4px 0;">${trimmed}</p>`;
+    });
 
-    const newContent = noteContent.substring(0, start) + textToInsert + noteContent.substring(end);
-    setNoteContent(newContent);
-
-    setTimeout(() => {
-      textarea.focus();
-      const newCursorPos = selected ? start + textToInsert.length : start + prefix.length + placeholder.length;
-      textarea.setSelectionRange(newCursorPos, newCursorPos);
-    }, 10);
+    return htmlLines.join('');
   };
 
   // Helper for reading stats
   const getNoteStats = (content: string) => {
-    const wordCount = (content || '').trim().split(/\s+/).filter(Boolean).length;
+    if (!content) return { wordCount: 0, readTimeMinutes: 1 };
+    const plain = content.replace(/<[^>]*>/g, ' ').replace(/[*#=_`~]/g, ' ').trim();
+    const words = plain.split(/\s+/).filter(Boolean);
+    const wordCount = words.length;
     const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 180));
     return { wordCount, readTimeMinutes };
   };
 
-  // Parse inline markdown tokens: ==highlight==, **bold**, *italic*, `code`
-  const parseInlineMarkdown = (text: string): React.ReactNode[] => {
-    const regex = /(==.*?==|\*\*.*?\*\*|\*.*?\*|`.*?`)/g;
-    const parts = text.split(regex);
+  // WYSIWYG Formatting Handlers
+  const handleApplyHighlight = () => {
+    triggerLightHaptic();
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+      showSystemToast('Select text first to highlight', 'info');
+      return;
+    }
 
-    return parts.map((part, index) => {
-      if (part.startsWith('==') && part.endsWith('==') && part.length >= 4) {
-        return (
-          <mark
-            key={index}
-            style={{
-              background: 'rgba(245, 158, 11, 0.28)',
-              color: 'inherit',
-              padding: '1px 5px',
-              borderRadius: 4,
-              fontWeight: 700
-            }}
-          >
-            {part.slice(2, -2)}
-          </mark>
-        );
+    const range = selection.getRangeAt(0);
+    const selectedText = range.toString();
+    if (!selectedText.trim()) return;
+
+    // Toggle highlight if already inside a mark
+    const parentMark = selection.anchorNode?.parentElement?.closest('mark');
+    if (parentMark) {
+      const parent = parentMark.parentNode;
+      while (parentMark.firstChild) {
+        parent?.insertBefore(parentMark.firstChild, parentMark);
       }
-      if (part.startsWith('**') && part.endsWith('**') && part.length >= 4) {
-        return (
-          <strong key={index} style={{ fontWeight: 800 }}>
-            {part.slice(2, -2)}
-          </strong>
-        );
-      }
-      if (part.startsWith('*') && part.endsWith('*') && part.length >= 2) {
-        return (
-          <em key={index} style={{ fontStyle: 'italic' }}>
-            {part.slice(1, -1)}
-          </em>
-        );
-      }
-      if (part.startsWith('`') && part.endsWith('`') && part.length >= 2) {
-        return (
-          <code
-            key={index}
-            style={{
-              background: 'var(--ios-bg-secondary)',
-              padding: '2px 6px',
-              borderRadius: 4,
-              fontSize: '0.9em',
-              fontFamily: 'monospace'
-            }}
-          >
-            {part.slice(1, -1)}
-          </code>
-        );
-      }
-      return part;
-    });
+      parent?.removeChild(parentMark);
+      syncEditorContent();
+      return;
+    }
+
+    const mark = document.createElement('mark');
+    mark.style.background = 'rgba(245, 158, 11, 0.35)';
+    mark.style.color = 'inherit';
+    mark.style.padding = '1px 5px';
+    mark.style.borderRadius = '4px';
+    mark.style.fontWeight = '700';
+
+    try {
+      range.surroundContents(mark);
+    } catch (e) {
+      document.execCommand('hiliteColor', false, '#fef08a');
+    }
+
+    syncEditorContent();
   };
 
-  // Render formatted note blocks (headers, lists, inline markdown)
+  const handleApplyBold = () => {
+    triggerLightHaptic();
+    document.execCommand('bold', false);
+    syncEditorContent();
+  };
+
+  const handleApplyItalic = () => {
+    triggerLightHaptic();
+    document.execCommand('italic', false);
+    syncEditorContent();
+  };
+
+  const handleApplyHeading = () => {
+    triggerLightHaptic();
+    document.execCommand('formatBlock', false, '<h3>');
+    syncEditorContent();
+  };
+
+  const handleApplyBulletList = () => {
+    triggerLightHaptic();
+    document.execCommand('insertUnorderedList', false);
+    syncEditorContent();
+  };
+
+  const handleApplyNumberedList = () => {
+    triggerLightHaptic();
+    document.execCommand('insertOrderedList', false);
+    syncEditorContent();
+  };
+
+  const handleClearFormatting = () => {
+    triggerLightHaptic();
+    document.execCommand('removeFormat', false);
+    syncEditorContent();
+  };
+
+  // Render clean formatted note content for cards & reader modal without showing raw markdown symbols
   const renderFormattedNoteContent = (content: string) => {
     if (!content) return null;
-    const lines = content.split('\n');
+    const cleanHtml = convertLegacyMarkdownOrTextToHtml(content);
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, lineHeight: 1.6 }}>
-        {lines.map((line, lineIdx) => {
-          const trimmed = line.trim();
-
-          if (!trimmed) {
-            return <div key={lineIdx} style={{ height: 4 }} />;
-          }
-
-          if (line.startsWith('### ')) {
-            return (
-              <h4 key={lineIdx} style={{ fontSize: 14.5, fontWeight: 800, margin: '6px 0 2px 0', color: 'var(--ios-text-primary)' }}>
-                {parseInlineMarkdown(line.slice(4))}
-              </h4>
-            );
-          }
-          if (line.startsWith('## ')) {
-            return (
-              <h3 key={lineIdx} style={{ fontSize: 16, fontWeight: 800, margin: '8px 0 3px 0', color: 'var(--ios-text-primary)' }}>
-                {parseInlineMarkdown(line.slice(3))}
-              </h3>
-            );
-          }
-          if (line.startsWith('# ')) {
-            return (
-              <h2 key={lineIdx} style={{ fontSize: 17.5, fontWeight: 800, margin: '10px 0 4px 0', color: 'var(--ios-text-primary)' }}>
-                {parseInlineMarkdown(line.slice(2))}
-              </h2>
-            );
-          }
-
-          if (/^[-*]\s/.test(line)) {
-            return (
-              <div key={lineIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, paddingLeft: 4 }}>
-                <span style={{ color: themeColor, fontWeight: 800, lineHeight: 1.5 }}>•</span>
-                <span style={{ flex: 1 }}>{parseInlineMarkdown(line.replace(/^[-*]\s/, ''))}</span>
-              </div>
-            );
-          }
-
-          const numMatch = line.match(/^(\d+)\.\s(.*)$/);
-          if (numMatch) {
-            return (
-              <div key={lineIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, paddingLeft: 4 }}>
-                <span style={{ color: themeColor, fontWeight: 800, fontSize: 12 }}>{numMatch[1]}.</span>
-                <span style={{ flex: 1 }}>{parseInlineMarkdown(numMatch[2])}</span>
-              </div>
-            );
-          }
-
-          return (
-            <div key={lineIdx}>
-              {parseInlineMarkdown(line)}
-            </div>
-          );
-        })}
-      </div>
+      <div 
+        className="study-note-rendered"
+        style={{ 
+          lineHeight: 1.6, 
+          wordBreak: 'break-word',
+          fontSize: 'inherit'
+        }}
+        dangerouslySetInnerHTML={{ __html: cleanHtml }}
+      />
     );
   };
 
@@ -618,9 +629,15 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
     onToggleEventComplete(evt.id);
   };
 
-  const handleSaveNoteSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!noteTitle.trim() && !noteContent.trim()) return;
+  const handleSaveNoteSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const currentHtml = noteEditorRef.current?.innerHTML || noteContent || '';
+    const strippedText = currentHtml.replace(/<[^>]*>/g, '').trim();
+
+    if (!noteTitle.trim() && !strippedText) {
+      showSystemToast('Please enter a note title or write some notes.', 'info');
+      return;
+    }
 
     triggerSuccessHaptic();
     const now = new Date().toISOString();
@@ -631,24 +648,24 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
         id: editingNoteId,
         subjectId: course.id,
         title: noteTitle.trim() || 'Untitled Note',
-        content: noteContent.trim(),
+        content: currentHtml.trim(),
         isPinned: existing?.isPinned || false,
         createdAt: existing?.createdAt || now,
         updatedAt: now
       });
-      showSystemToast('Note Updated', 'Course note saved.');
+      showSystemToast('Note Updated', 'Course study note saved.');
     } else {
       const newNote: SubjectNote = {
         id: `note_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         subjectId: course.id,
         title: noteTitle.trim() || 'Untitled Note',
-        content: noteContent.trim(),
+        content: currentHtml.trim(),
         isPinned: false,
         createdAt: now,
         updatedAt: now
       };
       onSaveNote(newNote);
-      showSystemToast('Note Added', 'New course note created.');
+      showSystemToast('Note Added', 'New course study note created.');
     }
 
     setNoteTitle('');
@@ -661,7 +678,8 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
     triggerLightHaptic();
     setEditingNoteId(note.id);
     setNoteTitle(note.title);
-    setNoteContent(note.content);
+    const cleanHtml = convertLegacyMarkdownOrTextToHtml(note.content);
+    setNoteContent(cleanHtml);
     setIsCreatingNote(true);
   };
 
@@ -2440,280 +2458,36 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                 {linkedNotes.length} {linkedNotes.length === 1 ? 'Study Note' : 'Study Notes'}
               </span>
 
-              {!isCreatingNote && (
-                <button
-                  onClick={() => {
-                    triggerLightHaptic();
-                    setEditingNoteId(null);
-                    setNoteTitle('');
-                    setNoteContent('');
-                    setIsCreatingNote(true);
-                  }}
-                  style={{
-                    padding: '7px 14px',
-                    borderRadius: 20,
-                    border: 'none',
-                    background: themeColor,
-                    color: '#FFFFFF',
-                    fontSize: 12.5,
-                    fontWeight: 800,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    cursor: 'pointer',
-                    boxShadow: `0 4px 12px -2px ${themeColor}66`
-                  }}
-                >
-                  <Plus size={15} strokeWidth={2.5} />
-                  <span>New Note</span>
-                </button>
-              )}
-            </div>
-
-            {/* Note Editor Card */}
-            {isCreatingNote && (
-              <form 
-                onSubmit={handleSaveNoteSubmit} 
+              <button
+                onClick={() => {
+                  triggerLightHaptic();
+                  setEditingNoteId(null);
+                  setNoteTitle('');
+                  setNoteContent('');
+                  setIsCreatingNote(true);
+                }}
                 style={{
-                  background: 'var(--ios-card-bg)',
-                  borderRadius: 18,
-                  border: `1.5px solid ${themeColor}`,
-                  padding: 16,
-                  boxShadow: 'var(--ios-shadow-md)',
-                  marginBottom: 16
+                  padding: '7px 14px',
+                  borderRadius: 20,
+                  border: 'none',
+                  background: themeColor,
+                  color: '#FFFFFF',
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  cursor: 'pointer',
+                  boxShadow: `0 4px 12px -2px ${themeColor}66`
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: themeColor }} />
-                    <span style={{ fontSize: 13, fontWeight: 800, color: themeColor }}>
-                      {editingNoteId ? 'Edit Study Note' : 'New Note for ' + course.courseCode}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerLightHaptic();
-                      setIsCreatingNote(false);
-                      setEditingNoteId(null);
-                    }}
-                    style={{ background: 'none', border: 'none', color: 'var(--ios-text-muted)', fontSize: 12.5, cursor: 'pointer', fontWeight: 600 }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-
-                <input 
-                  type="text" 
-                  className="ios-input" 
-                  placeholder="Note Title (e.g. Midterm Formulas, Project Checklist)" 
-                  value={noteTitle}
-                  onChange={e => setNoteTitle(e.target.value)}
-                  style={{ marginBottom: 10, fontWeight: 700 }}
-                  autoFocus
-                />
-
-                {/* Formatting Toolbar */}
-                <div 
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    padding: '6px 8px',
-                    background: 'var(--ios-bg-secondary)',
-                    borderRadius: '10px 10px 0 0',
-                    border: '1px solid var(--ios-card-border)',
-                    borderBottom: 'none',
-                    overflowX: 'auto',
-                    scrollbarWidth: 'none'
-                  }}
-                >
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ios-text-muted)', marginRight: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    Format:
-                  </span>
-                  
-                  {/* Bold */}
-                  <button
-                    type="button"
-                    onClick={() => handleInsertFormat('**', '**', 'bold text')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 3,
-                      padding: '4px 8px',
-                      borderRadius: 6,
-                      border: '1px solid var(--ios-card-border)',
-                      background: 'var(--ios-card-bg)',
-                      color: 'var(--ios-text-primary)',
-                      fontSize: 11.5,
-                      fontWeight: 800,
-                      cursor: 'pointer'
-                    }}
-                    title="Bold (**text**)"
-                  >
-                    <Bold size={13} strokeWidth={2.5} />
-                    <span>B</span>
-                  </button>
-
-                  {/* Italic */}
-                  <button
-                    type="button"
-                    onClick={() => handleInsertFormat('*', '*', 'italic text')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 3,
-                      padding: '4px 8px',
-                      borderRadius: 6,
-                      border: '1px solid var(--ios-card-border)',
-                      background: 'var(--ios-card-bg)',
-                      color: 'var(--ios-text-primary)',
-                      fontSize: 11.5,
-                      fontStyle: 'italic',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                    title="Italic (*text*)"
-                  >
-                    <Italic size={13} strokeWidth={2.5} />
-                    <span>I</span>
-                  </button>
-
-                  {/* Highlight */}
-                  <button
-                    type="button"
-                    onClick={() => handleInsertFormat('==', '==', 'highlighted key point')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      padding: '4px 9px',
-                      borderRadius: 6,
-                      border: '1px solid rgba(245, 158, 11, 0.4)',
-                      background: 'rgba(245, 158, 11, 0.15)',
-                      color: '#D97706',
-                      fontSize: 11.5,
-                      fontWeight: 800,
-                      cursor: 'pointer'
-                    }}
-                    title="Neon Highlighter (==text==)"
-                  >
-                    <Highlighter size={13} strokeWidth={2.5} />
-                    <span>Highlight</span>
-                  </button>
-
-                  {/* Heading */}
-                  <button
-                    type="button"
-                    onClick={() => handleInsertFormat('### ', '', 'Heading Topic')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 2,
-                      padding: '4px 8px',
-                      borderRadius: 6,
-                      border: '1px solid var(--ios-card-border)',
-                      background: 'var(--ios-card-bg)',
-                      color: 'var(--ios-text-primary)',
-                      fontSize: 11.5,
-                      fontWeight: 800,
-                      cursor: 'pointer'
-                    }}
-                    title="Heading (### Header)"
-                  >
-                    <span>H3</span>
-                  </button>
-
-                  {/* Bullet list */}
-                  <button
-                    type="button"
-                    onClick={() => handleInsertFormat('- ', '', 'Bullet item')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 3,
-                      padding: '4px 8px',
-                      borderRadius: 6,
-                      border: '1px solid var(--ios-card-border)',
-                      background: 'var(--ios-card-bg)',
-                      color: 'var(--ios-text-primary)',
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                    title="Bullet List (- item)"
-                  >
-                    <List size={13} strokeWidth={2.5} />
-                    <span>List</span>
-                  </button>
-
-                  {/* Numbered list */}
-                  <button
-                    type="button"
-                    onClick={() => handleInsertFormat('1. ', '', 'Numbered item')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 3,
-                      padding: '4px 8px',
-                      borderRadius: 6,
-                      border: '1px solid var(--ios-card-border)',
-                      background: 'var(--ios-card-bg)',
-                      color: 'var(--ios-text-primary)',
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                    title="Numbered List (1. item)"
-                  >
-                    <ListOrdered size={13} strokeWidth={2.5} />
-                    <span>1. 2.</span>
-                  </button>
-                </div>
-
-                <textarea 
-                  ref={noteTextareaRef}
-                  className="ios-input" 
-                  rows={6}
-                  placeholder="Write study pointers, formulas, summaries, and professor pointers here... Use formatting buttons above for rich notes!"
-                  value={noteContent}
-                  onChange={e => setNoteContent(e.target.value)}
-                  style={{ 
-                    borderRadius: '0 0 12px 12px',
-                    marginBottom: 10, 
-                    resize: 'vertical', 
-                    lineHeight: 1.5,
-                    fontFamily: 'inherit'
-                  }}
-                />
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, fontSize: 11, color: 'var(--ios-text-muted)' }}>
-                  <span>Tip: Select text then tap <b>Highlight</b>, <b>B</b>, or <b>I</b></span>
-                  <span>{noteContent.trim().split(/\s+/).filter(Boolean).length} words</span>
-                </div>
-
-                <button 
-                  type="submit" 
-                  style={{
-                    width: '100%',
-                    padding: '11px',
-                    borderRadius: 12,
-                    border: 'none',
-                    background: themeColor,
-                    color: '#FFFFFF',
-                    fontSize: 13.5,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: `0 4px 12px -2px ${themeColor}66`
-                  }}
-                >
-                  {editingNoteId ? 'Save Study Note' : 'Add Study Note'}
-                </button>
-              </form>
-            )}
+                <Plus size={15} strokeWidth={2.5} />
+                <span>New Note</span>
+              </button>
+            </div>
 
             {/* Notes List */}
-            {sortedNotes.length === 0 && !isCreatingNote ? (
+            {sortedNotes.length === 0 ? (
               <div 
                 style={{ 
                   background: 'var(--ios-card-bg)',
@@ -3561,6 +3335,385 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
 
               <div style={{ fontSize: 14.5 }}>
                 {renderFormattedNoteContent(readingNote.content)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full Screen WYSIWYG Study Note Editor Modal */}
+      {isCreatingNote && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 110,
+            background: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'flex-end',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+          onClick={() => {
+            triggerLightHaptic();
+            setIsCreatingNote(false);
+            setEditingNoteId(null);
+          }}
+        >
+          <div 
+            style={{
+              width: '100%',
+              maxWidth: 720,
+              height: '94vh',
+              maxHeight: '94vh',
+              background: 'var(--ios-card-bg)',
+              borderRadius: '24px 24px 0 0',
+              border: '1px solid var(--ios-card-border)',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.35)',
+              overflow: 'hidden',
+              animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Grab Handle */}
+            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, paddingBottom: 4 }}>
+              <div style={{ width: 36, height: 4.5, borderRadius: 3, background: 'var(--ios-text-muted)', opacity: 0.4 }} />
+            </div>
+
+            {/* Modal Top Bar */}
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 18px',
+                borderBottom: '1px solid var(--ios-card-border)',
+                background: 'var(--ios-card-bg)'
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  triggerLightHaptic();
+                  setIsCreatingNote(false);
+                  setEditingNoteId(null);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--ios-text-muted)',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: '6px 8px'
+                }}
+              >
+                Cancel
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span 
+                  style={{
+                    padding: '3px 8px',
+                    borderRadius: 7,
+                    background: `${themeColor}20`,
+                    color: themeColor,
+                    fontSize: 11,
+                    fontWeight: 800
+                  }}
+                >
+                  {course.courseCode}
+                </span>
+                <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ios-text-primary)' }}>
+                  {editingNoteId ? 'Edit Study Note' : 'New Study Note'}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleSaveNoteSubmit()}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '7px 15px',
+                  borderRadius: 20,
+                  border: 'none',
+                  background: themeColor,
+                  color: '#FFFFFF',
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: `0 4px 12px -2px ${themeColor}66`
+                }}
+              >
+                <Check size={15} strokeWidth={2.5} />
+                <span>Save</span>
+              </button>
+            </div>
+
+            {/* Note Title Input */}
+            <div style={{ padding: '14px 18px 8px 18px', background: 'var(--ios-card-bg)' }}>
+              <input 
+                type="text" 
+                className="ios-input" 
+                placeholder="Note Title (e.g. Midterm Coverage, Formula Sheet)..." 
+                value={noteTitle}
+                onChange={e => setNoteTitle(e.target.value)}
+                style={{ 
+                  fontSize: 16.5, 
+                  fontWeight: 800, 
+                  padding: '12px 14px', 
+                  borderRadius: 12,
+                  border: '1.5px solid var(--ios-card-border)',
+                  background: 'var(--ios-bg-secondary)',
+                  color: 'var(--ios-text-primary)'
+                }}
+                autoFocus
+              />
+            </div>
+
+            {/* Visual Formatting Toolbar */}
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 18px',
+                background: 'var(--ios-card-bg)',
+                borderBottom: '1px solid var(--ios-card-border)',
+                overflowX: 'auto',
+                scrollbarWidth: 'none'
+              }}
+            >
+              {/* Highlight Button */}
+              <button
+                type="button"
+                onMouseDown={e => {
+                  e.preventDefault();
+                  handleApplyHighlight();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  border: '1.5px solid rgba(245, 158, 11, 0.4)',
+                  background: 'rgba(245, 158, 11, 0.18)',
+                  color: '#D97706',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(245, 158, 11, 0.15)'
+                }}
+                title="Highlight Selected Text"
+              >
+                <Highlighter size={14} strokeWidth={2.5} />
+                <span>Highlight</span>
+              </button>
+
+              {/* Bold Button */}
+              <button
+                type="button"
+                onMouseDown={e => {
+                  e.preventDefault();
+                  handleApplyBold();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '6px 11px',
+                  borderRadius: 8,
+                  border: '1px solid var(--ios-card-border)',
+                  background: 'var(--ios-bg-secondary)',
+                  color: 'var(--ios-text-primary)',
+                  fontSize: 12,
+                  fontWeight: 900,
+                  cursor: 'pointer'
+                }}
+                title="Bold"
+              >
+                <Bold size={14} strokeWidth={2.5} />
+                <span>Bold</span>
+              </button>
+
+              {/* Italic Button */}
+              <button
+                type="button"
+                onMouseDown={e => {
+                  e.preventDefault();
+                  handleApplyItalic();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '6px 11px',
+                  borderRadius: 8,
+                  border: '1px solid var(--ios-card-border)',
+                  background: 'var(--ios-bg-secondary)',
+                  color: 'var(--ios-text-primary)',
+                  fontSize: 12,
+                  fontStyle: 'italic',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+                title="Italic"
+              >
+                <Italic size={14} strokeWidth={2.5} />
+                <span>Italic</span>
+              </button>
+
+              {/* Heading 3 */}
+              <button
+                type="button"
+                onMouseDown={e => {
+                  e.preventDefault();
+                  handleApplyHeading();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  padding: '6px 10px',
+                  borderRadius: 8,
+                  border: '1px solid var(--ios-card-border)',
+                  background: 'var(--ios-bg-secondary)',
+                  color: 'var(--ios-text-primary)',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+                title="Heading"
+              >
+                <span>H3</span>
+              </button>
+
+              {/* Bullet List */}
+              <button
+                type="button"
+                onMouseDown={e => {
+                  e.preventDefault();
+                  handleApplyBulletList();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '6px 10px',
+                  borderRadius: 8,
+                  border: '1px solid var(--ios-card-border)',
+                  background: 'var(--ios-bg-secondary)',
+                  color: 'var(--ios-text-primary)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+                title="Bullet List"
+              >
+                <List size={14} strokeWidth={2.5} />
+                <span>List</span>
+              </button>
+
+              {/* Numbered List */}
+              <button
+                type="button"
+                onMouseDown={e => {
+                  e.preventDefault();
+                  handleApplyNumberedList();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '6px 10px',
+                  borderRadius: 8,
+                  border: '1px solid var(--ios-card-border)',
+                  background: 'var(--ios-bg-secondary)',
+                  color: 'var(--ios-text-primary)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+                title="Numbered List"
+              >
+                <ListOrdered size={14} strokeWidth={2.5} />
+                <span>1. 2.</span>
+              </button>
+
+              {/* Clear format */}
+              <button
+                type="button"
+                onMouseDown={e => {
+                  e.preventDefault();
+                  handleClearFormatting();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  padding: '6px 10px',
+                  borderRadius: 8,
+                  border: '1px solid var(--ios-card-border)',
+                  background: 'var(--ios-bg-secondary)',
+                  color: 'var(--ios-text-muted)',
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+                title="Clear Formatting"
+              >
+                <RotateCcw size={13} />
+                <span>Reset</span>
+              </button>
+            </div>
+
+            {/* Large Visual Note Canvas (contentEditable) */}
+            <div style={{ flex: 1, padding: '16px 18px', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+              <div
+                ref={noteEditorRef}
+                contentEditable
+                suppressContentEditableWarning
+                onInput={syncEditorContent}
+                onBlur={syncEditorContent}
+                style={{
+                  flex: 1,
+                  minHeight: '260px',
+                  outline: 'none',
+                  fontSize: 15,
+                  lineHeight: 1.65,
+                  color: 'var(--ios-text-primary)',
+                  wordBreak: 'break-word',
+                  paddingBottom: 40
+                }}
+              />
+            </div>
+
+            {/* Bottom Status Bar */}
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 18px',
+                background: 'var(--ios-bg-secondary)',
+                borderTop: '1px solid var(--ios-card-border)',
+                fontSize: 11.5,
+                color: 'var(--ios-text-muted)',
+                fontWeight: 600
+              }}
+            >
+              <span>💡 Select text, then tap <b>Highlight</b> or <b>Bold</b></span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>{getNoteStats(noteContent).wordCount} words</span>
+                <span>•</span>
+                <span>{getNoteStats(noteContent).readTimeMinutes} min read</span>
               </div>
             </div>
           </div>
