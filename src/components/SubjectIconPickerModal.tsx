@@ -74,7 +74,7 @@ export const SubjectIconPickerModal: React.FC<SubjectIconPickerModalProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <div>
             <h2 className="ios-modal-title" style={{ margin: 0, fontSize: 19 }}>
-              Subject Icon
+              Course Icon
             </h2>
             <div style={{ fontSize: 12, color: 'var(--ios-text-muted)', marginTop: 1 }}>
               Pick an icon to identify {courseCode || 'this course'} at a glance

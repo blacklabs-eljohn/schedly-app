@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Course, NotificationSettings, StudentProfile, DayOfWeek, CustomEvent } from './types';
+import { Course, NotificationSettings, StudentProfile, DayOfWeek, CustomEvent, SubjectNote, CourseLink, CourseTopic } from './types';
 import { User } from '@supabase/supabase-js';
 import { 
   getStoredCourses, 
@@ -10,12 +10,21 @@ import {
   saveStudentProfile, 
   getStoredEvents,
   saveEvents,
+  getStoredSubjectNotes,
+  saveSubjectNotes,
+  getStoredCourseLinks,
+  saveCourseLinks,
+  getStoredCourseTopics,
+  saveCourseTopics,
   resetScheduleData,
   createBlankProfile,
   getLastActiveUserId,
-  setLastActiveUserId
+  setLastActiveUserId,
+  hasAcceptedPrivacyPolicy,
+  setAcceptedPrivacyPolicy
 } from './services/storageService';
-import { detectScheduleConflicts, getDayScheduleInfo, formatTime12H, timeToMinutes, getSubjectCardGradient, DAYS_OF_WEEK } from './services/scheduleEngine';
+import { detectScheduleConflicts, autoResolveScheduleConflicts, getDayScheduleInfo, formatTime12H, timeToMinutes, getSubjectCardGradient, DAYS_OF_WEEK } from './services/scheduleEngine';
+import { parseCORText, getDefaultOfficialCourses } from './services/corParser';
 import { scheduleClassReminders, showSystemToast, triggerTestClassNotification, scheduleCustomEventNotification, cancelCustomEventNotification, syncAllCustomEventsNotifications } from './services/notificationService';
 import { onAuthStateChange, getCurrentUser, signOutUser, getOfflineCachedUser } from './services/authService';
 import { 
@@ -33,10 +42,10 @@ import { NextClassHero } from './components/NextClassHero';
 import { TimelineSchedule } from './components/TimelineSchedule';
 import { ConflictAlertBanner } from './components/ConflictAlertBanner';
 import { SubjectsList } from './components/SubjectsList';
+import { SubjectDetailScreen } from './components/SubjectDetailScreen';
 import { SettingsView } from './components/SettingsView';
 import { ScannerModal } from './components/ScannerModal';
 import { CorrectionScreen } from './components/CorrectionScreen';
-import { SubjectDetailModal } from './components/SubjectDetailModal';
 import { InstructorDetailModal } from './components/InstructorDetailModal';
 import { FullscreenIDModal } from './components/FullscreenIDModal';
 import { EditIDModal } from './components/EditIDModal';
@@ -47,8 +56,9 @@ import { AnnouncementBanner } from './components/AnnouncementBanner';
 import { AnnouncementModal } from './components/AnnouncementModal';
 import { fetchActiveAnnouncements, dismissAnnouncement } from './services/announcementService';
 import { Announcement } from './types';
-import { triggerLightHaptic } from './services/hapticsService';
+import { triggerLightHaptic, triggerSuccessHaptic } from './services/hapticsService';
 import { AuthScreen } from './components/AuthScreen';
+import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { syncWidgetsData } from './services/widgetBridge';
 import { getSubjectIconComponent } from './services/iconService';
 
@@ -77,6 +87,9 @@ export function App() {
   const [settings, setSettings] = useState<NotificationSettings>(() => getStoredSettings(initialUserId));
   const [profile, setProfile] = useState<StudentProfile>(() => getStoredStudentProfile(initialUserId));
   const [customEvents, setCustomEvents] = useState<CustomEvent[]>(() => getStoredEvents(initialUserId));
+  const [subjectNotes, setSubjectNotes] = useState<SubjectNote[]>(() => getStoredSubjectNotes(initialUserId));
+  const [courseLinks, setCourseLinks] = useState<CourseLink[]>(() => getStoredCourseLinks(initialUserId));
+  const [courseTopics, setCourseTopics] = useState<CourseTopic[]>(() => getStoredCourseTopics(initialUserId));
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [theme, setTheme] = useState<'light' | 'dark'>(() => getStoredSettings(initialUserId).appearanceMode === 'dark' ? 'dark' : 'light');
   const [selectedTimetableDay, setSelectedTimetableDay] = useState<DayOfWeek>(getTodayDayOfWeek);
@@ -87,10 +100,30 @@ export function App() {
   const [isEditIDOpen, setIsEditIDOpen] = useState(false);
   const [isFullscreenIDOpen, setIsFullscreenIDOpen] = useState(false);
   const [isHolidayCalendarOpen, setIsHolidayCalendarOpen] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+  const [isPrivacyConsentMode, setIsPrivacyConsentMode] = useState(false);
 
   const [reviewCourses, setReviewCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedInstructor, setSelectedInstructor] = useState<string | null>(null);
+
+  // Check Privacy Policy Acceptance after splash screen
+  useEffect(() => {
+    if (!showSplash && currentUser) {
+      const isAccepted = hasAcceptedPrivacyPolicy(currentUser.id);
+      if (!isAccepted) {
+        setIsPrivacyConsentMode(true);
+        setIsPrivacyModalOpen(true);
+      }
+    }
+  }, [showSplash, currentUser]);
+
+  const handlePrivacyAccept = () => {
+    const uid = currentUser?.id || getLastActiveUserId();
+    setAcceptedPrivacyPolicy(uid, true);
+    setIsPrivacyModalOpen(false);
+    showSystemToast('Welcome to Schedly!', 'Privacy policy & guidelines accepted.');
+  };
 
   // Developer Remote Announcements
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -158,7 +191,9 @@ export function App() {
     const localSettings = getStoredSettings(userId);
     const localEvents = getStoredEvents(userId);
 
-    if (localCourses.length > 0) setCourses(localCourses);
+    if (localCourses.length > 0) {
+      setCourses(localCourses);
+    }
     if (localProfile.fullName && !isCorruptedName(localProfile.fullName) && localProfile.fullName !== 'New Student') {
       setProfile(localProfile);
     }
@@ -228,13 +263,21 @@ export function App() {
         const cachedProfile = getStoredStudentProfile(user.id, user.user_metadata?.full_name);
         const cachedSettings = getStoredSettings(user.id);
         const cachedEvents = getStoredEvents(user.id);
+        const cachedNotes = getStoredSubjectNotes(user.id);
+        const cachedLinks = getStoredCourseLinks(user.id);
+        const cachedTopics = getStoredCourseTopics(user.id);
 
-        if (cachedCourses.length > 0) setCourses(cachedCourses);
+        if (cachedCourses.length > 0) {
+          setCourses(cachedCourses);
+        }
         if (cachedProfile.fullName && !isCorruptedName(cachedProfile.fullName) && cachedProfile.fullName !== 'New Student') {
           setProfile(cachedProfile);
         }
         setSettings(cachedSettings);
         setCustomEvents(cachedEvents);
+        setSubjectNotes(cachedNotes);
+        setCourseLinks(cachedLinks);
+        setCourseTopics(cachedTopics);
 
         // Silent background sync
         if (isNetworkOnline()) {
@@ -272,13 +315,21 @@ export function App() {
         const cachedProfile = getStoredStudentProfile(user.id, user.user_metadata?.full_name);
         const cachedSettings = getStoredSettings(user.id);
         const cachedEvents = getStoredEvents(user.id);
+        const cachedNotes = getStoredSubjectNotes(user.id);
+        const cachedLinks = getStoredCourseLinks(user.id);
+        const cachedTopics = getStoredCourseTopics(user.id);
 
-        if (cachedCourses.length > 0) setCourses(cachedCourses);
+        if (cachedCourses.length > 0) {
+          setCourses(cachedCourses);
+        }
         if (cachedProfile.fullName && !isCorruptedName(cachedProfile.fullName) && cachedProfile.fullName !== 'New Student') {
           setProfile(cachedProfile);
         }
         setSettings(cachedSettings);
         setCustomEvents(cachedEvents);
+        setSubjectNotes(cachedNotes);
+        setCourseLinks(cachedLinks);
+        setCourseTopics(cachedTopics);
 
         if (isNetworkOnline()) {
           handleTriggerCloudSync(user.id, user.user_metadata?.full_name, false);
@@ -409,7 +460,7 @@ export function App() {
     setCourses(updatedList);
     saveCourses(updatedList, currentUser?.id, true);
     setSelectedCourse(updatedCourse);
-    showSystemToast('Subject Updated', `${updatedCourse.courseCode} has been saved.`);
+    showSystemToast('Course Updated', `${updatedCourse.courseCode} has been saved.`);
 
     if (currentUser && isNetworkOnline()) {
       flushSyncQueue(currentUser.id);
@@ -421,7 +472,7 @@ export function App() {
     setCourses(updatedList);
     saveCourses(updatedList, currentUser?.id, true);
     setSelectedCourse(null);
-    showSystemToast('Subject Removed', 'The course was removed from your timetable.');
+    showSystemToast('Course Removed', 'The course was removed from your timetable.');
 
     if (currentUser && isNetworkOnline()) {
       flushSyncQueue(currentUser.id);
@@ -436,7 +487,7 @@ export function App() {
     const updatedList = [...courses, newCourse];
     setCourses(updatedList);
     saveCourses(updatedList, currentUser?.id, true);
-    showSystemToast('Subject Added', `${newCourse.courseCode} added to your schedule.`);
+    showSystemToast('Course Added', `${newCourse.courseCode} added to your schedule.`);
 
     if (currentUser && isNetworkOnline()) {
       flushSyncQueue(currentUser.id);
@@ -506,6 +557,126 @@ export function App() {
     }
   };
 
+  const handleSaveSubjectNote = (note: SubjectNote) => {
+    setSubjectNotes(prev => {
+      const exists = prev.some(n => n.id === note.id);
+      const updated = exists ? prev.map(n => n.id === note.id ? note : n) : [note, ...prev];
+      saveSubjectNotes(updated, currentUser?.id, true);
+      return updated;
+    });
+    if (currentUser && isNetworkOnline()) {
+      flushSyncQueue(currentUser.id);
+    }
+  };
+
+  const handleDeleteSubjectNote = (noteId: string) => {
+    setSubjectNotes(prev => {
+      const updated = prev.filter(n => n.id !== noteId);
+      saveSubjectNotes(updated, currentUser?.id, true);
+      return updated;
+    });
+    showSystemToast('Note Deleted', 'Course note removed.');
+    if (currentUser && isNetworkOnline()) {
+      flushSyncQueue(currentUser.id);
+    }
+  };
+
+  const handleTogglePinSubjectNote = (noteId: string) => {
+    setSubjectNotes(prev => {
+      const updated = prev.map(n => n.id === noteId ? { ...n, isPinned: !n.isPinned } : n);
+      saveSubjectNotes(updated, currentUser?.id, true);
+      return updated;
+    });
+    if (currentUser && isNetworkOnline()) {
+      flushSyncQueue(currentUser.id);
+    }
+  };
+
+  const handleSaveCourseLink = (link: CourseLink) => {
+    setCourseLinks(prev => {
+      const exists = prev.some(l => l.id === link.id);
+      const updated = exists ? prev.map(l => l.id === link.id ? link : l) : [link, ...prev];
+      saveCourseLinks(updated, currentUser?.id, true);
+      return updated;
+    });
+    showSystemToast('Link Saved', `"${link.title}" is ready in your Course Hub.`);
+    if (currentUser && isNetworkOnline()) {
+      flushSyncQueue(currentUser.id);
+    }
+  };
+
+  const handleDeleteCourseLink = (linkId: string) => {
+    setCourseLinks(prev => {
+      const updated = prev.filter(l => l.id !== linkId);
+      saveCourseLinks(updated, currentUser?.id, true);
+      return updated;
+    });
+    showSystemToast('Link Removed', 'Course resource link deleted.');
+    if (currentUser && isNetworkOnline()) {
+      flushSyncQueue(currentUser.id);
+    }
+  };
+
+  const handleSaveCourseTopic = (topic: CourseTopic) => {
+    setCourseTopics(prev => {
+      const exists = prev.some(t => t.id === topic.id);
+      const updated = exists ? prev.map(t => t.id === topic.id ? topic : t) : [...prev, topic];
+      saveCourseTopics(updated, currentUser?.id, true);
+      return updated;
+    });
+    showSystemToast('Syllabus Updated', `"${topic.title}" saved.`);
+    if (currentUser && isNetworkOnline()) {
+      flushSyncQueue(currentUser.id);
+    }
+  };
+
+  const handleDeleteCourseTopic = (topicId: string) => {
+    setCourseTopics(prev => {
+      const updated = prev.filter(t => t.id !== topicId);
+      saveCourseTopics(updated, currentUser?.id, true);
+      return updated;
+    });
+    showSystemToast('Topic Removed', 'Syllabus topic deleted.');
+    if (currentUser && isNetworkOnline()) {
+      flushSyncQueue(currentUser.id);
+    }
+  };
+
+  const handleToggleCourseTopicComplete = (topicId: string) => {
+    setCourseTopics(prev => {
+      const updated = prev.map(t => t.id === topicId ? { ...t, isCompleted: !t.isCompleted } : t);
+      saveCourseTopics(updated, currentUser?.id, true);
+      return updated;
+    });
+    if (currentUser && isNetworkOnline()) {
+      flushSyncQueue(currentUser.id);
+    }
+  };
+
+  const handleAutoResolveConflicts = () => {
+    triggerSuccessHaptic();
+    const healedCourses = autoResolveScheduleConflicts(courses);
+    setCourses(healedCourses);
+    saveCourses(healedCourses, currentUser?.id, true);
+    showSystemToast('Schedule Repaired ✨', 'All class overlaps and time conflicts have been resolved.');
+    if (currentUser && isNetworkOnline()) {
+      flushSyncQueue(currentUser.id);
+    }
+  };
+
+  const handleResetOfficialSchedule = () => {
+    if (window.confirm('Reset timetable to the clean official NEMSU college schedule?')) {
+      triggerSuccessHaptic();
+      const officialCourses = getDefaultOfficialCourses();
+      setCourses(officialCourses);
+      saveCourses(officialCourses, currentUser?.id, true);
+      showSystemToast('Official Schedule Loaded 🎓', 'Your timetable has been restored to default.');
+      if (currentUser && isNetworkOnline()) {
+        flushSyncQueue(currentUser.id);
+      }
+    }
+  };
+
   const handleSignOut = async () => {
     setLastActiveUserId(undefined);
     await signOutUser();
@@ -513,6 +684,9 @@ export function App() {
     setIsGuestMode(false);
     setCourses([]);
     setCustomEvents([]);
+    setSubjectNotes([]);
+    setCourseLinks([]);
+    setCourseTopics([]);
     setProfile(createBlankProfile());
     showSystemToast('Signed Out', 'You have been logged out.');
   };
@@ -529,6 +703,9 @@ export function App() {
   const handleSelectTab = (tab: TabType) => {
     if (tab === 'schedule' && activeTab !== 'schedule') {
       setSelectedTimetableDay(getTodayDayOfWeek());
+    }
+    if (tab !== 'subjects') {
+      setSelectedCourse(null);
     }
     setActiveTab(tab);
   };
@@ -665,7 +842,18 @@ export function App() {
                     ))}
 
                     {/* Conflict Alerts if any */}
-                    <ConflictAlertBanner conflicts={conflicts} />
+                    <ConflictAlertBanner 
+                      conflicts={conflicts} 
+                      onAutoResolve={handleAutoResolveConflicts}
+                      onResetOfficialSchedule={handleResetOfficialSchedule}
+                      onSelectConflictCourse={(code) => {
+                        const target = courses.find(c => c.courseCode === code);
+                        if (target) {
+                          setSelectedCourse(target);
+                          setActiveTab('subjects');
+                        }
+                      }}
+                    />
 
                     <DigitalIDCard 
                       profile={profile}
@@ -676,7 +864,10 @@ export function App() {
                     {/* AMIE & CRON INSPIRED UPCOMING CLASS HERO */}
                     <NextClassHero 
                       courses={courses}
-                      onSelectCourse={setSelectedCourse}
+                      onSelectCourse={(course) => {
+                        setSelectedCourse(course);
+                        setActiveTab('subjects');
+                      }}
                       onOpenScanner={() => setIsScannerOpen(true)}
                     />
 
@@ -875,11 +1066,25 @@ export function App() {
               {activeTab === 'schedule' && (
                 <main>
                   <div className="ios-section" style={{ paddingBottom: 0, paddingTop: 14 }}>
-                    <ConflictAlertBanner conflicts={conflicts} />
+                    <ConflictAlertBanner 
+                      conflicts={conflicts} 
+                      onAutoResolve={handleAutoResolveConflicts}
+                      onResetOfficialSchedule={handleResetOfficialSchedule}
+                      onSelectConflictCourse={(code) => {
+                        const target = courses.find(c => c.courseCode === code);
+                        if (target) {
+                          setSelectedCourse(target);
+                          setActiveTab('subjects');
+                        }
+                      }}
+                    />
                   </div>
                   <TimelineSchedule 
                     courses={courses}
-                    onSelectCourse={setSelectedCourse}
+                    onSelectCourse={(course) => {
+                      setSelectedCourse(course);
+                      setActiveTab('subjects');
+                    }}
                     onOpenScanner={() => setIsScannerOpen(true)}
                     initialDay={selectedTimetableDay}
                     onSelectDay={setSelectedTimetableDay}
@@ -894,6 +1099,11 @@ export function App() {
                 <main>
                   <CalendarView 
                     events={customEvents}
+                    courses={courses}
+                    onOpenSubject={(course) => {
+                      setSelectedCourse(course);
+                      setActiveTab('subjects');
+                    }}
                     onSaveEvent={handleSaveCustomEvent}
                     onDeleteEvent={handleDeleteCustomEvent}
                     onToggleEventComplete={handleToggleEventComplete}
@@ -905,17 +1115,50 @@ export function App() {
 
               {activeTab === 'subjects' && (
                 <main>
-                  <SubjectsList 
-                    courses={courses}
-                    conflicts={conflicts}
-                    onSelectCourse={setSelectedCourse}
-                    onUpdateCourse={handleUpdateCourse}
-                    onDeleteCourse={handleDeleteCourse}
-                    onAddCourse={handleAddCourse}
-                    onToggleTheme={handleToggleTheme}
-                    theme={theme}
-                    subjectCardTheme={settings.colorTheme || settings.subjectCardTheme || 'blue-cascade'}
-                  />
+                  {selectedCourse ? (
+                    <SubjectDetailScreen 
+                      course={selectedCourse}
+                      allCourses={courses}
+                      events={customEvents}
+                      notes={subjectNotes}
+                      conflicts={conflicts}
+                      links={courseLinks}
+                      topics={courseTopics}
+                      onBack={() => setSelectedCourse(null)}
+                      onSelectInstructor={setSelectedInstructor}
+                      onViewInTimetable={(day) => {
+                        setSelectedCourse(null);
+                        handleViewInTimetable(day);
+                      }}
+                      onUpdateCourse={handleUpdateCourse}
+                      onDeleteCourse={handleDeleteCourse}
+                      onSaveEvent={handleSaveCustomEvent}
+                      onDeleteEvent={handleDeleteCustomEvent}
+                      onToggleEventComplete={handleToggleEventComplete}
+                      onSaveNote={handleSaveSubjectNote}
+                      onDeleteNote={handleDeleteSubjectNote}
+                      onTogglePinNote={handleTogglePinSubjectNote}
+                      onSaveLink={handleSaveCourseLink}
+                      onDeleteLink={handleDeleteCourseLink}
+                      onSaveTopic={handleSaveCourseTopic}
+                      onDeleteTopic={handleDeleteCourseTopic}
+                      onToggleTopicComplete={handleToggleCourseTopicComplete}
+                    />
+                  ) : (
+                    <SubjectsList 
+                      courses={courses}
+                      conflicts={conflicts}
+                      events={customEvents}
+                      notes={subjectNotes}
+                      onSelectCourse={setSelectedCourse}
+                      onUpdateCourse={handleUpdateCourse}
+                      onDeleteCourse={handleDeleteCourse}
+                      onAddCourse={handleAddCourse}
+                      onToggleTheme={handleToggleTheme}
+                      theme={theme}
+                      subjectCardTheme={settings.colorTheme || settings.subjectCardTheme || 'blue-cascade'}
+                    />
+                  )}
                 </main>
               )}
 
@@ -934,6 +1177,10 @@ export function App() {
                     onManualSync={() => currentUser && handleTriggerCloudSync(currentUser.id, currentUser.user_metadata?.full_name, true)}
                     isSyncing={syncState === 'SYNCING'}
                     isOnline={isOnline}
+                    onOpenPrivacyPolicy={() => {
+                      setIsPrivacyConsentMode(false);
+                      setIsPrivacyModalOpen(true);
+                    }}
                   />
                 </main>
               )}
@@ -941,7 +1188,7 @@ export function App() {
           )}
 
           {/* Floating Bottom Tab Bar */}
-          {!isCorrectionOpen && (
+          {!isCorrectionOpen && !selectedCourse && (
             <BottomTabBar activeTab={activeTab} onSelectTab={handleSelectTab} />
           )}
 
@@ -954,17 +1201,6 @@ export function App() {
               setIsScannerOpen(false);
               setActiveTab('subjects');
             }}
-          />
-
-          {/* Subject Detail Modal with Edit Course & Color Customizer */}
-          <SubjectDetailModal 
-            course={selectedCourse}
-            onClose={() => setSelectedCourse(null)}
-            onSelectInstructor={setSelectedInstructor}
-            onViewInTimetable={handleViewInTimetable}
-            onUpdateCourse={handleUpdateCourse}
-            onDeleteCourse={handleDeleteCourse}
-            isConflicting={conflicts.some(c => c.course1.id === selectedCourse?.id || c.course2.id === selectedCourse?.id)}
           />
 
           {/* Instructor Detail Modal */}
@@ -1007,6 +1243,14 @@ export function App() {
               onDismiss={handleDismissAnnouncement}
             />
           )}
+
+          {/* Privacy Policy & Rules Modal */}
+          <PrivacyPolicyModal 
+            isOpen={isPrivacyModalOpen}
+            onClose={() => setIsPrivacyModalOpen(false)}
+            onAccept={handlePrivacyAccept}
+            isConsentMode={isPrivacyConsentMode}
+          />
         </>
       )}
     </div>

@@ -28,6 +28,7 @@ import { triggerSelectionHaptic, triggerSuccessHaptic, triggerLightHaptic } from
 import { showSystemToast } from '../services/notificationService';
 import { saveStudentProfile } from '../services/storageService';
 import { pushProfileToCloud } from '../services/syncService';
+import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 
 type AuthMode = 'signin' | 'signup_step1' | 'signup_step2' | 'forgot_password';
 
@@ -72,6 +73,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
   const [section, setSection] = useState('CS-1C');
   const [studentIdNumber, setStudentIdNumber] = useState('2026-10492');
   const [selectedTheme, setSelectedTheme] = useState<IDTheme>('digital-blue');
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -166,7 +168,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
       };
 
       saveStudentProfile(customProfile, res.user.id);
-      pushProfileToCloud(res.user.id, customProfile);
+      try {
+        await pushProfileToCloud(res.user.id, customProfile);
+      } catch (err) {
+        console.warn('Profile push warning on signup:', err);
+      }
 
       onAuthSuccess(res.user, customProfile);
     }
@@ -642,6 +648,31 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
               >
                 <ArrowLeft size={15} /> Back to Account Details
               </button>
+
+              <div style={{ textAlign: 'center', marginTop: 4 }}>
+                <span style={{ fontSize: 11, color: 'var(--ios-text-muted)' }}>
+                  By completing setup, you agree to our{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerLightHaptic();
+                      setIsPrivacyOpen(true);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      color: 'var(--ios-blue)',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Privacy Policy & Rules
+                  </button>
+                </span>
+              </div>
             </form>
           )}
 
@@ -685,6 +716,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
           )}
         </div>
       </div>
+
+      {/* Privacy Policy & Rules Modal */}
+      <PrivacyPolicyModal
+        isOpen={isPrivacyOpen}
+        onClose={() => setIsPrivacyOpen(false)}
+        isConsentMode={false}
+      />
     </div>
   );
 };

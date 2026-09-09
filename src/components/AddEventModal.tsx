@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CustomEvent, EventCategory } from '../types';
+import { CustomEvent, EventCategory, Course } from '../types';
 import { 
   X, 
   Clock, 
@@ -7,8 +7,10 @@ import {
   Bell, 
   FileText, 
   Trash2, 
-  Check
+  Check,
+  BookOpen
 } from 'lucide-react';
+import { ConfirmationModal } from './ConfirmationModal';
 import { triggerLightHaptic, triggerSelectionHaptic, triggerSuccessHaptic } from '../services/hapticsService';
 
 interface AddEventModalProps {
@@ -18,6 +20,8 @@ interface AddEventModalProps {
   onDeleteEvent?: (eventId: string) => void;
   initialEvent?: CustomEvent | null;
   defaultDate?: string; // 'YYYY-MM-DD'
+  courses?: Course[];
+  preselectedSubjectId?: string;
 }
 
 const CATEGORIES: { id: EventCategory; label: string; icon: string; defaultColor: string }[] = [
@@ -29,14 +33,15 @@ const CATEGORIES: { id: EventCategory; label: string; icon: string; defaultColor
 ];
 
 const COLOR_PALETTES = [
-  '#EF4444', // Red
-  '#F59E0B', // Amber
-  '#2563EB', // Electric Blue
-  '#8B5CF6', // Purple
-  '#10B981', // Emerald
-  '#EC4899', // Rose Pink
-  '#0D9488', // Teal
-  '#6366F1'  // Indigo
+  '#2563EB', // Bluebook (Classic Blue)
+  '#EF4444', // Crimson (Bold Red)
+  '#EC4899', // Bini (Playful Pink)
+  '#7C3AED', // Ube (Ube Purple)
+  '#92400E', // Coffee (Warm Amber/Mocha)
+  '#16A34A', // Matcha (Fresh Green)
+  '#4F46E5', // Duos (Electric Indigo)
+  '#0284C7', // Highlighter (Sky Cyan)
+  '#1E293B'  // Obsidian (Stealth Slate)
 ];
 
 export const AddEventModal: React.FC<AddEventModalProps> = ({
@@ -45,7 +50,9 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   onSaveEvent,
   onDeleteEvent,
   initialEvent,
-  defaultDate
+  defaultDate,
+  courses = [],
+  preselectedSubjectId
 }) => {
   const getInitialDate = () => {
     if (initialEvent?.date) return initialEvent.date;
@@ -59,6 +66,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<EventCategory>('exam');
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>('');
   const [date, setDate] = useState(getInitialDate);
   const [isAllDay, setIsAllDay] = useState(false);
   const [startTime, setStartTime] = useState('09:00');
@@ -73,6 +81,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       if (initialEvent) {
         setTitle(initialEvent.title);
         setCategory(initialEvent.category);
+        setSelectedSubjectId(initialEvent.subjectId || '');
         setDate(initialEvent.date);
         setIsAllDay(initialEvent.isAllDay);
         setStartTime(initialEvent.startTime || '09:00');
@@ -84,6 +93,8 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       } else {
         setTitle('');
         setCategory('exam');
+        const defaultSubId = preselectedSubjectId || '';
+        setSelectedSubjectId(defaultSubId);
         setDate(getInitialDate());
         setIsAllDay(false);
         setStartTime('09:00');
@@ -91,10 +102,17 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
         setLocation('');
         setReminderMinutes(30);
         setNotes('');
-        setSelectedColor('#EF4444');
+        
+        // If preselected subject has a color, match it
+        const targetCourse = courses.find(c => c.id === defaultSubId);
+        if (targetCourse?.color) {
+          setSelectedColor(targetCourse.color);
+        } else {
+          setSelectedColor('#EF4444');
+        }
       }
     }
-  }, [isOpen, initialEvent, defaultDate]);
+  }, [isOpen, initialEvent, defaultDate, preselectedSubjectId, courses]);
 
   if (!isOpen) return null;
 
@@ -102,7 +120,23 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
     triggerSelectionHaptic();
     setCategory(cat);
     const catConfig = CATEGORIES.find(c => c.id === cat);
-    if (catConfig) setSelectedColor(catConfig.defaultColor);
+    if (catConfig && !selectedSubjectId) {
+      setSelectedColor(catConfig.defaultColor);
+    }
+  };
+
+  const handleSubjectChange = (subjectId: string) => {
+    triggerSelectionHaptic();
+    setSelectedSubjectId(subjectId);
+    if (subjectId) {
+      const course = courses.find(c => c.id === subjectId);
+      if (course?.color) {
+        setSelectedColor(course.color);
+      }
+      if (course?.room && !location) {
+        setLocation(course.room);
+      }
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -111,6 +145,8 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       alert('Please enter an event title.');
       return;
     }
+
+    const matchedCourse = courses.find(c => c.id === selectedSubjectId);
 
     const newEvent: CustomEvent = {
       id: initialEvent ? initialEvent.id : `evt_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
@@ -125,6 +161,9 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       notes: notes.trim() || undefined,
       color: selectedColor,
       isCompleted: initialEvent?.isCompleted || false,
+      subjectId: matchedCourse ? matchedCourse.id : undefined,
+      subjectCode: matchedCourse ? matchedCourse.courseCode : undefined,
+      subjectName: matchedCourse ? matchedCourse.courseName : undefined,
       createdAt: initialEvent?.createdAt || new Date().toISOString()
     };
 
@@ -133,13 +172,20 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
     onClose();
   };
 
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+
   const handleDelete = () => {
     if (initialEvent && onDeleteEvent) {
-      if (window.confirm('Are you sure you want to delete this event?')) {
-        triggerLightHaptic();
-        onDeleteEvent(initialEvent.id);
-        onClose();
-      }
+      setIsConfirmDeleteOpen(true);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (initialEvent && onDeleteEvent) {
+      triggerLightHaptic();
+      setIsConfirmDeleteOpen(false);
+      onDeleteEvent(initialEvent.id);
+      onClose();
     }
   };
 
@@ -237,6 +283,44 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
             </div>
           </div>
 
+          {/* Subject Linkage (Two-Way Sync) */}
+          {courses.length > 0 && (
+            <div className="ios-input-group" style={{ marginBottom: 14 }}>
+              <label className="ios-input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <BookOpen size={12} /> Tag Enrolled Course (Optional)
+              </label>
+              <select 
+                className="ios-input"
+                value={selectedSubjectId}
+                onChange={e => handleSubjectChange(e.target.value)}
+                style={{
+                  fontWeight: selectedSubjectId ? 700 : 500,
+                  borderColor: selectedSubjectId ? 'var(--ios-blue)' : undefined
+                }}
+              >
+                <option value="">No Course / General Campus Event</option>
+                {courses.map(course => (
+                  <option key={course.id} value={course.id}>
+                    📖 {course.courseCode} – {course.courseName}
+                  </option>
+                ))}
+              </select>
+              {selectedSubjectId && (
+                <div style={{ 
+                  fontSize: 11, 
+                  color: 'var(--ios-blue)', 
+                  fontWeight: 600, 
+                  marginTop: 4, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 4 
+                }}>
+                  <span>✓ Automatically links to this course hub & deadlines tab</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Date & Time Inset Group */}
           <div className="detail-grouped-list" style={{ padding: '12px 14px', marginBottom: 14 }}>
             <div className="ios-input-group" style={{ marginBottom: 10 }}>
@@ -329,41 +413,6 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
             </select>
           </div>
 
-          {/* Color Palette Selector */}
-          <div className="ios-input-group" style={{ marginBottom: 14 }}>
-            <label className="ios-input-label">Event Color Badge</label>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              {COLOR_PALETTES.map(col => {
-                const isSelected = selectedColor === col;
-                return (
-                  <button
-                    key={col}
-                    type="button"
-                    onClick={() => {
-                      triggerSelectionHaptic();
-                      setSelectedColor(col);
-                    }}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: '50%',
-                      background: col,
-                      border: isSelected ? '3px solid var(--ios-card-bg)' : 'none',
-                      outline: isSelected ? `2px solid ${col}` : 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'transform 0.15s ease'
-                    }}
-                  >
-                    {isSelected && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Notes & Checklists */}
           <div className="ios-input-group" style={{ marginBottom: 20 }}>
             <label className="ios-input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -415,6 +464,18 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
           </div>
 
         </form>
+
+        <ConfirmationModal
+          isOpen={isConfirmDeleteOpen}
+          title="Delete this event?"
+          message={`Are you sure you want to delete "${initialEvent?.title || 'this event'}"? This action cannot be undone.`}
+          confirmText="Delete Event"
+          cancelText="Cancel"
+          isDestructive={true}
+          icon="trash"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setIsConfirmDeleteOpen(false)}
+        />
       </div>
     </div>
   );

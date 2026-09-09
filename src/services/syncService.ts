@@ -252,13 +252,17 @@ export async function pullCloudData(userId: string, defaultFullName?: string): P
       if (coursesRows && coursesRows.length > 0) {
         userCourses = coursesRows.map(cRow => {
           const matchingSchedules = (scheduleRows || []).filter(s => s.course_id === cRow.id);
-          const days = matchingSchedules.map(s => s.day as DayOfWeek);
+          const cloudDays = matchingSchedules.map(s => s.day as DayOfWeek);
           const firstSched = matchingSchedules[0];
 
-          // Preserve local customizations (custom icon, color, etc.) if cloud returns null/default
+          // Preserve local customizations (custom icon, color, schedule days/times)
           const localMatch = userCourses.find(lc => lc.id === cRow.id || (lc.courseCode && lc.courseCode === cRow.course_code));
           const resolvedIcon = (cRow as any).icon || localMatch?.icon || iconMap[cRow.id] || (cRow.course_code ? iconMap[cRow.course_code] : undefined) || undefined;
           const resolvedColor = cRow.color || localMatch?.color || '#2563EB';
+
+          const resolvedDays: DayOfWeek[] = cloudDays.length > 0 ? cloudDays : (localMatch?.days && localMatch.days.length > 0 ? localMatch.days : (['Mon', 'Thu'] as DayOfWeek[]));
+          const resolvedStartTime = firstSched?.start_time || localMatch?.startTime || '08:00';
+          const resolvedEndTime = firstSched?.end_time || localMatch?.endTime || '09:30';
 
           return {
             id: cRow.id,
@@ -269,9 +273,9 @@ export async function pullCloudData(userId: string, defaultFullName?: string): P
             units: Number(cRow.units) || 3,
             color: resolvedColor,
             icon: resolvedIcon,
-            days: days.length > 0 ? days : ['Mon', 'Thu'],
-            startTime: firstSched?.start_time || '08:00',
-            endTime: firstSched?.end_time || '09:30'
+            days: resolvedDays,
+            startTime: resolvedStartTime,
+            endTime: resolvedEndTime
           };
         });
         saveCourses(userCourses, userId, false);

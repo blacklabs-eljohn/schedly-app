@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NotificationSettings } from '../types';
 import { 
   Bell, 
@@ -10,9 +10,11 @@ import {
   CloudOff, 
   LogOut, 
   RefreshCw, 
-  UserCheck
+  UserCheck,
+  ShieldCheck
 } from 'lucide-react';
 import { triggerLightHaptic } from '../services/hapticsService';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface SettingsViewProps {
   settings: NotificationSettings;
@@ -27,6 +29,7 @@ interface SettingsViewProps {
   onManualSync?: () => void;
   isSyncing?: boolean;
   isOnline?: boolean;
+  onOpenPrivacyPolicy?: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -36,17 +39,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onResetData,
   onTestNotification,
   onToggleTheme,
-  theme,
+  theme = 'light',
   userEmail,
   onSignOut,
   onManualSync,
   isSyncing = false,
   isOnline = true,
+  onOpenPrivacyPolicy,
 }) => {
+  const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
+
   const handleLogoutConfirm = () => {
-    if (window.confirm('Are you sure you want to sign out of Schedly?')) {
-      onSignOut?.();
-    }
+    setIsSignOutModalOpen(true);
   };
 
   return (
@@ -504,6 +508,53 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <span><strong>100% Offline:</strong> Access your schedule and pass anytime, even without data or Wi-Fi.</span>
           </div>
         </div>
+
+        {/* Privacy Policy & Rules Button */}
+        <button
+          type="button"
+          onClick={() => {
+            triggerLightHaptic();
+            onOpenPrivacyPolicy?.();
+          }}
+          className="ios-card"
+          style={{
+            width: '100%',
+            padding: '12px 14px',
+            marginTop: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            border: '1px solid var(--ios-card-border)',
+            background: 'var(--ios-card-bg)',
+            cursor: 'pointer',
+            textAlign: 'left'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: 'linear-gradient(135deg, rgba(37,99,235,0.12) 0%, rgba(96,165,250,0.18) 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--ios-blue)',
+              flexShrink: 0
+            }}>
+              <ShieldCheck size={17} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ios-text-primary)' }}>
+                Privacy Policy & Student Rules
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--ios-text-muted)', marginTop: 1 }}>
+                Terms of use, Digital ID disclaimer & data rights
+              </div>
+            </div>
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ios-blue)' }}>View ›</span>
+        </button>
       </div>
 
       {/* Developer Credits (Hidden Easter Egg Link) */}
@@ -561,6 +612,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <strong>Disclaimer:</strong> Schedly is an independent student timetable companion and digital ID tool built for university and college students. It is not officially affiliated with, sponsored by, or endorsed by any specific university or academic institution. All university names, marks, logos, and curriculum data belong to their respective institutions.
         </p>
       </div>
+
+      {/* Sign Out In-App Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isSignOutModalOpen}
+        title="Sign Out of Schedly?"
+        message="Your timetable and pass are saved safely in your local offline storage and cloud backup."
+        confirmText="Sign Out"
+        cancelText="Cancel"
+        isDestructive={true}
+        icon="logout"
+        onConfirm={() => {
+          setIsSignOutModalOpen(false);
+          onSignOut?.();
+        }}
+        onCancel={() => setIsSignOutModalOpen(false)}
+      />
     </div>
   );
 };

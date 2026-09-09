@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Course, ScheduleConflict, SubjectCardTheme } from '../types';
+import { Course, ScheduleConflict, SubjectCardTheme, CustomEvent, SubjectNote } from '../types';
 import { formatTime12H, timeToMinutes, formatDuration, getSubjectCardGradient } from '../services/scheduleEngine';
 import { 
   MapPin, 
@@ -13,7 +13,9 @@ import {
   LayoutList, 
   CalendarDays, 
   Edit3, 
-  ChevronUp
+  ChevronUp,
+  BookOpen,
+  Pin
 } from 'lucide-react';
 import { triggerSelectionHaptic } from '../services/hapticsService';
 import { EditSubjectModal } from './EditSubjectModal';
@@ -21,6 +23,8 @@ import { EditSubjectModal } from './EditSubjectModal';
 interface SubjectsListProps {
   courses: Course[];
   conflicts: ScheduleConflict[];
+  events?: CustomEvent[];
+  notes?: SubjectNote[];
   onSelectCourse: (course: Course) => void;
   onUpdateCourse?: (course: Course) => void;
   onDeleteCourse?: (courseId: string) => void;
@@ -73,6 +77,8 @@ import { getSubjectIconComponent } from '../services/iconService';
 export const SubjectsList: React.FC<SubjectsListProps> = ({
   courses,
   conflicts,
+  events = [],
+  notes = [],
   onSelectCourse,
   onUpdateCourse,
   onDeleteCourse,
@@ -138,14 +144,14 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
 
   return (
     <div className="ios-section" style={{ paddingBottom: 78, paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))' }}>
-      {/* Minimal Top Header Bar: "Subjects" + Subtitle + Circular [+] Button */}
+      {/* Minimal Top Header Bar: "Courses" + Subtitle + Circular [+] Button */}
       <div className="subjects-top-bar" style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', minWidth: 0 }}>
           <h1 className="subjects-title" style={{ textAlign: 'left', margin: 0, padding: 0, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-            Subjects
+            Courses
           </h1>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ios-text-secondary)', marginTop: 3, textAlign: 'left', letterSpacing: '-0.01em' }}>
-            {courses.length} {courses.length === 1 ? 'Subject' : 'Subjects'} • {totalUnits} {totalUnits === 1 ? 'Unit' : 'Total Units'}
+            {courses.length} {courses.length === 1 ? 'Course' : 'Courses'} • {totalUnits} {totalUnits === 1 ? 'Unit' : 'Total Units'}
           </div>
         </div>
 
@@ -153,8 +159,8 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
           type="button"
           className="subjects-add-btn"
           onClick={() => setIsAddingSubject(true)}
-          aria-label="Add Subject"
-          title="Add Subject Manually"
+          aria-label="Add Course"
+          title="Add Course Manually"
         >
           <Plus size={18} />
         </button>
@@ -164,7 +170,7 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
       <div className="subjects-search-pill" style={{ marginBottom: 12 }}>
         <Search className="search-icon-left" size={16} />
         <input 
-          placeholder="Search subjects, codes, instructors..."
+          placeholder="Search courses, codes, instructors..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
         />
@@ -243,7 +249,7 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
       {/* Card Content Area */}
       {filteredCourses.length === 0 ? (
         <div className="ios-card" style={{ textAlign: 'center', padding: '36px 12px', color: 'var(--ios-text-muted)', fontSize: 13.5 }}>
-          No matching subjects found.
+          No matching courses found.
         </div>
       ) : displayMode === 'stack' ? (
         /* FULL-WIDTH PASTEL CARD DECK (LEVIS / OPEN BANKING STYLE) */
@@ -347,7 +353,7 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
                         className="wallet-action-btn"
                         onClick={() => onSelectCourse(course)}
                       >
-                        <CalendarDays size={13} /> View Details
+                        <BookOpen size={13} /> Open Course Hub
                       </button>
 
                       <button 
@@ -384,6 +390,9 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
             const cleanInstructor = course.instructor 
               ? course.instructor.startsWith('Prof.') ? course.instructor : `Prof. ${course.instructor}`
               : 'No Instructor';
+            
+            const pendingTasks = events.filter(e => e.subjectId === course.id && !e.isCompleted).length;
+            const notesCount = notes.filter(n => n.subjectId === course.id).length;
 
             return (
               <div 
@@ -407,6 +416,16 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
                       <span className="ios-tag-pill ios-tag-pill-purple">LAB</span>
                     ) : (
                       <span className="ios-tag-pill">LEC</span>
+                    )}
+                    {pendingTasks > 0 && (
+                      <span className="ios-tag-pill" style={{ background: '#F59E0B20', color: '#D97706', fontWeight: 800 }}>
+                        📌 {pendingTasks} {pendingTasks === 1 ? 'Deadline' : 'Deadlines'}
+                      </span>
+                    )}
+                    {notesCount > 0 && (
+                      <span className="ios-tag-pill" style={{ background: 'var(--ios-divider)', color: 'var(--ios-text-secondary)' }}>
+                        📝 {notesCount}
+                      </span>
                     )}
                     {isConflicting && (
                       <span title="Schedule conflict detected" style={{ background: 'var(--ios-red-light)', padding: '2px 5px', borderRadius: 6, display: 'inline-flex', alignItems: 'center' }}>

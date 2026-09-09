@@ -13,7 +13,7 @@ const TABS: { key: TabType; label: string; icon: React.FC<{ size?: number }> }[]
   { key: 'home', label: 'Home', icon: Home },
   { key: 'schedule', label: 'Schedule', icon: Clock },
   { key: 'calendar', label: 'Calendar', icon: CalendarDays },
-  { key: 'subjects', label: 'Subjects', icon: BookOpen },
+  { key: 'subjects', label: 'Courses', icon: BookOpen },
   { key: 'settings', label: 'Settings', icon: Settings }
 ];
 

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { 
   CustomEvent, 
-  EventCategory 
+  EventCategory,
+  Course
 } from '../types';
 import { 
   getUpcomingHolidays, 
@@ -13,14 +14,15 @@ import {
   Calendar as CalendarIcon, 
   Sparkles, 
   Flag,
-  CheckCircle2,
-  Plus,
-  Clock,
-  MapPin,
-  Bell,
-  CheckCircle,
-  Circle,
-  MoreVertical
+  CheckCircle2, 
+  Plus, 
+  Clock, 
+  MapPin, 
+  Bell, 
+  CheckCircle, 
+  Circle, 
+  MoreVertical,
+  BookOpen
 } from 'lucide-react';
 import { triggerLightHaptic, triggerSelectionHaptic } from '../services/hapticsService';
 import { AddEventModal } from './AddEventModal';
@@ -28,6 +30,8 @@ import { formatTime12H } from '../services/scheduleEngine';
 
 interface CalendarViewProps {
   events: CustomEvent[];
+  courses?: Course[];
+  onOpenSubject?: (course: Course) => void;
   onSaveEvent: (event: CustomEvent) => void;
   onDeleteEvent: (eventId: string) => void;
   onToggleEventComplete?: (eventId: string) => void;
@@ -40,6 +44,8 @@ type FeedFilter = 'all' | 'my_events' | 'holidays';
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
   events = [],
+  courses = [],
+  onOpenSubject,
   onSaveEvent,
   onDeleteEvent,
   onToggleEventComplete,
@@ -48,6 +54,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<TabFilter>('holidays');
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
+  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string>('all');
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
 
@@ -154,13 +161,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   });
 
   const getFilteredFeedItems = (): TimelineItem[] => {
+    let filteredCustom = customEventItems;
+    if (selectedSubjectFilter !== 'all') {
+      filteredCustom = customEventItems.filter(item => {
+        return item.itemType === 'custom_event' && item.data.subjectId === selectedSubjectFilter;
+      });
+    }
+
     if (feedFilter === 'my_events') {
-      return [...customEventItems].sort((a, b) => a.timestamp - b.timestamp);
+      return [...filteredCustom].sort((a, b) => a.timestamp - b.timestamp);
     }
     if (feedFilter === 'holidays') {
       return [...holidayItems].sort((a, b) => a.timestamp - b.timestamp);
     }
-    return [...holidayItems, ...customEventItems].sort((a, b) => a.timestamp - b.timestamp);
+    
+    // When a specific subject filter is active, only show that subject's events
+    if (selectedSubjectFilter !== 'all') {
+      return [...filteredCustom].sort((a, b) => a.timestamp - b.timestamp);
+    }
+
+    return [...holidayItems, ...filteredCustom].sort((a, b) => a.timestamp - b.timestamp);
   };
 
   const feedItems = getFilteredFeedItems();
@@ -354,6 +374,72 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             </button>
           </div>
 
+          {/* Subject Filter Pills (if enrolled courses exist) */}
+          {courses.length > 0 && feedFilter !== 'holidays' && (
+            <div 
+              style={{ 
+                display: 'flex', 
+                gap: 6, 
+                overflowX: 'auto', 
+                paddingBottom: 4, 
+                marginBottom: 12,
+                scrollbarWidth: 'none'
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  triggerSelectionHaptic();
+                  setSelectedSubjectFilter('all');
+                }}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 8,
+                  border: selectedSubjectFilter === 'all' ? '1.5px solid var(--ios-blue)' : '1px solid var(--ios-card-border)',
+                  background: selectedSubjectFilter === 'all' ? 'var(--ios-blue-light)' : 'var(--ios-card-bg)',
+                  color: selectedSubjectFilter === 'all' ? 'var(--ios-blue)' : 'var(--ios-text-secondary)',
+                  fontSize: 11,
+                  fontWeight: selectedSubjectFilter === 'all' ? 800 : 600,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                All Courses
+              </button>
+
+              {courses.map(course => {
+                const isSelected = selectedSubjectFilter === course.id;
+                return (
+                  <button
+                    key={course.id}
+                    type="button"
+                    onClick={() => {
+                      triggerSelectionHaptic();
+                      setSelectedSubjectFilter(isSelected ? 'all' : course.id);
+                    }}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 8,
+                      border: isSelected ? `1.5px solid ${course.color || 'var(--ios-blue)'}` : '1px solid var(--ios-card-border)',
+                      background: isSelected ? `${course.color || '#2563EB'}18` : 'var(--ios-card-bg)',
+                      color: isSelected ? (course.color || 'var(--ios-blue)') : 'var(--ios-text-secondary)',
+                      fontSize: 11,
+                      fontWeight: isSelected ? 800 : 600,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <span>📖</span>
+                    <span>{course.courseCode}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Timeline Items List */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {feedItems.length === 0 ? (
@@ -483,7 +569,35 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           {customEv.formattedDate}
                         </span>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          {customEv.subjectCode && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                if (onOpenSubject) {
+                                  e.stopPropagation();
+                                  const matched = courses.find(c => c.id === customEv.subjectId || c.courseCode === customEv.subjectCode);
+                                  if (matched) onOpenSubject(matched);
+                                }
+                              }}
+                              className="ios-tag-pill"
+                              style={{
+                                background: 'var(--ios-blue-light)',
+                                color: 'var(--ios-blue)',
+                                fontSize: 9.5,
+                                fontWeight: 800,
+                                border: 'none',
+                                cursor: onOpenSubject ? 'pointer' : 'default',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3
+                              }}
+                              title={onOpenSubject ? `View ${customEv.subjectCode} Course Hub` : undefined}
+                            >
+                              <BookOpen size={10} />
+                              {customEv.subjectCode}
+                            </button>
+                          )}
                           <span 
                             className="ios-tag-pill"
                             style={{
@@ -842,9 +956,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           {ev.location && <span>• {ev.location}</span>}
                         </div>
                       </div>
-                      <span className="ios-tag-pill" style={{ background: `${evColor}15`, color: evColor, fontSize: 9.5 }}>
-                        {getCategoryLabel(ev.category)}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                        {ev.subjectCode && (
+                          <span 
+                            className="ios-tag-pill" 
+                            style={{ 
+                              background: 'var(--ios-blue-light)', 
+                              color: 'var(--ios-blue)', 
+                              fontSize: 9.5,
+                              fontWeight: 800
+                            }}
+                          >
+                            📖 {ev.subjectCode}
+                          </span>
+                        )}
+                        <span className="ios-tag-pill" style={{ background: `${evColor}15`, color: evColor, fontSize: 9.5 }}>
+                          {getCategoryLabel(ev.category)}
+                        </span>
+                      </div>
                     </div>
                   );
                 })}
@@ -866,9 +995,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         onDeleteEvent={onDeleteEvent}
         initialEvent={editingEvent}
         defaultDate={modalDefaultDate}
+        courses={courses}
       />
     </div>
   );
 };
 
 export default CalendarView;
+

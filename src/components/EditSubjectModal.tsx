@@ -3,6 +3,7 @@ import { Course, DayOfWeek } from '../types';
 import { DAYS_OF_WEEK } from '../services/scheduleEngine';
 import { X, Palette, Trash2, Check, ChevronRight } from 'lucide-react';
 import { SubjectIconPickerModal } from './SubjectIconPickerModal';
+import { ConfirmationModal } from './ConfirmationModal';
 import { getSubjectIconComponent, detectSubjectIcon, SUBJECT_ICONS } from '../services/iconService';
 import { triggerLightHaptic } from '../services/hapticsService';
 
@@ -14,16 +15,17 @@ interface EditSubjectModalProps {
   onDelete?: (courseId: string) => void;
 }
 
-// Curated Rich Vibrant Gradients matching the Subject Stack Cards exactly
+// Curated Rich Vibrant Gradients matching the 9 Schedly Themes in Settings
 export const VIBRANT_COLOR_PALETTES = [
-  { id: 'indigo', color: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)', hex: '#4F46E5', name: 'Electric Indigo' },
-  { id: 'blue', color: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', hex: '#0284C7', name: 'Ocean Blue' },
-  { id: 'emerald', color: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', hex: '#10B981', name: 'Emerald Green' },
-  { id: 'rose', color: 'linear-gradient(135deg, #F43F5E 0%, #E11D48 100%)', hex: '#F43F5E', name: 'Sunset Rose' },
-  { id: 'purple', color: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)', hex: '#8B5CF6', name: 'Royal Purple' },
-  { id: 'amber', color: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', hex: '#F59E0B', name: 'Amber Gold' },
-  { id: 'teal', color: 'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)', hex: '#0D9488', name: 'Cyber Teal' },
-  { id: 'pink', color: 'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)', hex: '#EC4899', name: 'Neon Pink' }
+  { id: 'bluebook', color: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', hex: '#2563EB', name: 'Bluebook', emoji: '🔵' },
+  { id: 'crimson', color: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', hex: '#EF4444', name: 'Crimson', emoji: '🔴' },
+  { id: 'bini', color: 'linear-gradient(135deg, #F472B6 0%, #EC4899 100%)', hex: '#EC4899', name: 'Bini', emoji: '🌸' },
+  { id: 'ube', color: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%)', hex: '#7C3AED', name: 'Ube', emoji: '🟣' },
+  { id: 'coffee', color: 'linear-gradient(135deg, #D97706 0%, #92400E 100%)', hex: '#92400E', name: 'Coffee', emoji: '☕' },
+  { id: 'matcha', color: 'linear-gradient(135deg, #4ADE80 0%, #16A34A 100%)', hex: '#16A34A', name: 'Matcha', emoji: '🍵' },
+  { id: 'duos', color: 'linear-gradient(135deg, #4F46E5 0%, #0284C7 100%)', hex: '#4F46E5', name: 'Duos', emoji: '🎨' },
+  { id: 'highlighter', color: 'linear-gradient(135deg, #6366F1 0%, #10B981 50%, #F59E0B 100%)', hex: '#0284C7', name: 'Highlighter', emoji: '🌈' },
+  { id: 'obsidian', color: 'linear-gradient(135deg, #475569 0%, #1E293B 100%)', hex: '#1E293B', name: 'Obsidian', emoji: '🖤' }
 ];
 
 export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
@@ -35,6 +37,7 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
 }) => {
   const [course, setCourse] = useState<Course | null>(initialCourse);
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (initialCourse) {
@@ -59,10 +62,14 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
 
   const handleDelete = () => {
     if (!course) return;
-    if (window.confirm(`Are you sure you want to delete ${course.courseCode}?`)) {
-      onDelete?.(course.id);
-      onClose();
-    }
+    setIsConfirmDeleteOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!course) return;
+    setIsConfirmDeleteOpen(false);
+    onDelete?.(course.id);
+    onClose();
   };
 
   const activeIconId = course.icon || detectSubjectIcon(course.courseCode, course.courseName);
@@ -75,9 +82,9 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div>
-            <h2 className="ios-modal-title" style={{ margin: 0 }}>Edit Subject</h2>
+            <h2 className="ios-modal-title" style={{ margin: 0 }}>Edit Course</h2>
             <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 1 }}>
-              Customize subject icon, vibrant color tag, venue & schedule
+              Customize course icon, color theme, venue & schedule
             </div>
           </div>
           <button 
@@ -89,7 +96,7 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
           </button>
         </div>
 
-        {/* Subject Icon Selector Row */}
+        {/* Course Icon Selector Row */}
         <div style={{ marginBottom: 14 }}>
           <div 
             onClick={() => {
@@ -127,7 +134,7 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
               </div>
               <div>
                 <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ios-text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>{activeIconDef?.name || 'Subject Icon'}</span>
+                  <span>{activeIconDef?.name || 'Course Icon'}</span>
                   {course.icon ? (
                     <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 999, background: 'var(--ios-blue-light)', color: 'var(--ios-blue)', fontWeight: 700 }}>Custom</span>
                   ) : (
@@ -149,11 +156,14 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
         {/* Vibrant Color Swatches Matching Card Deck */}
         <div style={{ marginBottom: 14 }}>
           <label className="ios-input-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Palette size={13} color="var(--ios-blue)" /> Vibrant Card Color
+            <Palette size={13} color="var(--ios-blue)" /> Course Color Theme
           </label>
           <div className="color-swatch-grid">
             {VIBRANT_COLOR_PALETTES.map(p => {
-              const isSelected = course.color === p.color || course.color === p.hex;
+              const isSelected = course.color === p.color || 
+                                 course.color === p.hex || 
+                                 course.color === p.id || 
+                                 (course.color ? course.color.toLowerCase() === p.id : false);
               return (
                 <div 
                   key={p.id}
@@ -201,7 +211,7 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
         </div>
 
         <div className="ios-input-group">
-          <label className="ios-input-label">Subject Title</label>
+          <label className="ios-input-label">Course Title</label>
           <input 
             className="ios-input"
             value={course.courseName}
@@ -298,7 +308,7 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
               }
             }}
           >
-            Save Subject
+            Save Course
           </button>
 
           {onDelete && (
@@ -308,7 +318,7 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
               style={{ color: 'var(--ios-red)', borderColor: 'var(--ios-red-light)', margin: 0 }}
               onClick={handleDelete}
             >
-              <Trash2 size={15} color="var(--ios-red)" /> Delete Subject
+              <Trash2 size={15} color="var(--ios-red)" /> Delete Course
             </button>
           )}
         </div>
@@ -322,6 +332,19 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
           courseColor={course.color}
           onSelectIcon={(iconId) => handleUpdate('icon', iconId)}
           onClose={() => setIsIconPickerOpen(false)}
+        />
+
+        {/* In-App Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={isConfirmDeleteOpen}
+          title={`Delete ${course.courseCode}?`}
+          message={`Are you sure you want to delete ${course.courseName || course.courseCode}? This will remove it from your schedule timetable.`}
+          confirmText="Delete Course"
+          cancelText="Cancel"
+          isDestructive={true}
+          icon="trash"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setIsConfirmDeleteOpen(false)}
         />
       </div>
     </div>

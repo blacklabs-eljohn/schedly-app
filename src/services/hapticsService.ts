@@ -53,3 +53,16 @@ export async function triggerSelectionHaptic(): Promise<void> {
     }
   }
 }
+
+/**
+ * Trigger warning haptic feedback (for delete confirmations, destructive actions)
+ */
+export async function triggerWarningHaptic(): Promise<void> {
+  try {
+    await Haptics.notification({ type: NotificationType.Warning });
+  } catch {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate([20, 40, 20]);
+    }
+  }
+}

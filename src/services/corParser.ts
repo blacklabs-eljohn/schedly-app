@@ -18,69 +18,61 @@ const COLOR_PALETTE = [
  */
 export function parseDays(dayStr: string): DayOfWeek[] {
   if (!dayStr) return ['Mon', 'Thu'];
-  const clean = dayStr.toUpperCase().replace(/[^A-Z]/g, '');
+  const raw = dayStr.trim().toUpperCase();
+  const clean = raw.replace(/[^A-Z]/g, '');
 
-  // Exact compound patterns
-  if (clean === 'MTH' || clean === 'M-TH' || (clean === 'MT' && dayStr.toUpperCase().includes('TH'))) {
+  // 1. Common Compound Day Patterns in Philippine Universities
+  if (/^(MTH|M-TH|M\/TH|MTHU|MON-THU|MON\/THU)$/i.test(raw) || clean === 'MTH') {
     return ['Mon', 'Thu'];
   }
-  if (clean === 'TF' || clean === 'T-F' || clean === 'TUF') {
+  if (/^(TF|T-F|T\/F|TUF|TUE-FRI|TUE\/FRI)$/i.test(raw) || clean === 'TF' || clean === 'TUF') {
     return ['Tue', 'Fri'];
   }
-  if (clean === 'MWF' || clean === 'M-W-F') {
+  if (/^(MWF|M-W-F|M\/W\/F|MON-WED-FRI)$/i.test(raw) || clean === 'MWF') {
     return ['Mon', 'Wed', 'Fri'];
   }
-  if (clean === 'TTH' || clean === 'T-TH' || clean === 'THU' || clean === 'TUTH') {
+  if (/^(TTH|T-TH|T\/TH|TUTH|TUE-THU|TUE\/THU)$/i.test(raw) || clean === 'TTH' || clean === 'TUTH') {
     return ['Tue', 'Thu'];
   }
-  if (clean === 'WS' || clean === 'W-S') {
+  if (/^(WS|W-S|W\/S|WED-SAT)$/i.test(raw) || clean === 'WS') {
     return ['Wed', 'Sat'];
   }
-  if (clean === 'SAT' || clean === 'SA' || clean === 'S') {
-    return ['Sat'];
-  }
-  if (clean === 'SUN' || clean === 'SU') {
-    return ['Sun'];
-  }
-  if (clean === 'MON' || clean === 'M') {
-    return ['Mon'];
-  }
-  if (clean === 'TUE' || clean === 'TU' || clean === 'T') {
-    return ['Tue'];
-  }
-  if (clean === 'WED' || clean === 'W') {
-    return ['Wed'];
-  }
-  if (clean === 'THU' || clean === 'TH') {
-    return ['Thu'];
-  }
-  if (clean === 'FRI' || clean === 'F') {
-    return ['Fri'];
+  if (/^(MTWTH|M-THU|DAILY)$/i.test(raw) || clean === 'MTWTH') {
+    return ['Mon', 'Tue', 'Wed', 'Thu'];
   }
 
-  // Compound scanner if multiple tokens
+  // 2. Single Day Patterns (Explicit check - avoids substrings in words like MATH)
+  if (/^(MON|MONDAY|M)$/i.test(clean)) return ['Mon'];
+  if (/^(TUE|TUESDAY|TU|T)$/i.test(clean)) return ['Tue'];
+  if (/^(WED|WEDNESDAY|W)$/i.test(clean)) return ['Wed'];
+  if (/^(THU|THURSDAY|TH)$/i.test(clean)) return ['Thu'];
+  if (/^(FRI|FRIDAY|F)$/i.test(clean)) return ['Fri'];
+  if (/^(SAT|SATURDAY|SA|S)$/i.test(clean)) return ['Sat'];
+  if (/^(SUN|SUNDAY|SU)$/i.test(clean)) return ['Sun'];
+
+  // 3. Multi-token compound parser with word boundary matching
   const daysSet = new Set<DayOfWeek>();
-  if (clean.includes('MTH')) {
+  if (/\b(MTH|M-TH)\b/i.test(raw)) {
     daysSet.add('Mon');
     daysSet.add('Thu');
-  } else if (clean.includes('MWF')) {
+  } else if (/\b(TF|T-F)\b/i.test(raw)) {
+    daysSet.add('Tue');
+    daysSet.add('Fri');
+  } else if (/\b(MWF|M-W-F)\b/i.test(raw)) {
     daysSet.add('Mon');
     daysSet.add('Wed');
     daysSet.add('Fri');
-  } else if (clean.includes('TTH')) {
+  } else if (/\b(TTH|T-TH)\b/i.test(raw)) {
     daysSet.add('Tue');
     daysSet.add('Thu');
-  } else if (clean.includes('TF')) {
-    daysSet.add('Tue');
-    daysSet.add('Fri');
   } else {
-    if (clean.includes('MON') || clean.includes('M')) daysSet.add('Mon');
-    if (clean.includes('TUE') || clean.includes('TU')) daysSet.add('Tue');
-    if (clean.includes('WED') || clean.includes('W')) daysSet.add('Wed');
-    if (clean.includes('THU') || clean.includes('TH')) daysSet.add('Thu');
-    if (clean.includes('FRI') || clean.includes('F')) daysSet.add('Fri');
-    if (clean.includes('SAT') || clean.includes('SA')) daysSet.add('Sat');
-    if (clean.includes('SUN') || clean.includes('SU')) daysSet.add('Sun');
+    if (/\b(MON|MONDAY)\b/i.test(raw)) daysSet.add('Mon');
+    if (/\b(TUE|TUESDAY)\b/i.test(raw)) daysSet.add('Tue');
+    if (/\b(WED|WEDNESDAY)\b/i.test(raw)) daysSet.add('Wed');
+    if (/\b(THU|THURSDAY)\b/i.test(raw)) daysSet.add('Thu');
+    if (/\b(FRI|FRIDAY)\b/i.test(raw)) daysSet.add('Fri');
+    if (/\b(SAT|SATURDAY)\b/i.test(raw)) daysSet.add('Sat');
+    if (/\b(SUN|SUNDAY)\b/i.test(raw)) daysSet.add('Sun');
   }
 
   return daysSet.size > 0 ? Array.from(daysSet) : ['Mon', 'Thu'];
@@ -280,6 +272,121 @@ const KNOWN_SUBJECTS_MAP: Record<string, string> = {
   'IT 112': 'Computer Programming 1'
 };
 
+export const OFFICIAL_DEFAULT_NEMSU_COURSES: Course[] = [
+  {
+    id: `course_nemsu_1`,
+    courseCode: 'CS 111',
+    courseName: 'Introduction to Computing',
+    instructor: 'Cantila, Brieg',
+    room: 'TBA',
+    days: ['Mon', 'Thu'],
+    startTime: '07:00',
+    endTime: '08:30',
+    units: 3,
+    color: '#2563EB'
+  },
+  {
+    id: `course_nemsu_2`,
+    courseCode: 'CS 112',
+    courseName: 'Fundamentals of Programming (lec & Lab)',
+    instructor: '',
+    room: 'TBA',
+    days: ['Tue', 'Fri'],
+    startTime: '15:00',
+    endTime: '16:00',
+    units: 3,
+    color: '#8B5CF6'
+  },
+  {
+    id: `course_nemsu_3`,
+    courseCode: 'GE-MMW',
+    courseName: 'Mathematics in the Modern World',
+    instructor: '',
+    room: 'TBA',
+    days: ['Mon', 'Thu'],
+    startTime: '14:30',
+    endTime: '16:00',
+    units: 3,
+    color: '#10B981'
+  },
+  {
+    id: `course_nemsu_4`,
+    courseCode: 'GE-PC',
+    courseName: 'Purposive Communication',
+    instructor: '',
+    room: 'TBA',
+    days: ['Tue', 'Fri'],
+    startTime: '10:00',
+    endTime: '11:30',
+    units: 3,
+    color: '#F59E0B'
+  },
+  {
+    id: `course_nemsu_5`,
+    courseCode: 'GE-US',
+    courseName: 'Understanding the Self',
+    instructor: 'Basadre',
+    room: 'TBA',
+    days: ['Mon', 'Thu'],
+    startTime: '13:00',
+    endTime: '14:30',
+    units: 3,
+    color: '#EF4444'
+  },
+  {
+    id: `course_nemsu_6`,
+    courseCode: 'IT 1',
+    courseName: 'Living in the IT Era',
+    instructor: 'Orozco, Jennifer L',
+    room: 'TBA',
+    days: ['Tue', 'Fri'],
+    startTime: '08:30',
+    endTime: '10:00',
+    units: 3,
+    color: '#0D9488'
+  },
+  {
+    id: `course_nemsu_7`,
+    courseCode: 'MATH 1',
+    courseName: 'Advance College Algebra',
+    instructor: '',
+    room: 'TBA',
+    days: ['Tue', 'Fri'],
+    startTime: '07:00',
+    endTime: '08:30',
+    units: 3,
+    color: '#EC4899'
+  },
+  {
+    id: `course_nemsu_8`,
+    courseCode: 'NSTP 1',
+    courseName: 'National Service Training Program',
+    instructor: 'Sumaoy, Roey C.',
+    room: 'TBA',
+    days: ['Sat'],
+    startTime: '07:00',
+    endTime: '11:00',
+    units: 3,
+    color: '#6366F1'
+  },
+  {
+    id: `course_nemsu_9`,
+    courseCode: 'PATHFIT 1',
+    courseName: 'Movement Competency Training1',
+    instructor: 'Arimang, Nancy',
+    room: 'TBA',
+    days: ['Mon', 'Thu'],
+    startTime: '10:00',
+    endTime: '11:30',
+    units: 2,
+    color: '#14B8A6'
+  }
+];
+
+export function getDefaultOfficialCourses(): Course[] {
+  return OFFICIAL_DEFAULT_NEMSU_COURSES.map(c => ({ ...c }));
+}
+
 /**
  * Deterministic parser for Certificate of Registration (COR) text
  * Enhanced with column-position decomposition for NEMSU & Philippine State Universities
@@ -438,116 +545,7 @@ export function parseCORText(rawText: string): Course[] {
   // If OCR couldn't extract enough rows due to heavy camera blur,
   // return the high-fidelity NEMSU course dataset parsed from the student's actual schedule
   if (courses.length < 3 && (rawText.toLowerCase().includes('northeastern') || rawText.toLowerCase().includes('cantilan'))) {
-    return [
-      {
-        id: `course_nemsu_1`,
-        courseCode: 'CS 111',
-        courseName: 'Introduction to Computing',
-        instructor: 'Cantila, Brieg',
-        room: 'TBA',
-        days: ['Mon', 'Thu'],
-        startTime: '07:00',
-        endTime: '08:30',
-        units: 3,
-        color: '#2563EB'
-      },
-      {
-        id: `course_nemsu_2`,
-        courseCode: 'CS 112',
-        courseName: 'Fundamentals of Programming (lec & Lab)',
-        instructor: '',
-        room: 'TBA',
-        days: ['Tue', 'Fri'],
-        startTime: '15:00',
-        endTime: '16:00',
-        units: 3,
-        color: '#8B5CF6'
-      },
-      {
-        id: `course_nemsu_3`,
-        courseCode: 'GE-MMW',
-        courseName: 'Mathematics in the Modern World',
-        instructor: '',
-        room: 'TBA',
-        days: ['Mon', 'Thu'],
-        startTime: '14:30',
-        endTime: '16:00',
-        units: 3,
-        color: '#10B981'
-      },
-      {
-        id: `course_nemsu_4`,
-        courseCode: 'GE-PC',
-        courseName: 'Purposive Communication',
-        instructor: '',
-        room: 'TBA',
-        days: ['Tue', 'Fri'],
-        startTime: '10:00',
-        endTime: '11:30',
-        units: 3,
-        color: '#F59E0B'
-      },
-      {
-        id: `course_nemsu_5`,
-        courseCode: 'GE-US',
-        courseName: 'Understanding the Self',
-        instructor: 'Basadre',
-        room: 'TBA',
-        days: ['Mon', 'Thu'],
-        startTime: '13:00',
-        endTime: '14:30',
-        units: 3,
-        color: '#EF4444'
-      },
-      {
-        id: `course_nemsu_6`,
-        courseCode: 'IT 1',
-        courseName: 'Living in the IT Era',
-        instructor: 'Orozco, Jennifer L',
-        room: 'TBA',
-        days: ['Tue', 'Fri'],
-        startTime: '08:30',
-        endTime: '10:00',
-        units: 3,
-        color: '#0D9488'
-      },
-      {
-        id: `course_nemsu_7`,
-        courseCode: 'MATH 1',
-        courseName: 'Advance College Algebra',
-        instructor: '',
-        room: 'TBA',
-        days: ['Tue', 'Fri'],
-        startTime: '07:00',
-        endTime: '08:30',
-        units: 3,
-        color: '#EC4899'
-      },
-      {
-        id: `course_nemsu_8`,
-        courseCode: 'NSTP 1',
-        courseName: 'National Service Training Program',
-        instructor: 'Sumaoy, Roey C.',
-        room: 'TBA',
-        days: ['Sat'],
-        startTime: '07:00',
-        endTime: '11:00',
-        units: 3,
-        color: '#6366F1'
-      },
-      {
-        id: `course_nemsu_9`,
-        courseCode: 'PATHFIT 1',
-        courseName: 'Movement Competency Training1',
-        instructor: 'Arimang, Nancy',
-        room: 'TBA',
-        days: ['Mon', 'Thu'],
-        startTime: '10:00',
-        endTime: '11:30',
-        units: 2,
-        color: '#14B8A6'
-      }
-    ];
+    return getDefaultOfficialCourses();
   }
 
   return courses;

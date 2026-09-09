@@ -17,13 +17,15 @@ interface SubjectDetailModalProps {
 }
 
 const COLOR_PALETTES = [
-  { id: 'blue', color: '#2563EB' },
-  { id: 'purple', color: '#8B5CF6' },
-  { id: 'green', color: '#10B981' },
-  { id: 'amber', color: '#F59E0B' },
-  { id: 'red', color: '#EF4444' },
-  { id: 'teal', color: '#0D9488' },
-  { id: 'pink', color: '#EC4899' }
+  { id: 'bluebook', color: '#2563EB', name: 'Bluebook' },
+  { id: 'crimson', color: '#EF4444', name: 'Crimson' },
+  { id: 'bini', color: '#EC4899', name: 'Bini' },
+  { id: 'ube', color: '#7C3AED', name: 'Ube' },
+  { id: 'coffee', color: '#92400E', name: 'Coffee' },
+  { id: 'matcha', color: '#16A34A', name: 'Matcha' },
+  { id: 'duos', color: '#4F46E5', name: 'Duos' },
+  { id: 'highlighter', color: '#0284C7', name: 'Highlighter' },
+  { id: 'obsidian', color: '#1E293B', name: 'Obsidian' }
 ];
 
 export const SubjectDetailModal: React.FC<SubjectDetailModalProps> = ({
@@ -46,7 +48,7 @@ export const SubjectDetailModal: React.FC<SubjectDetailModalProps> = ({
   const handleCopyDetails = () => {
     const text = `${course.courseCode}: ${course.courseName}\nSchedule: ${course.days.join(', ')} (${formatTime12H(course.startTime)} - ${formatTime12H(course.endTime)})\nRoom: ${course.room || 'TBA'}\nInstructor: Prof. ${course.instructor || 'TBA'}`;
     navigator.clipboard?.writeText(text);
-    showSystemToast('Copied to Clipboard', 'Subject details copied.');
+    showSystemToast('Copied to Clipboard', 'Course details copied.');
   };
 
   const handleQuickColorChange = (newColor: string) => {
@@ -142,31 +144,36 @@ export const SubjectDetailModal: React.FC<SubjectDetailModalProps> = ({
           )}
 
           {/* Color Customizer Swatches */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, background: 'var(--ios-bg-primary)', padding: '8px 12px', borderRadius: 12, border: '1px solid var(--ios-card-border)' }}>
-            <Palette size={14} color="var(--ios-text-muted)" />
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ios-text-secondary)' }}>Color Tag:</span>
-            <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
-              {COLOR_PALETTES.map(p => (
-                <div
-                  key={p.id}
-                  onClick={() => handleQuickColorChange(p.color)}
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: '50%',
-                    background: p.color,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transform: course.color === p.color ? 'scale(1.2)' : 'scale(1)',
-                    boxShadow: course.color === p.color ? '0 0 0 2px var(--ios-card-bg), 0 0 0 4px ' + p.color : 'none',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  {course.color === p.color && <Check size={11} color="#FFFFFF" />}
-                </div>
-              ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, background: 'var(--ios-bg-primary)', padding: '8px 12px', borderRadius: 12, border: '1px solid var(--ios-card-border)', overflowX: 'auto' }}>
+            <Palette size={14} color="var(--ios-text-muted)" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ios-text-secondary)', flexShrink: 0 }}>Color Tag:</span>
+            <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', flexShrink: 0 }}>
+              {COLOR_PALETTES.map(p => {
+                const isSelected = course.color === p.color || course.color === p.id || (course.color ? course.color.toLowerCase() === p.id : false);
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => handleQuickColorChange(p.color)}
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      background: p.color,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transform: isSelected ? 'scale(1.2)' : 'scale(1)',
+                      boxShadow: isSelected ? '0 0 0 2px var(--ios-card-bg), 0 0 0 4px ' + p.color : 'none',
+                      transition: 'all 0.15s ease',
+                      flexShrink: 0
+                    }}
+                    title={p.name}
+                  >
+                    {isSelected && <Check size={11} color="#FFFFFF" />}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

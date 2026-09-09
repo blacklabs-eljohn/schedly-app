@@ -16,7 +16,7 @@ const DB_VERSION = 1;
 export interface SyncQueueItem {
   id: string;
   userId: string;
-  table: 'profiles' | 'user_settings' | 'courses' | 'course_schedules' | 'custom_events';
+  table: 'profiles' | 'user_settings' | 'courses' | 'course_schedules' | 'custom_events' | 'subject_notes';
   action: 'upsert' | 'delete';
   payload: any;
   localId?: string;

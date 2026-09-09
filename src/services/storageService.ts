@@ -1,4 +1,4 @@
-import { Course, NotificationSettings, StudentProfile, CustomEvent } from '../types';
+import { Course, NotificationSettings, StudentProfile, CustomEvent, SubjectNote, CourseLink, CourseTopic } from '../types';
 import { idbSet, idbDelete, enqueueSyncMutation, clearSyncQueue } from './indexedDbService';
 
 const LAST_USER_ID_KEY = 'schedly_last_active_user_id';
@@ -27,7 +27,29 @@ export const getCoursesKey = (userId?: string) => `schedly_courses_${userId || g
 export const getProfileKey = (userId?: string) => `schedly_profile_${userId || getLastActiveUserId() || 'guest'}`;
 export const getSettingsKey = (userId?: string) => `schedly_settings_${userId || getLastActiveUserId() || 'guest'}`;
 export const getEventsKey = (userId?: string) => `schedly_custom_events_${userId || getLastActiveUserId() || 'guest'}`;
+export const getSubjectNotesKey = (userId?: string) => `schedly_subject_notes_${userId || getLastActiveUserId() || 'guest'}`;
+export const getCourseLinksKey = (userId?: string) => `schedly_course_links_${userId || getLastActiveUserId() || 'guest'}`;
+export const getCourseTopicsKey = (userId?: string) => `schedly_course_topics_${userId || getLastActiveUserId() || 'guest'}`;
 export const getIconsKey = (userId?: string) => `schedly_custom_icons_${userId || getLastActiveUserId() || 'guest'}`;
+export const getPrivacyAcceptedKey = (userId?: string) => `schedly_privacy_accepted_${userId || getLastActiveUserId() || 'guest'}`;
+
+export function hasAcceptedPrivacyPolicy(userId?: string): boolean {
+  try {
+    const key = getPrivacyAcceptedKey(userId);
+    return localStorage.getItem(key) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setAcceptedPrivacyPolicy(userId?: string, accepted: boolean = true): void {
+  try {
+    const key = getPrivacyAcceptedKey(userId);
+    localStorage.setItem(key, accepted ? 'true' : 'false');
+  } catch (err) {
+    console.error('Failed to save privacy acceptance state', err);
+  }
+}
 
 export const DEFAULT_SETTINGS: NotificationSettings = {
   remindersEnabled: true,
@@ -260,6 +282,105 @@ export function saveEvents(events: CustomEvent[], userId?: string, queueForSync:
   }
 }
 
+export function getStoredSubjectNotes(userId?: string): SubjectNote[] {
+  try {
+    const raw = localStorage.getItem(getSubjectNotesKey(userId));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.error('Failed to parse stored subject notes', err);
+    return [];
+  }
+}
+
+export function saveSubjectNotes(notes: SubjectNote[], userId?: string, queueForSync: boolean = true): void {
+  const resolvedUserId = userId || getLastActiveUserId();
+  const key = getSubjectNotesKey(resolvedUserId);
+  const safeNotes = notes || [];
+
+  try {
+    localStorage.setItem(key, JSON.stringify(safeNotes));
+  } catch (err) {
+    console.error('Failed to save subject notes to localStorage', err);
+  }
+
+  idbSet(key, safeNotes);
+
+  if (queueForSync && resolvedUserId && resolvedUserId !== 'guest') {
+    enqueueSyncMutation({
+      userId: resolvedUserId,
+      table: 'subject_notes',
+      action: 'upsert',
+      payload: safeNotes
+    });
+  }
+}
+
+export function getStoredCourseLinks(userId?: string): CourseLink[] {
+  try {
+    const raw = localStorage.getItem(getCourseLinksKey(userId));
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCourseLinks(links: CourseLink[], userId?: string, queueForSync: boolean = true): void {
+  const resolvedUserId = userId || getLastActiveUserId();
+  const key = getCourseLinksKey(resolvedUserId);
+  const safeLinks = links || [];
+
+  try {
+    localStorage.setItem(key, JSON.stringify(safeLinks));
+  } catch (err) {
+    console.error('Failed to save course links to localStorage', err);
+  }
+
+  idbSet(key, safeLinks);
+
+  if (queueForSync && resolvedUserId && resolvedUserId !== 'guest') {
+    enqueueSyncMutation({
+      userId: resolvedUserId,
+      table: 'course_links' as any,
+      action: 'upsert',
+      payload: safeLinks
+    });
+  }
+}
+
+export function getStoredCourseTopics(userId?: string): CourseTopic[] {
+  try {
+    const raw = localStorage.getItem(getCourseTopicsKey(userId));
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCourseTopics(topics: CourseTopic[], userId?: string, queueForSync: boolean = true): void {
+  const resolvedUserId = userId || getLastActiveUserId();
+  const key = getCourseTopicsKey(resolvedUserId);
+  const safeTopics = topics || [];
+
+  try {
+    localStorage.setItem(key, JSON.stringify(safeTopics));
+  } catch (err) {
+    console.error('Failed to save course topics to localStorage', err);
+  }
+
+  idbSet(key, safeTopics);
+
+  if (queueForSync && resolvedUserId && resolvedUserId !== 'guest') {
+    enqueueSyncMutation({
+      userId: resolvedUserId,
+      table: 'course_topics' as any,
+      action: 'upsert',
+      payload: safeTopics
+    });
+  }
+}
+
 export function resetScheduleData(userId?: string): void {
   const resolvedUserId = userId || getLastActiveUserId();
   const key = getCoursesKey(resolvedUserId);
@@ -288,6 +409,9 @@ export function clearUserStorage(userId?: string): void {
   const profileKey = getProfileKey(resolvedUserId);
   const settingsKey = getSettingsKey(resolvedUserId);
   const eventsKey = getEventsKey(resolvedUserId);
+  const notesKey = getSubjectNotesKey(resolvedUserId);
+  const linksKey = getCourseLinksKey(resolvedUserId);
+  const topicsKey = getCourseTopicsKey(resolvedUserId);
   const iconsKey = getIconsKey(resolvedUserId);
 
   try {
@@ -295,6 +419,9 @@ export function clearUserStorage(userId?: string): void {
     localStorage.removeItem(profileKey);
     localStorage.removeItem(settingsKey);
     localStorage.removeItem(eventsKey);
+    localStorage.removeItem(notesKey);
+    localStorage.removeItem(linksKey);
+    localStorage.removeItem(topicsKey);
     localStorage.removeItem(iconsKey);
   } catch {}
 
@@ -302,9 +429,13 @@ export function clearUserStorage(userId?: string): void {
   idbDelete(profileKey);
   idbDelete(settingsKey);
   idbDelete(eventsKey);
+  idbDelete(notesKey);
+  idbDelete(linksKey);
+  idbDelete(topicsKey);
   idbDelete(iconsKey);
 
   if (resolvedUserId) {
     clearSyncQueue(resolvedUserId);
   }
 }
+

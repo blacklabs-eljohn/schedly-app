@@ -59,7 +59,7 @@ export const CorrectionScreen: React.FC<CorrectionScreenProps> = ({
     const newCourse: Course = {
       id: `course_manual_${Date.now()}`,
       courseCode: `SUBJ 10${courses.length + 1}`,
-      courseName: 'New Subject Name',
+      courseName: 'New Course Name',
       instructor: 'Prof. Instructor',
       room: 'TBA',
       days: ['Mon', 'Thu'],
@@ -192,7 +192,7 @@ export const CorrectionScreen: React.FC<CorrectionScreenProps> = ({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <BookOpen size={15} color="var(--ios-blue)" />
-          <span>{courses.length} Subjects Extracted</span>
+          <span>{courses.length} Courses Extracted</span>
         </div>
         <div style={{ color: 'var(--ios-blue)', background: 'var(--ios-blue-light)', padding: '2px 8px', borderRadius: 6 }}>
           {totalUnits} Total Academic Units
@@ -381,7 +381,7 @@ export const CorrectionScreen: React.FC<CorrectionScreenProps> = ({
         onClick={handleAddCourse}
         style={{ marginBottom: 12 }}
       >
-        <Plus size={16} /> Add Another Subject
+        <Plus size={16} /> Add Another Course
       </button>
 
       <button 
@@ -389,7 +389,7 @@ export const CorrectionScreen: React.FC<CorrectionScreenProps> = ({
         className="ios-btn-primary"
         onClick={handleSave}
       >
-        <CheckCircle2 size={16} /> Confirm & Save to Timetable ({courses.length} Subjects)
+        <CheckCircle2 size={16} /> Confirm & Save to Timetable ({courses.length} Courses)
       </button>
     </div>
   );

@@ -166,6 +166,46 @@ export interface CustomEvent {
   notes?: string;
   color?: string;
   isCompleted?: boolean;
+  subjectId?: string;       // Linked Course ID
+  subjectCode?: string;     // Linked Course Code (e.g. 'IT 211')
+  subjectName?: string;     // Linked Course Title
   createdAt: string;
 }
 
+export interface SubjectNote {
+  id: string;
+  subjectId: string;
+  title: string;
+  content: string;
+  isPinned?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/* Course Resource Links (Drive, GC, LMS, Meet, Custom) */
+export type CourseLinkType = 'drive' | 'chat' | 'lms' | 'meet' | 'docs' | 'custom';
+
+export interface CourseLink {
+  id: string;
+  courseId: string;
+  type: CourseLinkType;
+  title: string;
+  url: string;
+  customIcon?: string;
+  createdAt: string;
+}
+
+/* Syllabus & Topic Progress Models */
+export type AcademicTerm = 'prelim' | 'midterm' | 'semifinal' | 'final';
+
+export interface CourseTopic {
+  id: string;
+  courseId: string;
+  term: AcademicTerm;
+  title: string;
+  description?: string;
+  isCompleted: boolean;
+  isKeyExamTopic?: boolean; // High yield / covered on next exam
+  order: number;
+  createdAt: string;
+}

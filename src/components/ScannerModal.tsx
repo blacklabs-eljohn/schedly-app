@@ -41,7 +41,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
 
   const handleProcessImage = async (imageSrc: string) => {
     if (!isNetworkOnline()) {
-      alert('AI Document Scanning requires an active internet connection to extract schedules. You can add your subjects manually while offline.');
+      alert('AI Document Scanning requires an active internet connection to extract schedules. You can add your courses manually while offline.');
       return;
     }
 
@@ -168,7 +168,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
           }}>
             <WifiOff size={18} color="#EF4444" style={{ flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
-              <strong>Device is currently offline.</strong> AI Scanning requires internet. You can still add subjects manually offline.
+              <strong>Device is currently offline.</strong> AI Scanning requires internet. You can still add courses manually offline.
             </div>
             {onAddManually && (
               <button
