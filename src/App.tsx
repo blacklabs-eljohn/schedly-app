@@ -59,10 +59,12 @@ import { Announcement } from './types';
 import { triggerLightHaptic, triggerSuccessHaptic } from './services/hapticsService';
 import { AuthScreen } from './components/AuthScreen';
 import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
+import { HomeTodoList } from './components/HomeTodoList';
+import { AddEventModal } from './components/AddEventModal';
 import { syncWidgetsData } from './services/widgetBridge';
 import { getSubjectIconComponent } from './services/iconService';
 
-import { Camera, ArrowRight, MapPin, User as UserIcon, Sparkles, Clock, CalendarDays, ChevronUp, CloudOff } from 'lucide-react';
+import { Camera, ArrowRight, MapPin, User as UserIcon, Sparkles, Clock, CalendarDays, ChevronUp, CloudOff, Calendar as CalendarIcon, CheckCircle2 } from 'lucide-react';
 import './styles/apple-design-system.css';
 
 export function App() {
@@ -102,6 +104,11 @@ export function App() {
   const [isHolidayCalendarOpen, setIsHolidayCalendarOpen] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isPrivacyConsentMode, setIsPrivacyConsentMode] = useState(false);
+
+  // Home View Mode: Schedule vs Deadlines/Tasks
+  const [homeViewMode, setHomeViewMode] = useState<'schedule' | 'tasks'>('schedule');
+  const [isAddingHomeEvent, setIsAddingHomeEvent] = useState(false);
+  const [editingHomeEvent, setEditingHomeEvent] = useState<CustomEvent | null>(null);
 
   const [reviewCourses, setReviewCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -899,10 +906,119 @@ export function App() {
                         </button>
                       </div>
                     )}
+
+                    {/* iOS Segmented Mode Switcher: Class Schedule ⇄ Deadlines & Tasks */}
+                    <div style={{ marginTop: 10, marginBottom: 8 }}>
+                      <div 
+                        style={{
+                          background: 'var(--ios-card-bg)',
+                          borderRadius: 14,
+                          padding: 3,
+                          display: 'flex',
+                          gap: 4,
+                          border: '1px solid var(--ios-card-border)',
+                          boxShadow: 'var(--ios-shadow-sm)'
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            triggerLightHaptic();
+                            setHomeViewMode('schedule');
+                          }}
+                          style={{
+                            flex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            padding: '9px 12px',
+                            borderRadius: 11,
+                            border: 'none',
+                            background: homeViewMode === 'schedule' ? 'var(--ios-blue)' : 'transparent',
+                            color: homeViewMode === 'schedule' ? '#FFFFFF' : 'var(--ios-text-secondary)',
+                            fontSize: 13,
+                            fontWeight: homeViewMode === 'schedule' ? 800 : 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                            boxShadow: homeViewMode === 'schedule' ? '0 2px 8px rgba(37, 99, 235, 0.28)' : 'none'
+                          }}
+                        >
+                          <CalendarIcon size={14} />
+                          <span>Class Schedule</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            triggerLightHaptic();
+                            setHomeViewMode('tasks');
+                          }}
+                          style={{
+                            flex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            padding: '9px 12px',
+                            borderRadius: 11,
+                            border: 'none',
+                            background: homeViewMode === 'tasks' ? 'var(--ios-blue)' : 'transparent',
+                            color: homeViewMode === 'tasks' ? '#FFFFFF' : 'var(--ios-text-secondary)',
+                            fontSize: 13,
+                            fontWeight: homeViewMode === 'tasks' ? 800 : 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                            boxShadow: homeViewMode === 'tasks' ? '0 2px 8px rgba(37, 99, 235, 0.28)' : 'none'
+                          }}
+                        >
+                          <CheckCircle2 size={14} />
+                          <span>Deadlines & Tasks</span>
+                          {customEvents.filter(e => !e.isCompleted).length > 0 && (
+                            <span 
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 800,
+                                padding: '1px 6px',
+                                borderRadius: 10,
+                                background: homeViewMode === 'tasks' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(239, 68, 68, 0.14)',
+                                color: homeViewMode === 'tasks' ? '#FFFFFF' : '#EF4444'
+                              }}
+                            >
+                              {customEvents.filter(e => !e.isCompleted).length}
+                            </span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Today's Classes List (Stacked Cards) */}
-                  {courses.length > 0 && (
+                  {/* Mode 1: Tasks & Deadlines Board */}
+                  {homeViewMode === 'tasks' && (
+                    <div className="ios-section" style={{ paddingBottom: 78, paddingTop: 6 }}>
+                      <HomeTodoList 
+                        events={customEvents}
+                        courses={courses}
+                        onToggleEventComplete={handleToggleEventComplete}
+                        onEditEvent={(event) => {
+                          setEditingHomeEvent(event);
+                          setIsAddingHomeEvent(true);
+                        }}
+                        onDeleteEvent={handleDeleteCustomEvent}
+                        onOpenAddTask={() => {
+                          setEditingHomeEvent(null);
+                          setIsAddingHomeEvent(true);
+                        }}
+                        onSelectCourse={(course) => {
+                          setSelectedCourse(course);
+                          setActiveTab('subjects');
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Mode 2: Today's Classes List (Stacked Cards) */}
+                  {homeViewMode === 'schedule' && courses.length > 0 && (
                     <div className="ios-section" style={{ paddingBottom: 78, paddingTop: 6 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                         <div className="ios-section-header" style={{ margin: 0 }}>
@@ -1250,6 +1366,27 @@ export function App() {
             onClose={() => setIsPrivacyModalOpen(false)}
             onAccept={handlePrivacyAccept}
             isConsentMode={isPrivacyConsentMode}
+          />
+
+          {/* Home Tab Add / Edit Task Modal */}
+          <AddEventModal 
+            isOpen={isAddingHomeEvent}
+            onClose={() => {
+              setIsAddingHomeEvent(false);
+              setEditingHomeEvent(null);
+            }}
+            onSaveEvent={(evt) => {
+              handleSaveCustomEvent(evt);
+              setIsAddingHomeEvent(false);
+              setEditingHomeEvent(null);
+            }}
+            onDeleteEvent={(id) => {
+              handleDeleteCustomEvent(id);
+              setIsAddingHomeEvent(false);
+              setEditingHomeEvent(null);
+            }}
+            initialEvent={editingHomeEvent}
+            courses={courses}
           />
         </>
       )}

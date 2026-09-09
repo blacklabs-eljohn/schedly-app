@@ -75,6 +75,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   const [reminderMinutes, setReminderMinutes] = useState<number>(30);
   const [notes, setNotes] = useState('');
   const [selectedColor, setSelectedColor] = useState('#EF4444');
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -171,8 +172,6 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
     onSaveEvent(newEvent);
     onClose();
   };
-
-  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
 
   const handleDelete = () => {
     if (initialEvent && onDeleteEvent) {

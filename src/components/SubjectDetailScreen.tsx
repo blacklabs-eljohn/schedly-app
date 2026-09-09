@@ -332,13 +332,15 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
   // Sort: pending first, then by date ascending
   filteredEvents.sort((a, b) => {
     if (a.isCompleted !== b.isCompleted) return a.isCompleted ? 1 : -1;
-    return a.date.localeCompare(b.date);
+    return (a.date || '').localeCompare(b.date || '');
   });
 
-  // Sort notes: pinned first, then by updatedAt descending
+  // Sort notes: pinned first, then by updatedAt/createdAt descending
   const sortedNotes = [...linkedNotes].sort((a, b) => {
     if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
-    return b.updatedAt.localeCompare(a.updatedAt);
+    const timeB = (b.updatedAt || b.createdAt || '');
+    const timeA = (a.updatedAt || a.createdAt || '');
+    return timeB.localeCompare(timeA);
   });
 
   // Filter linked Course Links & Topics
@@ -355,7 +357,7 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
     : activeTermTopics;
 
   // Sort topics by order or createdAt
-  displayedTopics.sort((a, b) => (a.order || 0) - (b.order || 0) || a.createdAt.localeCompare(b.createdAt));
+  displayedTopics.sort((a, b) => (a.order || 0) - (b.order || 0) || (a.createdAt || '').localeCompare(b.createdAt || ''));
 
   const completedTopicsCount = activeTermTopics.filter(t => t.isCompleted).length;
   const totalActiveTopicsCount = activeTermTopics.length;
@@ -379,9 +381,20 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
   const handleTopicToggle = (topic: CourseTopic, e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (!topic.isCompleted) {
-      const clickX = e?.clientX;
-      const clickY = e?.clientY;
-      triggerTaskConfetti(clickX, clickY);
+      let targetX = window.innerWidth / 2;
+      let targetY = window.innerHeight * 0.45;
+      
+      const cardEl = (e?.currentTarget as HTMLElement)?.closest('.wallet-card-item, .syllabus-topic-card, div[style*="borderRadius"]') || (e?.currentTarget as HTMLElement);
+      if (cardEl && typeof cardEl.getBoundingClientRect === 'function') {
+        const rect = cardEl.getBoundingClientRect();
+        targetX = rect.left + rect.width / 2;
+        targetY = rect.top + rect.height / 2;
+      } else if (e?.clientX && e?.clientY) {
+        targetX = e.clientX;
+        targetY = e.clientY;
+      }
+
+      triggerTaskConfetti(targetX, targetY);
       triggerSuccessHaptic();
       showSystemToast('Lesson Mastered! 🎓', `"${topic.title}" marked as covered.`);
     } else {
@@ -419,10 +432,21 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
   const handleTaskToggle = (evt: CustomEvent, e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (!evt.isCompleted) {
+      let targetX = window.innerWidth / 2;
+      let targetY = window.innerHeight * 0.45;
+      
+      const cardEl = (e?.currentTarget as HTMLElement)?.closest('.wallet-card-item, div[style*="borderRadius"]') || (e?.currentTarget as HTMLElement);
+      if (cardEl && typeof cardEl.getBoundingClientRect === 'function') {
+        const rect = cardEl.getBoundingClientRect();
+        targetX = rect.left + rect.width / 2;
+        targetY = rect.top + rect.height / 2;
+      } else if (e?.clientX && e?.clientY) {
+        targetX = e.clientX;
+        targetY = e.clientY;
+      }
+
       // Complete action -> confetti + celebration haptic!
-      const clickX = e?.clientX;
-      const clickY = e?.clientY;
-      triggerTaskConfetti(clickX, clickY);
+      triggerTaskConfetti(targetX, targetY);
       triggerSuccessHaptic();
       showSystemToast('🎉 Task Completed!', `${evt.title} marked as done.`);
     } else {
@@ -479,11 +503,16 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
     setIsCreatingNote(true);
   };
 
-  const getRelativeDateLabel = (dateStr: string): { label: string; isAlert: boolean } => {
+  const getRelativeDateLabel = (dateStr?: string): { label: string; isAlert: boolean } => {
+    if (!dateStr) return { label: 'NO DUE DATE', isAlert: false };
     const today = new Date();
-    const target = new Date(dateStr + 'T00:00:00');
-    const diffTime = target.getTime() - new Date(today.toISOString().split('T')[0] + 'T00:00:00').getTime();
-    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    const cleanDateStr = dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00`;
+    const target = new Date(cleanDateStr);
+    if (isNaN(target.getTime())) return { label: dateStr.toUpperCase(), isAlert: false };
+
+    const todayZero = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    const targetZero = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
+    const diffDays = Math.round((targetZero - todayZero) / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) return { label: 'DUE TODAY', isAlert: true };
     if (diffDays === 1) return { label: 'DUE TOMORROW', isAlert: true };

@@ -151,7 +151,16 @@ export interface Announcement {
 }
 
 /* User Custom Academic & Campus Events */
-export type EventCategory = 'exam' | 'assignment' | 'meeting' | 'activity' | 'personal';
+export type EventCategory = 
+  | 'exam' 
+  | 'long_quiz' 
+  | 'short_quiz' 
+  | 'assignment' 
+  | 'reporting' 
+  | 'project'
+  | 'meeting' 
+  | 'activity' 
+  | 'personal';
 
 export interface CustomEvent {
   id: string;

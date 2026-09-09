@@ -217,12 +217,12 @@ function getNotificationIdForEvent(eventId: string): number {
  * Schedule a local notification alarm for a single custom event
  */
 export async function scheduleCustomEventNotification(event: CustomEvent): Promise<void> {
-  if (event.reminderMinutes < 0 || event.isCompleted) return;
-
-  const hasPermission = await requestNotificationPermissions();
-  if (!hasPermission) return;
+  if (!event || event.reminderMinutes === undefined || event.reminderMinutes < 0 || event.isCompleted || !event.date) return;
 
   try {
+    const hasPermission = await requestNotificationPermissions();
+    if (!hasPermission) return;
+
     await setupNotificationChannel();
     const notifId = getNotificationIdForEvent(event.id);
 
@@ -233,18 +233,22 @@ export async function scheduleCustomEventNotification(event: CustomEvent): Promi
       // ignore
     }
 
-    const [year, month, day] = event.date.split('-').map(Number);
+    const dateParts = event.date.split('-').map(Number);
+    if (dateParts.length < 3 || isNaN(dateParts[0]) || isNaN(dateParts[1]) || isNaN(dateParts[2])) return;
+    const [year, month, day] = dateParts;
+
     let startHour = 8;
     let startMinute = 0;
 
     if (!event.isAllDay && event.startTime) {
-      const [h, m] = event.startTime.split(':').map(Number);
-      startHour = h || 0;
-      startMinute = m || 0;
+      const timeParts = event.startTime.split(':').map(Number);
+      startHour = !isNaN(timeParts[0]) ? timeParts[0] : 8;
+      startMinute = !isNaN(timeParts[1]) ? timeParts[1] : 0;
     }
 
     const eventDate = new Date(year, month - 1, day, startHour, startMinute, 0);
-    const triggerTimestamp = eventDate.getTime() - event.reminderMinutes * 60 * 1000;
+    if (isNaN(eventDate.getTime())) return;
+    const triggerTimestamp = eventDate.getTime() - (event.reminderMinutes || 0) * 60 * 1000;
 
     // Only schedule if trigger time is in the future
     if (triggerTimestamp > Date.now()) {

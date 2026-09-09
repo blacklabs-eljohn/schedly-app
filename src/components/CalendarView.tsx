@@ -152,11 +152,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   }));
 
   const customEventItems: TimelineItem[] = upcomingCustomEvents.map(ev => {
+    if (!ev.date) {
+      return {
+        itemType: 'custom_event',
+        data: ev,
+        timestamp: 0
+      };
+    }
     const [y, m, d] = ev.date.split('-').map(Number);
+    const valid = y && m && d && !isNaN(y) && !isNaN(m) && !isNaN(d);
     return {
       itemType: 'custom_event',
       data: ev,
-      timestamp: new Date(y, m - 1, d).getTime()
+      timestamp: valid ? new Date(y, m - 1, d).getTime() : 0
     };
   });
 
