@@ -260,10 +260,21 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
   const [syllabusTerm, setSyllabusTerm] = useState<AcademicTerm | 'all'>('prelim');
   const [filterKeyExamsOnly, setFilterKeyExamsOnly] = useState(false);
 
+  // Highlighter Color Palette
+  const HIGHLIGHT_COLORS = [
+    { id: 'yellow', label: 'Yellow', bg: 'rgba(245, 158, 11, 0.35)', border: '#F59E0B', text: '#B45309', dot: '#FBBF24' },
+    { id: 'green', label: 'Mint', bg: 'rgba(34, 197, 94, 0.32)', border: '#22C55E', text: '#15803D', dot: '#4ADE80' },
+    { id: 'blue', label: 'Blue', bg: 'rgba(59, 130, 246, 0.30)', border: '#3B82F6', text: '#1D4ED8', dot: '#60A5FA' },
+    { id: 'purple', label: 'Lavender', bg: 'rgba(168, 85, 247, 0.30)', border: '#A855F7', text: '#7E22CE', dot: '#C084FC' },
+    { id: 'pink', label: 'Rose', bg: 'rgba(244, 63, 94, 0.30)', border: '#F43F5E', text: '#BE123C', dot: '#FB7185' },
+    { id: 'orange', label: 'Peach', bg: 'rgba(249, 115, 22, 0.32)', border: '#F97316', text: '#C2410C', dot: '#FB923C' }
+  ];
+
   // New Note Modal & WYSIWYG Editor State
   const [isCreatingNote, setIsCreatingNote] = useState(false);
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
+  const [selectedHighlightColor, setSelectedHighlightColor] = useState<string>('yellow');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
   const [readingNote, setReadingNote] = useState<SubjectNote | null>(null);
@@ -337,11 +348,17 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
   };
 
   // WYSIWYG Formatting Handlers
-  const handleApplyHighlight = () => {
+  const handleApplyHighlight = (colorId?: string) => {
     triggerLightHaptic();
+    const activeColorId = colorId || selectedHighlightColor;
+    if (colorId && colorId !== selectedHighlightColor) {
+      setSelectedHighlightColor(colorId);
+    }
+    const colorObj = HIGHLIGHT_COLORS.find(c => c.id === activeColorId) || HIGHLIGHT_COLORS[0];
+
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
-      showSystemToast('Select text first to highlight', 'info');
+      showSystemToast(`Selected ${colorObj.label} highlighter. Highlight text to apply.`, 'info');
       return;
     }
 
@@ -352,17 +369,28 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
     // Toggle highlight if already inside a mark
     const parentMark = selection.anchorNode?.parentElement?.closest('mark');
     if (parentMark) {
-      const parent = parentMark.parentNode;
-      while (parentMark.firstChild) {
-        parent?.insertBefore(parentMark.firstChild, parentMark);
+      const currentMarkColor = parentMark.getAttribute('data-highlight-color') || 'yellow';
+      if (currentMarkColor === activeColorId) {
+        // Toggle off
+        const parent = parentMark.parentNode;
+        while (parentMark.firstChild) {
+          parent?.insertBefore(parentMark.firstChild, parentMark);
+        }
+        parent?.removeChild(parentMark);
+        syncEditorContent();
+        return;
+      } else {
+        // Switch color of existing mark
+        parentMark.setAttribute('data-highlight-color', activeColorId);
+        parentMark.style.background = colorObj.bg;
+        syncEditorContent();
+        return;
       }
-      parent?.removeChild(parentMark);
-      syncEditorContent();
-      return;
     }
 
     const mark = document.createElement('mark');
-    mark.style.background = 'rgba(245, 158, 11, 0.35)';
+    mark.setAttribute('data-highlight-color', activeColorId);
+    mark.style.background = colorObj.bg;
     mark.style.color = 'inherit';
     mark.style.padding = '1px 5px';
     mark.style.borderRadius = '4px';
@@ -371,7 +399,7 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
     try {
       range.surroundContents(mark);
     } catch (e) {
-      document.execCommand('hiliteColor', false, '#fef08a');
+      document.execCommand('hiliteColor', false, colorObj.dot);
     }
 
     syncEditorContent();
@@ -3490,32 +3518,79 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                 scrollbarWidth: 'none'
               }}
             >
-              {/* Highlight Button */}
-              <button
-                type="button"
-                onMouseDown={e => {
-                  e.preventDefault();
-                  handleApplyHighlight();
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  padding: '6px 12px',
-                  borderRadius: 8,
-                  border: '1.5px solid rgba(245, 158, 11, 0.4)',
-                  background: 'rgba(245, 158, 11, 0.18)',
-                  color: '#D97706',
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 6px rgba(245, 158, 11, 0.15)'
-                }}
-                title="Highlight Selected Text"
-              >
-                <Highlighter size={14} strokeWidth={2.5} />
-                <span>Highlight</span>
-              </button>
+              {/* Highlighter with Aesthetic Color Selector */}
+              {(() => {
+                const activeHighlightObj = HIGHLIGHT_COLORS.find(c => c.id === selectedHighlightColor) || HIGHLIGHT_COLORS[0];
+                return (
+                  <div 
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '4px 8px',
+                      borderRadius: 10,
+                      background: 'var(--ios-bg-secondary)',
+                      border: '1px solid var(--ios-card-border)',
+                      flexShrink: 0
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onMouseDown={e => {
+                        e.preventDefault();
+                        handleApplyHighlight(selectedHighlightColor);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        padding: '4px 9px',
+                        borderRadius: 7,
+                        border: `1.5px solid ${activeHighlightObj.border}77`,
+                        background: activeHighlightObj.bg,
+                        color: activeHighlightObj.text,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                      title={`Highlight with ${activeHighlightObj.label}`}
+                    >
+                      <Highlighter size={13} strokeWidth={2.5} />
+                      <span>Highlight</span>
+                    </button>
+
+                    {/* Color Swatch Dots */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      {HIGHLIGHT_COLORS.map(c => {
+                        const isSelected = selectedHighlightColor === c.id;
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onMouseDown={e => {
+                              e.preventDefault();
+                              handleApplyHighlight(c.id);
+                            }}
+                            style={{
+                              width: 19,
+                              height: 19,
+                              borderRadius: '50%',
+                              background: c.dot,
+                              border: isSelected ? `2.5px solid ${c.border}` : '1.5px solid rgba(0,0,0,0.15)',
+                              boxShadow: isSelected ? `0 0 0 2px var(--ios-card-bg), 0 2px 6px ${c.border}88` : 'none',
+                              transform: isSelected ? 'scale(1.18)' : 'scale(1)',
+                              cursor: 'pointer',
+                              padding: 0,
+                              transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                            }}
+                            title={`${c.label} Highlighter`}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Bold Button */}
               <button
