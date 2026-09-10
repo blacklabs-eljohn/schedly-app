@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Clock, CalendarDays, BookOpen, Settings, Sun, Moon, CloudCheck, CloudOff, RefreshCw } from 'lucide-react';
+import { Home, Clock, CalendarDays, BookOpen, FolderOpen, Settings, Sun, Moon, CloudCheck, CloudOff, RefreshCw } from 'lucide-react';
 import { TabType } from './BottomTabBar';
 import { StudentProfile } from '../types';
 import { SyncState } from '../services/syncService';
@@ -23,6 +23,7 @@ const TABS: { key: TabType; label: string; icon: React.FC<{ size?: number; class
   { key: 'schedule', label: 'Class Schedule', icon: Clock },
   { key: 'calendar', label: 'Academic Calendar', icon: CalendarDays },
   { key: 'subjects', label: 'Course Hub', icon: BookOpen },
+  { key: 'folders', label: 'Folders & Files', icon: FolderOpen },
   { key: 'settings', label: 'Settings & Cloud', icon: Settings }
 ];
 

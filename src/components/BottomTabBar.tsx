@@ -2,7 +2,7 @@ import React from 'react';
 import { Home, Clock, CalendarDays, BookOpen, Settings } from 'lucide-react';
 import { triggerSelectionHaptic } from '../services/hapticsService';
 
-export type TabType = 'home' | 'schedule' | 'calendar' | 'subjects' | 'settings';
+export type TabType = 'home' | 'schedule' | 'calendar' | 'subjects' | 'folders' | 'settings';
 
 interface BottomTabBarProps {
   activeTab: TabType;

@@ -223,3 +223,28 @@ export interface CourseTopic {
   order: number;
   createdAt: string;
 }
+
+/* Local Offline File & Folder Storage Models */
+export interface AppFolder {
+  id: string;
+  name: string;
+  color?: string;
+  icon?: string;
+  courseId?: string; // If linked to a course, or undefined for custom/general folder
+  isCourseFolder?: boolean;
+  createdAt: string;
+}
+
+export interface AppStoredFile {
+  id: string;
+  name: string;
+  size: number; // in bytes
+  type: string; // MIME type e.g. 'application/pdf'
+  extension: string; // 'pdf', 'pptx', 'docx', 'xlsx', 'png', etc.
+  folderId?: string; // Optional custom folder ID
+  courseId?: string; // Optional course/subject ID
+  createdAt: string;
+  updatedAt?: string;
+  blob?: Blob;
+}
+

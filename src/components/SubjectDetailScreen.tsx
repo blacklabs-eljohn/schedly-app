@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Course, CustomEvent, SubjectNote, ScheduleConflict, DayOfWeek, CourseLink, CourseTopic, AcademicTerm } from '../types';
+import { Course, CustomEvent, SubjectNote, ScheduleConflict, DayOfWeek, CourseLink, CourseTopic, AcademicTerm, AppStoredFile } from '../types';
 import { formatTime12H, timeToMinutes, formatDuration } from '../services/scheduleEngine';
 import { getSubjectIconComponent } from '../services/iconService';
 import { triggerTaskConfetti } from '../services/confettiService';
@@ -39,10 +39,31 @@ import {
   Sparkles,
   RotateCcw,
   Mail,
-  X
+  X,
+  FolderOpen,
+  Folder,
+  UploadCloud,
+  Presentation,
+  FileSpreadsheet,
+  Image as ImageIcon,
+  Download,
+  Eye,
+  Search,
+  HardDrive
 } from 'lucide-react';
 import { showSystemToast } from '../services/notificationService';
 import { triggerLightHaptic, triggerSelectionHaptic, triggerSuccessHaptic } from '../services/hapticsService';
+import { 
+  saveLocalFile, 
+  getFilesByCourse, 
+  deleteStoredFile, 
+  renameStoredFile, 
+  downloadStoredFile, 
+  getFileBlob, 
+  formatFileSize, 
+  getFileCategory, 
+  FileCategory 
+} from '../services/localFileStorageService';
 import { EditSubjectModal } from './EditSubjectModal';
 import { AddEventModal } from './AddEventModal';
 import { CourseLinksModal } from './CourseLinksModal';
@@ -53,10 +74,11 @@ interface SubjectDetailScreenProps {
   course: Course;
   allCourses: Course[];
   events: CustomEvent[];
-  notes: SubjectNote[];
-  conflicts: ScheduleConflict[];
+  notes?: SubjectNote[];
+  conflicts?: ScheduleConflict[];
   links?: CourseLink[];
   topics?: CourseTopic[];
+  theme?: 'light' | 'dark';
   onBack: () => void;
   onSelectInstructor: (instructorName: string) => void;
   onViewInTimetable?: (day: string) => void;
@@ -75,7 +97,7 @@ interface SubjectDetailScreenProps {
   onToggleTopicComplete?: (topicId: string) => void;
 }
 
-type TabSegment = 'tasks' | 'syllabus' | 'notes' | 'info';
+type TabSegment = 'tasks' | 'syllabus' | 'notes' | 'files' | 'info';
 type TaskFilter = 'pending' | 'all' | 'completed';
 type TaskDisplayMode = 'stack' | 'list';
 
@@ -219,8 +241,8 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
   course,
   allCourses,
   events,
-  notes,
-  conflicts,
+  notes = [],
+  conflicts = [],
   links = [],
   topics = [],
   onBack,
@@ -280,6 +302,147 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
   const [readingNote, setReadingNote] = useState<SubjectNote | null>(null);
   const noteEditorRef = useRef<HTMLDivElement | null>(null);
+
+  // ================= 📂 COURSE LOCAL OFFLINE FILES STATE =================
+  const [courseFiles, setCourseFiles] = useState<AppStoredFile[]>([]);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [fileSearchQuery, setFileSearchQuery] = useState('');
+  const [activeFileCategory, setActiveFileCategory] = useState<FileCategory | 'all'>('all');
+  const courseFileInputRef = useRef<HTMLInputElement>(null);
+
+  // File Preview Modal State
+  const [previewFile, setPreviewFile] = useState<AppStoredFile | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Rename File Modal State
+  const [renameFileTarget, setRenameFileTarget] = useState<AppStoredFile | null>(null);
+  const [renameFileName, setRenameFileName] = useState('');
+
+  const loadCourseFiles = async () => {
+    try {
+      const files = await getFilesByCourse(course.id);
+      setCourseFiles(files);
+    } catch (err) {
+      console.error('Failed to load course files:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadCourseFiles();
+  }, [course.id]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const uploaded = e.target.files;
+    if (!uploaded || uploaded.length === 0) return;
+
+    setIsUploadingFile(true);
+    triggerLightHaptic();
+    try {
+      for (let i = 0; i < uploaded.length; i++) {
+        await saveLocalFile(uploaded[i], uploaded[i].name, { courseId: course.id });
+      }
+      await loadCourseFiles();
+      showSystemToast('Files saved locally for offline access', 'update');
+    } catch (err) {
+      console.error('Error saving file:', err);
+      showSystemToast('Could not save file locally', 'alert');
+    } finally {
+      setIsUploadingFile(false);
+      if (courseFileInputRef.current) courseFileInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteFile = async (file: AppStoredFile) => {
+    if (!window.confirm(`Delete "${file.name}" from offline storage?`)) return;
+    triggerLightHaptic();
+    await deleteStoredFile(file.id);
+    await loadCourseFiles();
+    if (previewFile?.id === file.id) {
+      handleCloseFilePreview();
+    }
+    showSystemToast('File deleted', 'info');
+  };
+
+  const handleRenameFile = async () => {
+    if (!renameFileTarget || !renameFileName.trim()) return;
+    triggerLightHaptic();
+    await renameStoredFile(renameFileTarget.id, renameFileName.trim());
+    setRenameFileTarget(null);
+    setRenameFileName('');
+    await loadCourseFiles();
+    showSystemToast('File renamed', 'update');
+  };
+
+  const handleOpenFilePreview = async (file: AppStoredFile) => {
+    triggerSelectionHaptic();
+    setPreviewFile(file);
+    const blob = await getFileBlob(file.id);
+    if (blob) {
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+    }
+  };
+
+  const handleCloseFilePreview = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewFile(null);
+    setPreviewUrl(null);
+  };
+
+  // Helper to format and get badge for a file
+  const getCourseFileBadge = (file: AppStoredFile) => {
+    const category = getFileCategory(file.extension);
+    switch (category) {
+      case 'slides':
+        return {
+          icon: <Presentation size={20} color="#EA580C" />,
+          bg: '#FFF7ED',
+          border: '#FED7AA',
+          label: 'PPT / Slides',
+          color: '#EA580C'
+        };
+      case 'pdf':
+        return {
+          icon: <FileText size={20} color="#DC2626" />,
+          bg: '#FEF2F2',
+          border: '#FECACA',
+          label: 'PDF Document',
+          color: '#DC2626'
+        };
+      case 'docs':
+        return {
+          icon: <FileText size={20} color="#2563EB" />,
+          bg: '#EFF6FF',
+          border: '#BFDBFE',
+          label: 'Word / Text',
+          color: '#2563EB'
+        };
+      case 'sheets':
+        return {
+          icon: <FileSpreadsheet size={20} color="#059669" />,
+          bg: '#ECFDF5',
+          border: '#A7F3D0',
+          label: 'Spreadsheet',
+          color: '#059669'
+        };
+      case 'image':
+        return {
+          icon: <ImageIcon size={20} color="#7C3AED" />,
+          bg: '#F5F3FF',
+          border: '#DDD6FE',
+          label: 'Image',
+          color: '#7C3AED'
+        };
+      default:
+        return {
+          icon: <FileText size={20} color="#64748B" />,
+          bg: '#F8FAFC',
+          border: '#E2E8F0',
+          label: file.extension ? file.extension.toUpperCase() : 'File',
+          color: '#64748B'
+        };
+    }
+  };
 
   // Sync contentEditable when modal opens
   useEffect(() => {
@@ -1224,15 +1387,232 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
               )}
             </div>
 
-            {/* ================= 🔗 ENHANCED CLASS LINKS & RESOURCE HUB CARD ================= */}
+            {/* ================= 📱 MOBILE: PREVIOUS CLASS LINKS STYLE ================= */}
+            <div className="subject-mobile-links" style={{ marginTop: 14, marginBottom: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, padding: '0 2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ios-text-secondary)' }}>
+                    Class Links & Resources
+                  </span>
+                  {linkedCourseLinks.length > 0 && (
+                    <span style={{ 
+                      fontSize: 10, 
+                      fontWeight: 800, 
+                      background: 'var(--ios-card-border)', 
+                      color: 'var(--ios-text-primary)', 
+                      padding: '1px 6px', 
+                      borderRadius: 999 
+                    }}>
+                      {linkedCourseLinks.length}
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerLightHaptic();
+                    setEditingLink(null);
+                    setIsAddingLink(true);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: themeColor,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    padding: '2px 4px'
+                  }}
+                >
+                  <Plus size={14} strokeWidth={2.5} />
+                  <span>Add Link</span>
+                </button>
+              </div>
+
+              {linkedCourseLinks.length === 0 ? (
+                /* Empty prompt pill */
+                <div
+                  onClick={() => {
+                    triggerLightHaptic();
+                    setEditingLink(null);
+                    setIsAddingLink(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '11px 14px',
+                    borderRadius: 14,
+                    background: 'var(--ios-card-bg)',
+                    border: '1px dashed var(--ios-card-border)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    boxShadow: 'var(--ios-shadow-sm)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                    <span style={{ fontSize: 18 }}>📁</span>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ios-text-primary)' }}>
+                        Add Drive, GC, or Canvas
+                      </div>
+                      <div style={{ fontSize: 10.5, color: 'var(--ios-text-muted)' }}>
+                        1-tap access to lecture slides & rooms
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    background: `${themeColor}18`,
+                    color: themeColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Plus size={14} strokeWidth={2.5} />
+                  </div>
+                </div>
+              ) : (
+                /* Horizontal scrolling list of resource chips */
+                <div 
+                  style={{ 
+                    display: 'flex', 
+                    gap: 8, 
+                    overflowX: 'auto', 
+                    paddingBottom: 4,
+                    scrollbarWidth: 'none',
+                    WebkitOverflowScrolling: 'touch'
+                  }}
+                >
+                  {linkedCourseLinks.map(link => {
+                    const meta = getLinkMeta(link.type);
+                    return (
+                      <div
+                        key={link.id}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          background: 'var(--ios-card-bg)',
+                          border: '1px solid var(--ios-card-border)',
+                          borderRadius: 12,
+                          padding: '6px 8px 6px 10px',
+                          gap: 8,
+                          flexShrink: 0,
+                          boxShadow: 'var(--ios-shadow-sm)',
+                          maxWidth: 220,
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {/* Launch Link Button */}
+                        <div
+                          onClick={() => {
+                            triggerLightHaptic();
+                            window.open(link.url, '_blank', 'noopener,noreferrer');
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 7,
+                            cursor: 'pointer',
+                            minWidth: 0,
+                            flex: 1
+                          }}
+                          title={`Open ${link.url}`}
+                        >
+                          <span style={{ fontSize: 15 }}>{meta.icon}</span>
+                          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                            <div style={{ 
+                              fontSize: 12, 
+                              fontWeight: 700, 
+                              color: 'var(--ios-text-primary)', 
+                              whiteSpace: 'nowrap', 
+                              overflow: 'hidden', 
+                              textOverflow: 'ellipsis' 
+                            }}>
+                              {link.title}
+                            </div>
+                            <div style={{ 
+                              fontSize: 9, 
+                              fontWeight: 700, 
+                              color: meta.color, 
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.02em'
+                            }}>
+                              {meta.label}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions: Direct Launch & Edit */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              triggerLightHaptic();
+                              window.open(link.url, '_blank', 'noopener,noreferrer');
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: 3,
+                              color: 'var(--ios-text-muted)',
+                              cursor: 'pointer',
+                              borderRadius: 4,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="Open Link in Browser"
+                          >
+                            <ExternalLink size={12} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              triggerLightHaptic();
+                              setEditingLink(link);
+                              setIsAddingLink(true);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: 3,
+                              color: 'var(--ios-text-muted)',
+                              cursor: 'pointer',
+                              borderRadius: 4,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="Edit Link"
+                          >
+                            <Edit3 size={11} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* ================= 🖥️ DESKTOP & TABLET: CLASS LINKS & RESOURCE HUB CARD ================= */}
             <div 
+              className="subject-desktop-links-card"
               style={{
                 background: 'var(--ios-card-bg)',
                 borderRadius: 20,
                 padding: '16px 18px',
                 border: '1px solid var(--ios-card-border)',
                 boxShadow: 'var(--ios-shadow-sm)',
-                display: 'flex',
                 flexDirection: 'column',
                 gap: 12
               }}
@@ -1437,15 +1817,15 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
               )}
             </div>
 
-            {/* ================= 👨‍🏫 INSTRUCTOR & CONSULTATION HUB CARD ================= */}
+            {/* ================= 👨‍🏫 DESKTOP & TABLET: INSTRUCTOR & CONSULTATION HUB CARD ================= */}
             <div 
+              className="subject-faculty-card"
               style={{
                 background: 'var(--ios-card-bg)',
                 borderRadius: 20,
                 padding: '16px 18px',
                 border: '1px solid var(--ios-card-border)',
                 boxShadow: 'var(--ios-shadow-sm)',
-                display: 'flex',
                 flexDirection: 'column',
                 gap: 12
               }}
@@ -1609,19 +1989,19 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
 
               <button
                 type="button"
-                className={`subject-desktop-tab-btn ${activeTab === 'info' ? 'active' : ''}`}
+                className={`subject-desktop-tab-btn ${activeTab === 'files' ? 'active' : ''}`}
                 onClick={() => {
                   triggerSelectionHaptic();
-                  setActiveTab('info');
+                  setActiveTab('files');
                 }}
                 style={{
-                  color: activeTab === 'info' ? '#FFFFFF' : undefined,
-                  background: activeTab === 'info' ? themeColor : undefined,
-                  boxShadow: activeTab === 'info' ? `0 2px 8px ${themeColor}40` : undefined
+                  color: activeTab === 'files' ? '#FFFFFF' : undefined,
+                  background: activeTab === 'files' ? themeColor : undefined,
+                  boxShadow: activeTab === 'files' ? `0 2px 8px ${themeColor}40` : undefined
                 }}
               >
-                <Calendar size={15} />
-                <span>Schedule</span>
+                <FolderOpen size={15} />
+                <span>Files ({courseFiles.length})</span>
               </button>
             </div>
 
@@ -2902,104 +3282,378 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
           </div>
         )}
 
-        {/* ================= TAB 3: SCHEDULE & INFO ================= */}
-        {activeTab === 'info' && (
+        {/* ================= TAB 4: COURSE OFFLINE FILES & DOCUMENTS ================= */}
+        {(activeTab === 'files' || activeTab === 'info') && (
           <div>
-            <div className="detail-grouped-list" style={{ marginBottom: 16 }}>
-              {/* Meeting Days */}
-              <div className="detail-row-item">
-                <div className="detail-icon-squircle" style={{ background: `${themeColor}15`, color: themeColor }}>
-                  <Calendar size={18} />
-                </div>
-                <div className="detail-row-content">
-                  <div className="detail-row-label">Meeting Days</div>
-                  <div className="detail-row-value">{daysInfo.full}</div>
-                </div>
-              </div>
-
-              {/* Time & Duration */}
-              <div className="detail-row-item">
-                <div className="detail-icon-squircle" style={{ background: 'var(--ios-purple-light)', color: 'var(--ios-purple)' }}>
-                  <Clock size={18} />
-                </div>
-                <div className="detail-row-content">
-                  <div className="detail-row-label">Class Hours & Duration</div>
-                  <div className="detail-row-value">
-                    {formatTime12H(course.startTime)} – {formatTime12H(course.endTime)}
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ios-text-muted)', marginLeft: 6 }}>
-                      ({formattedDuration})
-                    </span>
+            {/* Top Toolbar: Upload Button + Search + Category Pills */}
+            <div 
+              style={{ 
+                padding: '16px 20px', 
+                borderRadius: 16, 
+                background: 'var(--ios-card-bg)', 
+                border: '1px solid var(--ios-card-border)',
+                marginBottom: 20,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 14
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div 
+                    style={{ 
+                      width: 38, 
+                      height: 38, 
+                      borderRadius: 10, 
+                      background: `${themeColor}15`, 
+                      color: themeColor,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <FolderOpen size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--ios-text-primary)' }}>
+                      Course Study Materials & Files
+                    </h3>
+                    <div style={{ fontSize: 12, color: 'var(--ios-text-muted)', marginTop: 2 }}>
+                      {courseFiles.length} {courseFiles.length === 1 ? 'file' : 'files'} • {formatFileSize(courseFiles.reduce((acc, f) => acc + (f.size || 0), 0))} (Saved 100% Offline)
+                    </div>
                   </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerLightHaptic();
+                    courseFileInputRef.current?.click();
+                  }}
+                  disabled={isUploadingFile}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '9px 18px',
+                    borderRadius: 12,
+                    background: themeColor,
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: isUploadingFile ? 'not-allowed' : 'pointer',
+                    boxShadow: `0 3px 12px ${themeColor}40`,
+                    transition: 'all 0.15s ease',
+                    opacity: isUploadingFile ? 0.7 : 1
+                  }}
+                >
+                  <UploadCloud size={16} />
+                  <span>{isUploadingFile ? 'Saving Offline...' : 'Upload Slides / Docs'}</span>
+                </button>
               </div>
 
-              {/* Classroom Location */}
-              <div className="detail-row-item">
-                <div className="detail-icon-squircle" style={{ background: 'var(--ios-green-light)', color: 'var(--ios-green)' }}>
-                  <MapPin size={18} />
+              {/* Search & Filter Row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 180 }}>
+                  <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ios-text-muted)' }} />
+                  <input
+                    type="text"
+                    placeholder="Search files in this subject..."
+                    value={fileSearchQuery}
+                    onChange={(e) => setFileSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '7px 10px 7px 32px',
+                      borderRadius: 10,
+                      border: '1px solid var(--ios-card-border)',
+                      background: 'var(--ios-bg-primary)',
+                      color: 'var(--ios-text-primary)',
+                      fontSize: 12.5,
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  {fileSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setFileSearchQuery('')}
+                      style={{
+                        position: 'absolute',
+                        right: 8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--ios-text-muted)',
+                        cursor: 'pointer',
+                        padding: 2
+                      }}
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
                 </div>
-                <div className="detail-row-content">
-                  <div className="detail-row-label">Classroom Location</div>
-                  <div className="detail-row-value">{course.room || 'No Room Assigned'}</div>
-                </div>
-              </div>
 
-              {/* Instructor */}
-              <div 
-                className={`detail-row-item ${course.instructor ? 'interactive' : ''}`}
-                onClick={() => {
-                  if (course.instructor) {
-                    onSelectInstructor(course.instructor);
-                  }
-                }}
-              >
-                <div className="detail-icon-squircle" style={{ background: 'var(--ios-orange-light)', color: 'var(--ios-orange)' }}>
-                  <User size={18} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto' }}>
+                  {[
+                    { key: 'all', label: 'All' },
+                    { key: 'slides', label: 'Slides (PPT)' },
+                    { key: 'docs', label: 'Docs' },
+                    { key: 'pdf', label: 'PDFs' },
+                    { key: 'sheets', label: 'Sheets' },
+                    { key: 'image', label: 'Images' }
+                  ].map(cat => {
+                    const isSel = activeFileCategory === cat.key;
+                    return (
+                      <button
+                        key={cat.key}
+                        type="button"
+                        onClick={() => {
+                          triggerSelectionHaptic();
+                          setActiveFileCategory(cat.key as any);
+                        }}
+                        style={{
+                          padding: '5px 10px',
+                          borderRadius: 8,
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          border: 'none',
+                          background: isSel ? themeColor : 'var(--ios-bg-primary)',
+                          color: isSel ? '#FFFFFF' : 'var(--ios-text-secondary)',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {cat.label}
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="detail-row-content">
-                  <div className="detail-row-label">Instructor Profile</div>
-                  <div className="detail-row-value" style={{ color: course.instructor ? 'var(--ios-blue)' : 'var(--ios-text-primary)' }}>
-                    {cleanInstructor}
-                  </div>
-                </div>
-                {course.instructor && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 2, color: 'var(--ios-blue)', fontSize: 12, fontWeight: 700 }}>
-                    <span>Profile</span>
-                    <ChevronRight size={14} />
-                  </div>
-                )}
               </div>
             </div>
 
-            {/* Jump to Timetable Action Button */}
-            {onViewInTimetable && course.days.length > 0 && (
-              <button 
-                type="button"
-                onClick={() => {
-                  triggerLightHaptic();
-                  onViewInTimetable(course.days[0]);
-                }}
-                style={{ 
-                  width: '100%', 
-                  padding: '13px', 
-                  borderRadius: 14,
-                  border: 'none',
-                  background: themeColor,
-                  color: '#FFFFFF',
-                  fontSize: 14,
-                  fontWeight: 800,
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  gap: 8,
-                  cursor: 'pointer',
-                  boxShadow: `0 4px 16px -2px ${themeColor}66`
-                }}
-              >
-                <CalendarDays size={17} />
-                <span>View in Timetable Schedule</span>
-              </button>
-            )}
+            {/* Files Grid or Empty State */}
+            {(() => {
+              let list = courseFiles;
+              if (fileSearchQuery.trim()) {
+                const q = fileSearchQuery.toLowerCase().trim();
+                list = list.filter(f => f.name.toLowerCase().includes(q) || f.extension.toLowerCase().includes(q));
+              }
+              if (activeFileCategory !== 'all') {
+                list = list.filter(f => getFileCategory(f.extension) === activeFileCategory);
+              }
+
+              if (list.length === 0) {
+                return (
+                  <div 
+                    style={{ 
+                      padding: '40px 20px', 
+                      borderRadius: 16, 
+                      background: 'var(--ios-card-bg)', 
+                      border: '1px dashed var(--ios-card-border)', 
+                      textAlign: 'center',
+                      marginBottom: 20
+                    }}
+                  >
+                    <UploadCloud size={32} color="var(--ios-text-muted)" style={{ margin: '0 auto 10px', display: 'block' }} />
+                    <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ios-text-primary)', marginBottom: 4 }}>
+                      {fileSearchQuery ? 'No matching files' : 'No materials uploaded yet'}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: 'var(--ios-text-muted)', marginBottom: 14 }}>
+                      Upload lecture slides (.pptx), reviewer PDFs, or document handouts for this course.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => courseFileInputRef.current?.click()}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '8px 16px',
+                        borderRadius: 10,
+                        background: themeColor,
+                        color: '#FFFFFF',
+                        border: 'none',
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <UploadCloud size={15} />
+                      <span>Upload Material</span>
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14, marginBottom: 24 }}>
+                  {list.map(f => {
+                    const badge = getCourseFileBadge(f);
+                    const formattedDate = new Date(f.createdAt).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    });
+
+                    return (
+                      <div
+                        key={f.id}
+                        style={{
+                          padding: '14px 16px',
+                          borderRadius: 14,
+                          background: 'var(--ios-card-bg)',
+                          border: '1px solid var(--ios-card-border)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          gap: 10,
+                          position: 'relative'
+                        }}
+                        className="hover-card-elevation"
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                          <div 
+                            style={{ 
+                              width: 40, 
+                              height: 40, 
+                              borderRadius: 10, 
+                              background: badge.bg, 
+                              border: `1px solid ${badge.border}`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}
+                          >
+                            {badge.icon}
+                          </div>
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div 
+                              style={{ 
+                                fontSize: 13.5, 
+                                fontWeight: 700, 
+                                color: 'var(--ios-text-primary)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}
+                              title={f.name}
+                            >
+                              {f.name}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: badge.color }}>
+                                {f.extension ? f.extension.toUpperCase() : 'FILE'}
+                              </span>
+                              <span style={{ fontSize: 10, color: 'var(--ios-text-muted)' }}>•</span>
+                              <span style={{ fontSize: 11, color: 'var(--ios-text-muted)' }}>
+                                {formatFileSize(f.size)}
+                              </span>
+                              <span style={{ fontSize: 10, color: 'var(--ios-text-muted)' }}>•</span>
+                              <span style={{ fontSize: 11, color: 'var(--ios-text-muted)' }}>
+                                {formattedDate}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--ios-card-border)', paddingTop: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenFilePreview(f)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                padding: '4px 8px',
+                                borderRadius: 6,
+                                background: 'var(--ios-bg-primary)',
+                                border: '1px solid var(--ios-card-border)',
+                                color: 'var(--ios-text-secondary)',
+                                fontSize: 11.5,
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Eye size={12} />
+                              <span>Preview</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                triggerLightHaptic();
+                                downloadStoredFile(f);
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                padding: '4px 8px',
+                                borderRadius: 6,
+                                background: 'var(--ios-bg-primary)',
+                                border: '1px solid var(--ios-card-border)',
+                                color: 'var(--ios-text-secondary)',
+                                fontSize: 11.5,
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }}
+                              title="Download to device"
+                            >
+                              <Download size={12} />
+                              <span>Save</span>
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                triggerLightHaptic();
+                                setRenameFileTarget(f);
+                                setRenameFileName(f.name);
+                              }}
+                              style={{
+                                padding: 5,
+                                borderRadius: 6,
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--ios-text-muted)',
+                                cursor: 'pointer'
+                              }}
+                              title="Rename"
+                            >
+                              <Edit3 size={13} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteFile(f)}
+                              style={{
+                                padding: 5,
+                                borderRadius: 6,
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#DC2626',
+                                cursor: 'pointer'
+                              }}
+                              title="Delete"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -3124,21 +3778,42 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
             <span>Notes</span>
           </button>
 
-          {/* Schedule Tab */}
+          {/* Files Tab */}
           <button
-            className={`ios-tab-item ${activeTab === 'info' ? 'active' : ''}`}
+            className={`ios-tab-item ${activeTab === 'files' ? 'active' : ''}`}
             onClick={() => {
               triggerSelectionHaptic();
-              setActiveTab('info');
+              setActiveTab('files');
             }}
             type="button"
-            aria-selected={activeTab === 'info'}
+            aria-selected={activeTab === 'files'}
             style={{
-              color: activeTab === 'info' ? themeColor : undefined
+              color: activeTab === 'files' ? themeColor : undefined
             }}
           >
-            <Calendar size={19} />
-            <span>Schedule</span>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FolderOpen size={19} />
+              {courseFiles.length > 0 && (
+                <span 
+                  style={{
+                    position: 'absolute',
+                    top: -4,
+                    right: -9,
+                    background: activeTab === 'files' ? themeColor : 'var(--ios-blue)',
+                    color: '#FFFFFF',
+                    fontSize: 9,
+                    fontWeight: 900,
+                    padding: '1px 4.5px',
+                    borderRadius: 999,
+                    border: '1.5px solid var(--ios-card-bg)',
+                    lineHeight: 1
+                  }}
+                >
+                  {courseFiles.length}
+                </span>
+              )}
+            </div>
+            <span>Files</span>
           </button>
         </nav>
       </div>
@@ -3882,6 +4557,240 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                 <span>•</span>
                 <span>{getNoteStats(noteContent).readTimeMinutes} min read</span>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden File Input for Course Hub Materials */}
+      <input
+        type="file"
+        ref={courseFileInputRef}
+        onChange={handleFileUpload}
+        multiple
+        style={{ display: 'none' }}
+      />
+
+      {/* Course File Rename Modal */}
+      {renameFileTarget && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: 20
+          }}
+          onClick={() => setRenameFileTarget(null)}
+        >
+          <div 
+            style={{
+              background: 'var(--ios-card-bg)',
+              border: '1px solid var(--ios-card-border)',
+              borderRadius: 20,
+              padding: 24,
+              width: '100%',
+              maxWidth: 400,
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', color: 'var(--ios-text-primary)' }}>
+              Rename Material
+            </h3>
+            <input
+              type="text"
+              value={renameFileName}
+              onChange={(e) => setRenameFileName(e.target.value)}
+              autoFocus
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: 12,
+                border: '1px solid var(--ios-card-border)',
+                background: 'var(--ios-bg-primary)',
+                color: 'var(--ios-text-primary)',
+                fontSize: 14,
+                outline: 'none',
+                boxSizing: 'border-box',
+                marginBottom: 20
+              }}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setRenameFileTarget(null)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 10,
+                  background: 'transparent',
+                  border: '1px solid var(--ios-card-border)',
+                  color: 'var(--ios-text-secondary)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleRenameFile}
+                disabled={!renameFileName.trim()}
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: 10,
+                  background: themeColor,
+                  border: 'none',
+                  color: '#FFFFFF',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Course File Preview Modal */}
+      {previewFile && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(12px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            padding: 24
+          }}
+          onClick={handleCloseFilePreview}
+        >
+          <div 
+            style={{
+              background: 'var(--ios-card-bg)',
+              border: '1px solid var(--ios-card-border)',
+              borderRadius: 24,
+              width: '100%',
+              maxWidth: 900,
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+              overflow: 'hidden'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--ios-card-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                {getCourseFileBadge(previewFile).icon}
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ios-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 500 }}>
+                    {previewFile.name}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--ios-text-muted)' }}>
+                    {formatFileSize(previewFile.size)} • Stored offline on this device
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => downloadStoredFile(previewFile)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '7px 14px',
+                    borderRadius: 10,
+                    background: themeColor,
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Download size={14} />
+                  <span>Download</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCloseFilePreview}
+                  style={{
+                    padding: 8,
+                    borderRadius: 10,
+                    background: 'var(--ios-bg-primary)',
+                    border: '1px solid var(--ios-card-border)',
+                    color: 'var(--ios-text-muted)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Preview Body */}
+            <div style={{ flex: 1, padding: 24, overflowY: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400, background: 'var(--ios-bg-primary)' }}>
+              {previewFile.extension.toLowerCase() === 'pdf' && previewUrl ? (
+                <iframe
+                  src={previewUrl}
+                  title={previewFile.name}
+                  style={{ width: '100%', height: '70vh', border: 'none', borderRadius: 12 }}
+                />
+              ) : ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(previewFile.extension.toLowerCase()) && previewUrl ? (
+                <img
+                  src={previewUrl}
+                  alt={previewFile.name}
+                  style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 12 }}
+                />
+              ) : (
+                <div style={{ textAlign: 'center', maxWidth: 460, padding: 32 }}>
+                  <div style={{ width: 64, height: 64, borderRadius: 20, background: getCourseFileBadge(previewFile).bg, border: `1px solid ${getCourseFileBadge(previewFile).border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                    {getCourseFileBadge(previewFile).icon}
+                  </div>
+                  <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ios-text-primary)', margin: '0 0 8px' }}>
+                    {previewFile.name}
+                  </h3>
+                  <p style={{ fontSize: 13, color: 'var(--ios-text-muted)', margin: '0 0 20px', lineHeight: 1.5 }}>
+                    This {previewFile.extension.toUpperCase()} document is securely saved locally. You can download and open it directly with Microsoft PowerPoint, Word, Keynote, or Google Docs.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => downloadStoredFile(previewFile)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '10px 22px',
+                      borderRadius: 12,
+                      background: themeColor,
+                      color: '#FFFFFF',
+                      border: 'none',
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      boxShadow: `0 4px 12px ${themeColor}40`
+                    }}
+                  >
+                    <Download size={16} />
+                    <span>Download & Open in App</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

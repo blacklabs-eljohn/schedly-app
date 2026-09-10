@@ -63,6 +63,7 @@ import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { HomeTodoList } from './components/HomeTodoList';
 import { AddEventModal } from './components/AddEventModal';
 import { CommandPaletteModal } from './components/CommandPaletteModal';
+import { FoldersView } from './components/FoldersView';
 import { FloatingActionPill } from './components/FloatingActionPill';
 import { EditSubjectModal } from './components/EditSubjectModal';
 import { CreateNoteModal } from './components/CreateNoteModal';
@@ -1549,6 +1550,19 @@ export function App() {
                         subjectCardTheme={settings.colorTheme || settings.subjectCardTheme || 'bluebook'}
                       />
                     )}
+                  </main>
+                )}
+
+                {activeTab === 'folders' && (
+                  <main>
+                    <FoldersView 
+                      courses={courses}
+                      subjectCardTheme={settings.colorTheme || settings.subjectCardTheme || 'bluebook'}
+                      onSelectCourse={(course) => {
+                        setSelectedCourse(course);
+                        setActiveTab('subjects');
+                      }}
+                    />
                   </main>
                 )}
 

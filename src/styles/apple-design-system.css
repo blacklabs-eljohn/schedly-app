@@ -3707,6 +3707,32 @@ input:checked + .ios-toggle-slider:before {
   display: none;
 }
 
+.subject-mobile-links {
+  display: block;
+}
+
+.subject-desktop-links-card {
+  display: none !important;
+}
+
+.subject-faculty-card {
+  display: none !important;
+}
+
+@media (min-width: 1024px) {
+  .subject-mobile-links {
+    display: none !important;
+  }
+
+  .subject-desktop-links-card {
+    display: flex !important;
+  }
+
+  .subject-faculty-card {
+    display: flex !important;
+  }
+}
+
 .schedule-desktop-split {
   display: flex;
   flex-direction: column;
@@ -5618,4 +5644,410 @@ body.dark-mode .sticky-mini-btn:hover {
 body.dark-mode .sticky-note-bottom-bar {
   border-top-color: rgba(255, 255, 255, 0.08);
 }
+
+/* ======================================================== */
+/* 📁 KINTSUGI-STYLE 3D FOLDER CARDS & INFO INSPECTOR PANEL */
+/* ======================================================== */
+.kintsugi-folders-layout {
+  display: flex;
+  gap: 28px;
+  width: 100%;
+  min-height: calc(100vh - 100px);
+  position: relative;
+}
+
+.kintsugi-folders-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.kintsugi-info-panel {
+  width: 320px;
+  min-width: 320px;
+  background: var(--ios-card-bg);
+  border: 1px solid var(--ios-card-border);
+  border-radius: 24px;
+  padding: 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+  height: fit-content;
+  position: sticky;
+  top: 24px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 1100px) {
+  .kintsugi-info-panel {
+    display: none;
+  }
+}
+
+.kintsugi-info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kintsugi-info-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ios-text-primary);
+  margin: 0;
+}
+
+.kintsugi-info-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--ios-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.kintsugi-info-toggle-btn:hover {
+  background: var(--ios-bg-secondary);
+  color: var(--ios-text-primary);
+}
+
+.kintsugi-metric-card {
+  background: var(--ios-bg-primary);
+  border: 1px solid var(--ios-card-border);
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+
+.metric-card-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ios-text-muted);
+}
+
+.metric-card-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ios-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.metric-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+[data-theme='dark'] .metric-progress-track {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.metric-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* 3D Realistic Folder Card with Liquid Glass Effect */
+.kintsugi-folder-card {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  cursor: pointer;
+  perspective: 1000px;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.kintsugi-folder-card:hover {
+  transform: translateY(-6px) scale(1.012);
+}
+
+.kintsugi-folder-card:active {
+  transform: scale(0.975);
+}
+
+/* Back Folder Layer with top tab */
+.kintsugi-folder-back {
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.82) 0%, rgba(243, 246, 251, 0.62) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95), 0 8px 24px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  overflow: hidden;
+  z-index: 1;
+}
+
+[data-theme='dark'] .kintsugi-folder-back {
+  background: linear-gradient(135deg, rgba(30, 37, 50, 0.8) 0%, rgba(18, 23, 32, 0.65) 100%);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.15), 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.kintsugi-folder-back-tab {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 40px;
+  background: inherit;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 16px;
+  border-bottom-right-radius: 6px;
+}
+
+/* Document Paper inside folder */
+.kintsugi-folder-paper {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  right: 16px;
+  height: 88px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+  border-radius: 14px 14px 8px 8px;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  padding: 11px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 2;
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.32s ease;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+[data-theme='dark'] .kintsugi-folder-paper {
+  background: linear-gradient(180deg, #283042 0%, #1F2533 100%);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.kintsugi-folder-card:hover .kintsugi-folder-paper {
+  transform: translateY(-12px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.kintsugi-paper-text {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #475569;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-theme='dark'] .kintsugi-paper-text {
+  color: #CBD5E1;
+}
+
+.kintsugi-paper-line {
+  height: 3.5px;
+  border-radius: 2px;
+  background: rgba(148, 163, 184, 0.28);
+}
+
+/* Front Folder Pocket with Liquid Glass Effect */
+.kintsugi-folder-front {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 48px;
+  border-radius: 18px 24px 24px 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(245, 248, 253, 0.68) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 
+    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.03),
+    0 -3px 14px rgba(0, 0, 0, 0.02),
+    0 10px 30px rgba(0, 0, 0, 0.06);
+  padding: 22px 18px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  justifyContent: space-between;
+  z-index: 3;
+  backdrop-filter: blur(32px) saturate(210%);
+  -webkit-backdrop-filter: blur(32px) saturate(210%);
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+[data-theme='dark'] .kintsugi-folder-front {
+  background: linear-gradient(135deg, rgba(32, 40, 54, 0.86) 0%, rgba(20, 26, 36, 0.72) 100%);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 
+    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.3),
+    0 12px 34px rgba(0, 0, 0, 0.4);
+}
+
+/* Liquid Glass Specular Shine Sheen across pocket */
+.kintsugi-folder-front::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.05) 75%, transparent 100%);
+  border-top-left-radius: 18px;
+  border-top-right-radius: 24px;
+  pointer-events: none;
+}
+
+[data-theme='dark'] .kintsugi-folder-front::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.01) 75%, transparent 100%);
+}
+
+/* Slanted Tab Cutout at top of front flap */
+.kintsugi-folder-front::before {
+  content: '';
+  position: absolute;
+  top: -15px;
+  left: 0;
+  width: 54%;
+  height: 16px;
+  background: inherit;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.8);
+  border-left: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+[data-theme='dark'] .kintsugi-folder-front::before {
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Selected / Vibrant Colored Folder with Liquid Glass Highlight */
+.kintsugi-folder-card.is-active .kintsugi-folder-front,
+.kintsugi-folder-card.is-active .kintsugi-folder-back {
+  background: linear-gradient(140deg, var(--folder-theme-start, #3B82F6) 0%, var(--folder-theme-end, #1D4ED8) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.45),
+    0 14px 36px -4px rgba(37, 99, 235, 0.42) !important;
+}
+
+.kintsugi-folder-card.is-active .folder-card-title,
+.kintsugi-folder-card.is-active .folder-card-subtitle,
+.kintsugi-folder-card.is-active .folder-card-size {
+  color: #FFFFFF !important;
+}
+
+.kintsugi-folder-card.is-active .folder-card-subtitle {
+  opacity: 0.92;
+}
+
+.kintsugi-folder-card.is-active .folder-card-size {
+  opacity: 0.85;
+}
+
+.kintsugi-folder-card.is-active .kintsugi-folder-front::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.04) 80%, transparent 100%);
+}
+
+.folder-card-title {
+  font-size: 16.5px;
+  font-weight: 800;
+  color: var(--ios-text-primary);
+  letter-spacing: -0.015em;
+  margin-bottom: 3px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folder-card-subtitle {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ios-text-secondary);
+}
+
+.folder-card-size {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ios-text-muted);
+  letter-spacing: 0.01em;
+}
+
+/* Pin Action Button & Badges */
+.folder-pin-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  color: var(--ios-text-muted);
+}
+
+.folder-pin-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  transform: scale(1.1);
+}
+
+.kintsugi-folder-card.is-active .folder-pin-btn {
+  background: rgba(255, 255, 255, 0.18);
+  color: #FFFFFF;
+}
+
+.folder-pin-btn.is-pinned {
+  color: #F59E0B;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.kintsugi-folder-card.is-active .folder-pin-btn.is-pinned {
+  color: #FDE68A;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.folder-pinned-indicator {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #D97706;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  backdrop-filter: blur(8px);
+  z-index: 4;
+}
+
+.kintsugi-folder-card.is-active .folder-pinned-indicator {
+  background: rgba(255, 255, 255, 0.24);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+
 
