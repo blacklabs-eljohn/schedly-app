@@ -176,9 +176,13 @@ export function App() {
     return upper.includes('MIDDLE NAME') || upper.includes('SEX FIRST') || upper.includes('FIRST NAME') || upper === 'STUDENT NAME' || upper === 'NEW STUDENT';
   };
 
-  // Sync theme (light / dark)
+  // Sync theme (light / dark) and ensure black PWA title bar
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', '#000000');
+    }
   }, [theme]);
 
   // Sync Schedly 8 Personality Color Themes
