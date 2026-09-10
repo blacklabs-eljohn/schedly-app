@@ -38,6 +38,7 @@ import {
   Maximize2,
   Sparkles,
   RotateCcw,
+  Mail,
   X
 } from 'lucide-react';
 import { showSystemToast } from '../services/notificationService';
@@ -514,8 +515,14 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
   const isClassLive = isScheduledToday && nowMins >= startMins && nowMins < endMins;
 
   // Filter linked events & notes
-  const linkedEvents = events.filter(e => e.subjectId === course.id);
-  const linkedNotes = notes.filter(n => n.subjectId === course.id);
+  const linkedEvents = events.filter(e => 
+    e.subjectId === course.id || 
+    (Boolean(e.subjectCode && course.courseCode) && (e.subjectCode || '').trim().toUpperCase() === (course.courseCode || '').trim().toUpperCase())
+  );
+  const linkedNotes = notes.filter(n => 
+    n.subjectId === course.id || 
+    (Boolean(course.courseCode) && n.subjectId === course.courseCode)
+  );
   
   const completedTasks = linkedEvents.filter(e => e.isCompleted);
   const pendingTasks = linkedEvents.filter(e => !e.isCompleted);
@@ -973,472 +980,653 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
         </div>
       </div>
 
-      <div style={{ padding: '16px 16px 0 16px', maxWidth: 640, margin: '0 auto' }}>
-        
-        {/* Schedule Overlap Alert (if conflicting) */}
-        {isConflicting && (
-          <div className="ios-conflict-alert" style={{ marginBottom: 14 }}>
-            <AlertTriangle className="ios-conflict-icon" size={16} />
-            <div>
-              <div className="ios-conflict-title">Timetable Conflict</div>
-              <div className="ios-conflict-desc">This course overlaps with another class on your schedule.</div>
-            </div>
-          </div>
-        )}
+      <div className="subject-detail-content-wrap">
+        <div className="subject-desktop-split">
+          
+          {/* Right Sidebar on Desktop / Top Section on Mobile */}
+          <div className="subject-desktop-sidebar">
+            {/* Schedule Overlap Alert (if conflicting) */}
+            {isConflicting && (
+              <div className="ios-conflict-alert" style={{ marginBottom: 14 }}>
+                <AlertTriangle className="ios-conflict-icon" size={16} />
+                <div>
+                  <div className="ios-conflict-title">Timetable Conflict</div>
+                  <div className="ios-conflict-desc">This course overlaps with another class on your schedule.</div>
+                </div>
+              </div>
+            )}
 
-        {/* ================= 🪪 SOLID HIGH-CONTRAST DIGITAL ID HEADER CARD ================= */}
-        <div 
-          style={{
-            background: `linear-gradient(145deg, ${themeColor} 0%, ${adjustColorBrightness(themeColor, -25)} 55%, ${adjustColorBrightness(themeColor, -48)} 100%)`,
-            borderRadius: 24,
-            padding: '22px',
-            boxShadow: `0 16px 36px -4px ${themeColor}66, 0 6px 16px rgba(0,0,0,0.22)`,
-            border: '1px solid rgba(255, 255, 255, 0.28)',
-            position: 'relative',
-            overflow: 'hidden',
-            marginBottom: 18,
-            color: '#FFFFFF'
-          }}
-        >
-          {/* Top Row: Course Code Pill + Lecture/Lab & Units Badges + Live Status */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span 
-                style={{ 
-                  fontSize: 13, 
-                  fontWeight: 900, 
-                  color: '#FFFFFF',
-                  background: 'rgba(255, 255, 255, 0.24)',
-                  backdropFilter: 'blur(8px)',
-                  border: '1px solid rgba(255, 255, 255, 0.38)',
-                  padding: '3px 10px',
-                  borderRadius: 8,
-                  letterSpacing: '0.04em'
-                }}
-              >
-                {course.courseCode}
-              </span>
-
-              <span 
-                className="wallet-pill-tag"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.18)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  fontSize: 10.5,
-                  fontWeight: 800,
-                  color: '#FFFFFF'
-                }}
-              >
-                {isLab ? 'LABORATORY' : 'LECTURE'}
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {course.units && (
-                <span 
-                  className="wallet-pill-tag"
-                  style={{
-                    background: 'rgba(16, 185, 129, 0.45)',
-                    border: '1px solid rgba(16, 185, 129, 0.65)',
-                    fontSize: 10.5,
-                    fontWeight: 800,
-                    color: '#FFFFFF'
-                  }}
-                >
-                  {course.units} {course.units === 1 ? 'Unit' : 'Units'}
-                </span>
-              )}
-
-              {isClassLive && (
-                <span 
-                  className="wallet-pill-tag"
-                  style={{
-                    background: '#10B981',
-                    border: 'none',
-                    fontSize: 10,
-                    fontWeight: 900,
-                    color: '#FFFFFF',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4
-                  }}
-                >
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#FFFFFF', animation: 'pulse 1.5s infinite' }} />
-                  LIVE NOW
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Identity Row: Squircle Icon + Course Title */}
-          <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 14 }}>
+            {/* ================= 🪪 SOLID HIGH-CONTRAST DIGITAL ID HEADER CARD ================= */}
             <div 
               style={{
-                width: 52,
-                height: 52,
-                borderRadius: 16,
-                background: 'rgba(255, 255, 255, 0.22)',
-                backdropFilter: 'blur(12px)',
-                border: '1.5px solid rgba(255, 255, 255, 0.38)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.22)'
+                background: `linear-gradient(145deg, ${themeColor} 0%, ${adjustColorBrightness(themeColor, -25)} 55%, ${adjustColorBrightness(themeColor, -48)} 100%)`,
+                borderRadius: 24,
+                padding: '22px',
+                boxShadow: `0 16px 36px -4px ${themeColor}66, 0 6px 16px rgba(0,0,0,0.22)`,
+                border: '1px solid rgba(255, 255, 255, 0.28)',
+                position: 'relative',
+                overflow: 'hidden',
+                color: '#FFFFFF'
               }}
             >
-              {getSubjectIconComponent(course.icon, course.courseCode, course.courseName, 28, '#FFFFFF')}
-            </div>
+              {/* Top Row: Course Code Pill + Lecture/Lab & Units Badges + Live Status */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span 
+                    style={{ 
+                      fontSize: 13, 
+                      fontWeight: 900, 
+                      color: '#FFFFFF',
+                      background: 'rgba(255, 255, 255, 0.24)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(255, 255, 255, 0.38)',
+                      padding: '3px 10px',
+                      borderRadius: 8,
+                      letterSpacing: '0.04em'
+                    }}
+                  >
+                    {course.courseCode}
+                  </span>
 
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h2 
-                style={{ 
-                  fontSize: 20, 
-                  fontWeight: 800, 
-                  color: '#FFFFFF',
-                  letterSpacing: '-0.02em',
-                  lineHeight: 1.25,
-                  margin: 0,
-                  whiteSpace: 'normal',
-                  textShadow: '0 1px 3px rgba(0, 0, 0, 0.35)'
-                }}
-              >
-                {course.courseName}
-              </h2>
-            </div>
-          </div>
+                  <span 
+                    className="wallet-pill-tag"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.18)',
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
+                      fontSize: 10.5,
+                      fontWeight: 800,
+                      color: '#FFFFFF'
+                    }}
+                  >
+                    {isLab ? 'LABORATORY' : 'LECTURE'}
+                  </span>
+                </div>
 
-          {/* Full-Width Metadata Bento Grid */}
-          <div 
-            style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(2, 1fr)', 
-              gap: '10px 14px',
-              paddingTop: 12,
-              borderTop: '1px solid rgba(255, 255, 255, 0.22)'
-            }}
-          >
-            {/* Schedule */}
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <label style={{ color: 'rgba(255, 255, 255, 0.82)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                SCHEDULE
-              </label>
-              <span style={{ color: '#FFFFFF', fontSize: 12, fontWeight: 700, marginTop: 2 }}>
-                {daysInfo.full} • {formatTime12H(course.startTime)} – {formatTime12H(course.endTime)}
-              </span>
-            </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {course.units && (
+                    <span 
+                      className="wallet-pill-tag"
+                      style={{
+                        background: 'rgba(16, 185, 129, 0.45)',
+                        border: '1px solid rgba(16, 185, 129, 0.65)',
+                        fontSize: 10.5,
+                        fontWeight: 800,
+                        color: '#FFFFFF'
+                      }}
+                    >
+                      {course.units} {course.units === 1 ? 'Unit' : 'Units'}
+                    </span>
+                  )}
 
-            {/* Room */}
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <label style={{ color: 'rgba(255, 255, 255, 0.82)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                ROOM
-              </label>
-              <span style={{ color: '#FFFFFF', fontSize: 12, fontWeight: 700, marginTop: 2 }}>
-                {course.room || 'TBA'}
-              </span>
-            </div>
+                  {isClassLive && (
+                    <span 
+                      className="wallet-pill-tag"
+                      style={{
+                        background: '#10B981',
+                        border: 'none',
+                        fontSize: 10,
+                        fontWeight: 900,
+                        color: '#FFFFFF',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}
+                    >
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#FFFFFF', animation: 'pulse 1.5s infinite' }} />
+                      LIVE NOW
+                    </span>
+                  )}
+                </div>
+              </div>
 
-            {/* Instructor */}
-            <div 
-              style={{ gridColumn: 'span 2', cursor: course.instructor ? 'pointer' : 'default', display: 'flex', flexDirection: 'column' }}
-              onClick={() => course.instructor && onSelectInstructor(course.instructor)}
-            >
-              <label style={{ color: 'rgba(255, 255, 255, 0.82)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                INSTRUCTOR
-              </label>
-              <span style={{ color: '#FFFFFF', fontSize: 12.5, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
-                <span>{cleanInstructor}</span>
-                {course.instructor && <ChevronRight size={14} style={{ opacity: 0.9 }} />}
-              </span>
-            </div>
-          </div>
+              {/* Identity Row: Squircle Icon + Course Title */}
+              <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 14 }}>
+                <div 
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 16,
+                    background: 'rgba(255, 255, 255, 0.22)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1.5px solid rgba(255, 255, 255, 0.38)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.22)'
+                  }}
+                >
+                  {getSubjectIconComponent(course.icon, course.courseCode, course.courseName, 28, '#FFFFFF')}
+                </div>
 
-          {/* Card Footer with Digital Barcode */}
-          <div 
-            style={{
-              marginTop: 14,
-              paddingTop: 10,
-              borderTop: '1px solid rgba(255, 255, 255, 0.25)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}
-          >
-            <div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h2 
+                    style={{ 
+                      fontSize: 20, 
+                      fontWeight: 800, 
+                      color: '#FFFFFF',
+                      letterSpacing: '-0.02em',
+                      lineHeight: 1.25,
+                      margin: 0,
+                      whiteSpace: 'normal',
+                      textShadow: '0 1px 3px rgba(0, 0, 0, 0.35)'
+                    }}
+                  >
+                    {course.courseName}
+                  </h2>
+                </div>
+              </div>
+
+              {/* Full-Width Metadata Bento Grid */}
               <div 
                 style={{ 
-                  fontFamily: 'var(--ios-font-mono)', 
-                  fontSize: 11, 
-                  fontWeight: 800, 
-                  color: 'rgba(255, 255, 255, 0.95)',
-                  letterSpacing: '0.06em'
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(2, 1fr)', 
+                  gap: '10px 14px',
+                  paddingTop: 12,
+                  borderTop: '1px solid rgba(255, 255, 255, 0.22)'
                 }}
               >
-                PASS REF: {course.courseCode}-{daysInfo.short}
-              </div>
-              <div style={{ fontSize: 9.5, color: 'rgba(255, 255, 255, 0.8)', marginTop: 1 }}>
-                {formattedDuration} per class session
-              </div>
-            </div>
+                {/* Schedule */}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <label style={{ color: 'rgba(255, 255, 255, 0.82)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    SCHEDULE
+                  </label>
+                  <span style={{ color: '#FFFFFF', fontSize: 12, fontWeight: 700, marginTop: 2 }}>
+                    {daysInfo.full} • {formatTime12H(course.startTime)} – {formatTime12H(course.endTime)}
+                  </span>
+                </div>
 
-            {/* Authentic Barcode Lines */}
-            <div style={{ display: 'flex', gap: '2px', alignItems: 'center', height: 18 }}>
-              {[4, 2, 5, 2, 6, 3, 2, 4, 3, 5, 2, 4, 3, 2, 6, 2, 4].map((w, i) => (
-                <div key={i} style={{ width: `${w}px`, height: 18, background: '#FFFFFF', opacity: 0.9, borderRadius: 1 }} />
-              ))}
-            </div>
-          </div>
+                {/* Room */}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <label style={{ color: 'rgba(255, 255, 255, 0.82)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    ROOM
+                  </label>
+                  <span style={{ color: '#FFFFFF', fontSize: 12, fontWeight: 700, marginTop: 2 }}>
+                    {course.room || 'TBA'}
+                  </span>
+                </div>
 
-          {/* Tasks Progress Bar (if tasks exist) */}
-          {totalTasksCount > 0 && (
-            <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.22)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255, 255, 255, 0.92)' }}>
-                  Deadlines Completed
-                </span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#FFFFFF' }}>
-                  {completedTasksCount} / {totalTasksCount} ({taskProgressPercent}%)
-                </span>
-              </div>
-              <div style={{ width: '100%', height: 5, borderRadius: 999, background: 'rgba(255, 255, 255, 0.28)', overflow: 'hidden' }}>
+                {/* Instructor */}
                 <div 
-                  style={{ 
-                    height: '100%', 
-                    width: `${taskProgressPercent}%`, 
-                    background: '#10B981',
-                    borderRadius: 999,
-                    transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-                  }} 
-                />
+                  style={{ gridColumn: 'span 2', cursor: course.instructor ? 'pointer' : 'default', display: 'flex', flexDirection: 'column' }}
+                  onClick={() => course.instructor && onSelectInstructor(course.instructor)}
+                >
+                  <label style={{ color: 'rgba(255, 255, 255, 0.82)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    INSTRUCTOR
+                  </label>
+                  <span style={{ color: '#FFFFFF', fontSize: 12.5, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
+                    <span>{cleanInstructor}</span>
+                    {course.instructor && <ChevronRight size={14} style={{ opacity: 0.9 }} />}
+                  </span>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
 
-        {/* ================= 🔗 CLASS LINKS & RESOURCE HUB STRIP ================= */}
-        <div style={{ marginBottom: 18 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, padding: '0 2px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ios-text-secondary)' }}>
-                Class Links & Resources
-              </span>
-              {linkedCourseLinks.length > 0 && (
-                <span style={{ 
-                  fontSize: 10, 
-                  fontWeight: 800, 
-                  background: 'var(--ios-card-border)', 
-                  color: 'var(--ios-text-primary)', 
-                  padding: '1px 6px', 
-                  borderRadius: 999 
-                }}>
-                  {linkedCourseLinks.length}
-                </span>
+              {/* Card Footer with Digital Barcode */}
+              <div 
+                style={{
+                  marginTop: 14,
+                  paddingTop: 10,
+                  borderTop: '1px solid rgba(255, 255, 255, 0.25)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <div>
+                  <div 
+                    style={{ 
+                      fontFamily: 'var(--ios-font-mono)', 
+                      fontSize: 11, 
+                      fontWeight: 800, 
+                      color: 'rgba(255, 255, 255, 0.95)',
+                      letterSpacing: '0.06em'
+                    }}
+                  >
+                    PASS REF: {course.courseCode}-{daysInfo.short}
+                  </div>
+                  <div style={{ fontSize: 9.5, color: 'rgba(255, 255, 255, 0.8)', marginTop: 1 }}>
+                    {formattedDuration} per class session
+                  </div>
+                </div>
+
+                {/* Authentic Barcode Lines */}
+                <div style={{ display: 'flex', gap: '2px', alignItems: 'center', height: 18 }}>
+                  {[4, 2, 5, 2, 6, 3, 2, 4, 3, 5, 2, 4, 3, 2, 6, 2, 4].map((w, i) => (
+                    <div key={i} style={{ width: `${w}px`, height: 18, background: '#FFFFFF', opacity: 0.9, borderRadius: 1 }} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Tasks Progress Bar (if tasks exist) */}
+              {totalTasksCount > 0 && (
+                <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.22)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255, 255, 255, 0.92)' }}>
+                      Deadlines Completed
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: '#FFFFFF' }}>
+                      {completedTasksCount} / {totalTasksCount} ({taskProgressPercent}%)
+                    </span>
+                  </div>
+                  <div style={{ width: '100%', height: 5, borderRadius: 999, background: 'rgba(255, 255, 255, 0.28)', overflow: 'hidden' }}>
+                    <div 
+                      style={{ 
+                        height: '100%', 
+                        width: `${taskProgressPercent}%`, 
+                        background: '#10B981',
+                        borderRadius: 999,
+                        transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                      }} 
+                    />
+                  </div>
+                </div>
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                triggerLightHaptic();
-                setEditingLink(null);
-                setIsAddingLink(true);
-              }}
+            {/* ================= 🔗 ENHANCED CLASS LINKS & RESOURCE HUB CARD ================= */}
+            <div 
               style={{
-                background: 'none',
-                border: 'none',
-                color: themeColor,
-                fontSize: 12,
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 3,
-                padding: '2px 4px'
-              }}
-            >
-              <Plus size={14} strokeWidth={2.5} />
-              <span>Add Link</span>
-            </button>
-          </div>
-
-          {linkedCourseLinks.length === 0 ? (
-            /* Empty prompt pill */
-            <div
-              onClick={() => {
-                triggerLightHaptic();
-                setEditingLink(null);
-                setIsAddingLink(true);
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px 14px',
-                borderRadius: 14,
                 background: 'var(--ios-card-bg)',
-                border: '1px dashed var(--ios-card-border)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                boxShadow: 'var(--ios-shadow-sm)'
+                borderRadius: 20,
+                padding: '16px 18px',
+                border: '1px solid var(--ios-card-border)',
+                boxShadow: 'var(--ios-shadow-sm)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <span style={{ fontSize: 18 }}>📁</span>
-                <div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ios-text-primary)' }}>
-                    Add Class Google Drive, GC, or Canvas LMS
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ios-text-secondary)' }}>
+                    Class Links & Resources
+                  </span>
+                  {linkedCourseLinks.length > 0 && (
+                    <span style={{ 
+                      fontSize: 10, 
+                      fontWeight: 800, 
+                      background: 'var(--ios-card-border)', 
+                      color: 'var(--ios-text-primary)', 
+                      padding: '1px 6px', 
+                      borderRadius: 999 
+                    }}>
+                      {linkedCourseLinks.length}
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerLightHaptic();
+                    setEditingLink(null);
+                    setIsAddingLink(true);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: themeColor,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    padding: '2px 4px'
+                  }}
+                >
+                  <Plus size={14} strokeWidth={2.5} />
+                  <span>Add Link</span>
+                </button>
+              </div>
+
+              {/* Links list */}
+              {linkedCourseLinks.length === 0 ? (
+                <div
+                  onClick={() => {
+                    triggerLightHaptic();
+                    setEditingLink(null);
+                    setIsAddingLink(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 14px',
+                    borderRadius: 14,
+                    background: 'var(--ios-bg-secondary)',
+                    border: '1px dashed var(--ios-card-border)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                    <span style={{ fontSize: 20 }}>📁</span>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ios-text-primary)' }}>
+                        Add Drive, GC, or Canvas
+                      </div>
+                      <div style={{ fontSize: 10.5, color: 'var(--ios-text-muted)' }}>
+                        1-tap access to lecture slides & rooms
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ fontSize: 10.5, color: 'var(--ios-text-muted)' }}>
-                    1-tap quick access to lecture slides, zoom rooms & chats
+                  <div style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    background: `${themeColor}18`,
+                    color: themeColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Plus size={14} strokeWidth={2.5} />
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {linkedCourseLinks.map(link => {
+                    const meta = getLinkMeta(link.type);
+                    return (
+                      <div
+                        key={link.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          background: 'var(--ios-bg-secondary)',
+                          border: '1px solid var(--ios-card-border)',
+                          borderRadius: 12,
+                          padding: '9px 12px',
+                          gap: 8,
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div
+                          onClick={() => {
+                            triggerLightHaptic();
+                            window.open(link.url, '_blank', 'noopener,noreferrer');
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 9,
+                            cursor: 'pointer',
+                            minWidth: 0,
+                            flex: 1
+                          }}
+                          title={`Open ${link.url}`}
+                        >
+                          <span style={{ fontSize: 17 }}>{meta.icon}</span>
+                          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                            <div style={{ 
+                              fontSize: 12.5, 
+                              fontWeight: 700, 
+                              color: 'var(--ios-text-primary)', 
+                              whiteSpace: 'nowrap', 
+                              overflow: 'hidden', 
+                              textOverflow: 'ellipsis' 
+                            }}>
+                              {link.title}
+                            </div>
+                            <div style={{ 
+                              fontSize: 9.5, 
+                              fontWeight: 700, 
+                              color: meta.color, 
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.02em'
+                            }}>
+                              {meta.label}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              triggerLightHaptic();
+                              window.open(link.url, '_blank', 'noopener,noreferrer');
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: 4,
+                              color: 'var(--ios-text-muted)',
+                              cursor: 'pointer',
+                              borderRadius: 6,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="Open Link"
+                          >
+                            <ExternalLink size={13} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              triggerLightHaptic();
+                              setEditingLink(link);
+                              setIsAddingLink(true);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: 4,
+                              color: 'var(--ios-text-muted)',
+                              cursor: 'pointer',
+                              borderRadius: 6,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="Edit Link"
+                          >
+                            <Edit3 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* ================= 👨‍🏫 INSTRUCTOR & CONSULTATION HUB CARD ================= */}
+            <div 
+              style={{
+                background: 'var(--ios-card-bg)',
+                borderRadius: 20,
+                padding: '16px 18px',
+                border: '1px solid var(--ios-card-border)',
+                boxShadow: 'var(--ios-shadow-sm)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ios-text-secondary)' }}>
+                  Faculty & Consultation
+                </span>
+                <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--ios-green)', background: 'var(--ios-green-light)', padding: '2px 7px', borderRadius: 6 }}>
+                  Active Semester
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div 
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    background: `${themeColor}18`,
+                    color: themeColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 16,
+                    fontWeight: 800,
+                    flexShrink: 0,
+                    border: `1.5px solid ${themeColor}35`
+                  }}
+                >
+                  {course.instructor ? course.instructor.charAt(0).toUpperCase() : <User size={20} />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ios-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {cleanInstructor}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--ios-text-muted)', marginTop: 2 }}>
+                    {course.room ? `Room ${course.room}` : 'Academic Faculty'} • {daysInfo.full}
                   </div>
                 </div>
               </div>
-              <div style={{
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                background: `${themeColor}15`,
-                color: themeColor,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Plus size={14} strokeWidth={2.5} />
+
+              {/* Action Buttons */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, paddingTop: 4, borderTop: '1px solid var(--ios-divider)' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerLightHaptic();
+                    if (course.instructor) {
+                      const emailPrefix = course.instructor.toLowerCase().replace(/[^a-z0-9]/g, '');
+                      window.location.href = `mailto:${emailPrefix}@nemsu.edu.ph?subject=[${course.courseCode}] Consultation Inquiry`;
+                    } else {
+                      showSystemToast('Faculty Contact', 'No instructor assigned for this course');
+                    }
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 5,
+                    padding: '8px 10px',
+                    borderRadius: 10,
+                    background: 'var(--ios-bg-secondary)',
+                    border: '1px solid var(--ios-card-border)',
+                    color: 'var(--ios-text-primary)',
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <Mail size={13} style={{ color: themeColor }} />
+                  <span>Send Email</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerLightHaptic();
+                    if (course.instructor) {
+                      onSelectInstructor(course.instructor);
+                    }
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 5,
+                    padding: '8px 10px',
+                    borderRadius: 10,
+                    background: 'var(--ios-bg-secondary)',
+                    border: '1px solid var(--ios-card-border)',
+                    color: 'var(--ios-text-primary)',
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <User size={13} style={{ color: themeColor }} />
+                  <span>Faculty Info</span>
+                </button>
               </div>
             </div>
-          ) : (
-            /* Horizontal scrolling list of resource chips */
-            <div 
-              style={{ 
-                display: 'flex', 
-                gap: 8, 
-                overflowX: 'auto', 
-                paddingBottom: 4,
-                scrollbarWidth: 'none',
-                WebkitOverflowScrolling: 'touch'
-              }}
-            >
-              {linkedCourseLinks.map(link => {
-                const meta = getLinkMeta(link.type);
-                return (
-                  <div
-                    key={link.id}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      background: 'var(--ios-card-bg)',
-                      border: '1px solid var(--ios-card-border)',
-                      borderRadius: 12,
-                      padding: '6px 8px 6px 10px',
-                      gap: 8,
-                      flexShrink: 0,
-                      boxShadow: 'var(--ios-shadow-sm)',
-                      maxWidth: 220,
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    {/* Launch Link Button */}
-                    <div
-                      onClick={() => {
-                        triggerLightHaptic();
-                        window.open(link.url, '_blank', 'noopener,noreferrer');
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 7,
-                        cursor: 'pointer',
-                        minWidth: 0,
-                        flex: 1
-                      }}
-                      title={`Open ${link.url}`}
-                    >
-                      <span style={{ fontSize: 16 }}>{meta.icon}</span>
-                      <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                        <div style={{ 
-                          fontSize: 12, 
-                          fontWeight: 700, 
-                          color: 'var(--ios-text-primary)', 
-                          whiteSpace: 'nowrap', 
-                          overflow: 'hidden', 
-                          textOverflow: 'ellipsis' 
-                        }}>
-                          {link.title}
-                        </div>
-                        <div style={{ 
-                          fontSize: 9.5, 
-                          fontWeight: 600, 
-                          color: meta.color, 
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.02em'
-                        }}>
-                          {meta.label}
-                        </div>
-                      </div>
-                      <ExternalLink size={12} style={{ color: 'var(--ios-text-muted)', flexShrink: 0, marginLeft: 2 }} />
-                    </div>
+          </div>
 
-                    {/* Edit/Delete Trigger */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        triggerLightHaptic();
-                        setEditingLink(link);
-                        setIsAddingLink(true);
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: 3,
-                        color: 'var(--ios-text-muted)',
-                        cursor: 'pointer',
-                        borderRadius: 6,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      title="Edit Link"
-                    >
-                      <Edit3 size={12} />
-                    </button>
-                  </div>
-                );
-              })}
-
-              {/* Add Link Plus Pill */}
+          {/* Left / Main Stream on Desktop */}
+          <div className="subject-desktop-main">
+            {/* Desktop Segmented Tab Switcher (Visible on Desktop / Tablet) */}
+            <div className="subject-desktop-tab-switcher">
               <button
                 type="button"
+                className={`subject-desktop-tab-btn ${activeTab === 'tasks' ? 'active' : ''}`}
                 onClick={() => {
-                  triggerLightHaptic();
-                  setEditingLink(null);
-                  setIsAddingLink(true);
+                  triggerSelectionHaptic();
+                  setActiveTab('tasks');
                 }}
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  background: 'var(--ios-bg-secondary)',
-                  border: '1px dashed var(--ios-card-border)',
-                  borderRadius: 12,
-                  padding: '6px 12px',
-                  color: 'var(--ios-text-secondary)',
-                  fontSize: 11.5,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease'
+                  color: activeTab === 'tasks' ? '#FFFFFF' : undefined,
+                  background: activeTab === 'tasks' ? themeColor : undefined,
+                  boxShadow: activeTab === 'tasks' ? `0 2px 8px ${themeColor}40` : undefined
                 }}
               >
-                <Plus size={13} strokeWidth={2.5} />
-                <span>Add</span>
+                <CheckCircle2 size={15} />
+                <span>Deadlines ({pendingTasksCount})</span>
+              </button>
+
+              <button
+                type="button"
+                className={`subject-desktop-tab-btn ${activeTab === 'syllabus' ? 'active' : ''}`}
+                onClick={() => {
+                  triggerSelectionHaptic();
+                  setActiveTab('syllabus');
+                }}
+                style={{
+                  color: activeTab === 'syllabus' ? '#FFFFFF' : undefined,
+                  background: activeTab === 'syllabus' ? themeColor : undefined,
+                  boxShadow: activeTab === 'syllabus' ? `0 2px 8px ${themeColor}40` : undefined
+                }}
+              >
+                <BookOpen size={15} />
+                <span>Syllabus ({remainingTotalTopics})</span>
+              </button>
+
+              <button
+                type="button"
+                className={`subject-desktop-tab-btn ${activeTab === 'notes' ? 'active' : ''}`}
+                onClick={() => {
+                  triggerSelectionHaptic();
+                  setActiveTab('notes');
+                }}
+                style={{
+                  color: activeTab === 'notes' ? '#FFFFFF' : undefined,
+                  background: activeTab === 'notes' ? themeColor : undefined,
+                  boxShadow: activeTab === 'notes' ? `0 2px 8px ${themeColor}40` : undefined
+                }}
+              >
+                <FileText size={15} />
+                <span>Notes ({linkedNotes.length})</span>
+              </button>
+
+              <button
+                type="button"
+                className={`subject-desktop-tab-btn ${activeTab === 'info' ? 'active' : ''}`}
+                onClick={() => {
+                  triggerSelectionHaptic();
+                  setActiveTab('info');
+                }}
+                style={{
+                  color: activeTab === 'info' ? '#FFFFFF' : undefined,
+                  background: activeTab === 'info' ? themeColor : undefined,
+                  boxShadow: activeTab === 'info' ? `0 2px 8px ${themeColor}40` : undefined
+                }}
+              >
+                <Calendar size={15} />
+                <span>Schedule</span>
               </button>
             </div>
-          )}
-        </div>
 
-        {/* ================= TAB 1: DEADLINES & TASKS ================= */}
-        {activeTab === 'tasks' && (
+            {/* ================= TAB 1: DEADLINES & TASKS ================= */}
+            {activeTab === 'tasks' && (
           <div>
             {/* UNIFIED SINGLE-ROW TOP CONTROLS BAR (Directly below Header Card) */}
             <div 
@@ -2478,13 +2666,19 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
           </div>
         )}
 
-        {/* ================= TAB 3: NOTES & REMINDERS ================= */}
+        {/* ================= TAB 3: NOTES PINBOARD ================= */}
         {activeTab === 'notes' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ios-text-secondary)' }}>
-                {linkedNotes.length} {linkedNotes.length === 1 ? 'Study Note' : 'Study Notes'}
-              </span>
+          <div className="pinboard-canvas-container">
+            {/* Top Bar for Pinboard */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="pinboard-badge-tag">
+                  📌 PINBOARD
+                </span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ios-text-secondary)' }}>
+                  {linkedNotes.length} {linkedNotes.length === 1 ? 'Sticky Note' : 'Sticky Notes'}
+                </span>
+              </div>
 
               <button
                 onClick={() => {
@@ -2495,7 +2689,7 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                   setIsCreatingNote(true);
                 }}
                 style={{
-                  padding: '7px 14px',
+                  padding: '7px 16px',
                   borderRadius: 20,
                   border: 'none',
                   background: themeColor,
@@ -2510,27 +2704,18 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                 }}
               >
                 <Plus size={15} strokeWidth={2.5} />
-                <span>New Note</span>
+                <span>New Sticky Note</span>
               </button>
             </div>
 
-            {/* Notes List */}
+            {/* Sticky Notes Canvas */}
             {sortedNotes.length === 0 ? (
-              <div 
-                style={{ 
-                  background: 'var(--ios-card-bg)',
-                  borderRadius: 20,
-                  border: '1px solid var(--ios-card-border)',
-                  textAlign: 'center', 
-                  padding: '40px 24px', 
-                  boxShadow: 'var(--ios-shadow-sm)'
-                }}
-              >
+              <div className="pinboard-empty-state">
                 <div 
                   style={{ 
-                    width: 52, 
-                    height: 52, 
-                    borderRadius: 16, 
+                    width: 54, 
+                    height: 54, 
+                    borderRadius: 18, 
                     background: `${themeColor}15`, 
                     color: themeColor,
                     display: 'flex', 
@@ -2542,10 +2727,10 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                   <FileText size={26} />
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ios-text-primary)', marginBottom: 4 }}>
-                  No study notes yet
+                  No sticky notes pinned yet
                 </div>
-                <div style={{ fontSize: 12.5, color: 'var(--ios-text-muted)', marginBottom: 20, lineHeight: 1.45, maxWidth: 300, margin: '0 auto 20px auto' }}>
-                  Jot down lecture pointers, exam cheat sheets, professor announcements, and group projects.
+                <div style={{ fontSize: 12.5, color: 'var(--ios-text-muted)', marginBottom: 18, lineHeight: 1.45, maxWidth: 320, margin: '0 auto 18px auto' }}>
+                  Pin lecture key takeaways, formula cheats, announcements, and study pointers to this corkboard.
                 </div>
                 <button
                   onClick={() => {
@@ -2567,243 +2752,148 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                     boxShadow: `0 4px 14px -2px ${themeColor}66`
                   }}
                 >
-                  <Plus size={16} /> Write First Note
+                  <Plus size={16} /> Pin First Note
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {sortedNotes.map(note => {
-                  const isExpanded = expandedNoteId === note.id;
+              <div className="sticky-notes-board-grid">
+                {sortedNotes.map((note, idx) => {
                   const stats = getNoteStats(note.content);
-                  const isLongNote = (note.content || '').length > 160 || (note.content || '').split('\n').length > 3;
+                  const colorPresets = [
+                    { id: 'yellow', bg: '#FEF9C3', border: '#FDE047', text: '#713F12', pin: '#EF4444', darkBg: '#342E16', darkBorder: '#695719', darkText: '#FEF08A' },
+                    { id: 'mint', bg: '#DCFCE7', border: '#86EFAC', text: '#14532D', pin: '#10B981', darkBg: '#193021', darkBorder: '#27603B', darkText: '#BBF7D0' },
+                    { id: 'peach', bg: '#FFEDD5', border: '#FDBA74', text: '#7C2D12', pin: '#F97316', darkBg: '#342014', darkBorder: '#6D3820', darkText: '#FED7AA' },
+                    { id: 'sky', bg: '#E0F2FE', border: '#7DD3FC', text: '#0C4A6E', pin: '#0284C7', darkBg: '#162838', darkBorder: '#1F5374', darkText: '#BAE6FD' },
+                    { id: 'lavender', bg: '#F3E8FF', border: '#D8B4FE', text: '#581C87', pin: '#A855F7', darkBg: '#271838', darkBorder: '#513172', darkText: '#E9D5FF' },
+                    { id: 'rose', bg: '#FFE4E6', border: '#FDA4AF', text: '#881337', pin: '#F43F5E', darkBg: '#32161F', darkBorder: '#682337', darkText: '#FECDD3' }
+                  ];
+                  const c = colorPresets[idx % colorPresets.length];
+                  const rotationDeg = note.isPinned ? 0 : ((idx % 5) - 2) * 1.3;
 
                   return (
                     <div
                       key={note.id}
+                      className={`sticky-note-card ${note.isPinned ? 'is-pinned-sticky' : ''}`}
                       style={{
-                        background: 'var(--ios-card-bg)',
-                        borderRadius: 16,
-                        border: note.isPinned ? '1.5px solid #F59E0B' : '1px solid var(--ios-card-border)',
-                        padding: '14px 16px',
-                        boxShadow: note.isPinned ? '0 4px 14px -3px rgba(245, 158, 11, 0.2)' : 'var(--ios-shadow-sm)',
-                        position: 'relative',
-                        transition: 'all 0.2s ease'
-                      }}
+                        '--sticky-bg': c.bg,
+                        '--sticky-border': c.border,
+                        '--sticky-text': c.text,
+                        '--sticky-dark-bg': c.darkBg,
+                        '--sticky-dark-border': c.darkBorder,
+                        '--sticky-dark-text': c.darkText,
+                        '--sticky-rot': `${rotationDeg}deg`
+                      } as React.CSSProperties}
                     >
-                      {/* Note Header */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                        <div style={{ flex: 1, marginRight: 8 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      {/* Realistic 3D Pushpin */}
+                      <div className="sticky-pushpin-wrap">
+                        <div 
+                          className="sticky-pushpin-pin" 
+                          style={{ background: note.isPinned ? '#F59E0B' : c.pin }}
+                        >
+                          <div className="sticky-pushpin-shine" />
+                        </div>
+                        <div className="sticky-pushpin-shadow" />
+                      </div>
+
+                      {/* Sticky Note Content */}
+                      <div className="sticky-note-content-box">
+                        {/* Header */}
+                        <div className="sticky-note-top-row">
+                          <div style={{ flex: 1, minWidth: 0, paddingRight: 4 }}>
                             {note.isPinned && (
-                              <span 
-                                style={{ 
-                                  display: 'inline-flex', 
-                                  alignItems: 'center', 
-                                  gap: 3, 
-                                  padding: '2px 7px', 
-                                  borderRadius: 6, 
-                                  background: 'rgba(245, 158, 11, 0.15)', 
-                                  color: '#D97706', 
-                                  fontSize: 10.5, 
-                                  fontWeight: 800 
-                                }}
-                              >
-                                <Pin size={10} fill="#D97706" /> PINNED
+                              <span className="sticky-pin-pill">
+                                <Pin size={9} fill="#D97706" /> PINNED
                               </span>
                             )}
-                            <h3 style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--ios-text-primary)', margin: 0 }}>
+                            <h3 className="sticky-note-heading" title={note.title || 'Untitled Note'}>
                               {note.title || 'Untitled Note'}
                             </h3>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, fontSize: 11, color: 'var(--ios-text-muted)' }}>
-                            <span>Updated {new Date(note.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                            <span>•</span>
-                            <span>{stats.wordCount} words</span>
-                            <span>•</span>
-                            <span>{stats.readTimeMinutes} min read</span>
+                          {/* Quick Action Icons */}
+                          <div className="sticky-note-actions">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                triggerSelectionHaptic();
+                                setReadingNote(note);
+                              }}
+                              className="sticky-mini-btn"
+                              title="Read full note"
+                            >
+                              <Maximize2 size={11.5} strokeWidth={2.5} />
+                            </button>
+
+                            {onTogglePinNote && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  triggerSelectionHaptic();
+                                  onTogglePinNote(note.id);
+                                }}
+                                className={`sticky-mini-btn ${note.isPinned ? 'active-pin' : ''}`}
+                                title={note.isPinned ? 'Unpin' : 'Pin to top'}
+                              >
+                                <Pin size={11.5} fill={note.isPinned ? '#F59E0B' : 'none'} />
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => handleStartEditNote(note)}
+                              className="sticky-mini-btn"
+                              title="Edit note"
+                            >
+                              <Edit3 size={11.5} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setConfirmModal({
+                                  isOpen: true,
+                                  title: 'Delete Note?',
+                                  message: `Are you sure you want to delete "${note.title || 'this note'}"?`,
+                                  confirmText: 'Delete Note',
+                                  onConfirm: () => {
+                                    triggerLightHaptic();
+                                    onDeleteNote(note.id);
+                                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                                  }
+                                });
+                              }}
+                              className="sticky-mini-btn delete-btn"
+                              title="Delete note"
+                            >
+                              <Trash2 size={11.5} />
+                            </button>
                           </div>
                         </div>
 
-                        {/* Card Actions */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          {/* Full Screen Reader Button */}
-                          <button
-                            onClick={() => {
-                              triggerSelectionHaptic();
-                              setReadingNote(note);
-                            }}
-                            style={{
-                              background: 'var(--ios-bg-secondary)',
-                              border: 'none',
-                              color: themeColor,
-                              cursor: 'pointer',
-                              padding: '5px 7px',
-                              borderRadius: 8,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 4,
-                              fontSize: 11,
-                              fontWeight: 700
-                            }}
-                            title="Open Full Screen Study View"
-                          >
-                            <Maximize2 size={12} strokeWidth={2.5} />
-                            <span>Read</span>
-                          </button>
-
-                          {onTogglePinNote && (
-                            <button
-                              onClick={() => {
-                                triggerSelectionHaptic();
-                                onTogglePinNote(note.id);
-                              }}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                color: note.isPinned ? '#F59E0B' : 'var(--ios-text-muted)',
-                                cursor: 'pointer',
-                                padding: 6,
-                                borderRadius: 6
-                              }}
-                              title={note.isPinned ? 'Unpin Note' : 'Pin Note to Top'}
-                            >
-                              <Pin size={14} fill={note.isPinned ? '#F59E0B' : 'none'} />
-                            </button>
+                        {/* Note Excerpt / Content */}
+                        <div 
+                          className="sticky-note-body-preview"
+                          onClick={() => {
+                            triggerSelectionHaptic();
+                            setReadingNote(note);
+                          }}
+                        >
+                          {note.content ? (
+                            <p>{note.content}</p>
+                          ) : (
+                            <p className="sticky-empty-text">Empty note snippet...</p>
                           )}
+                        </div>
 
-                          <button
-                            onClick={() => handleStartEditNote(note)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--ios-text-muted)',
-                              cursor: 'pointer',
-                              padding: 6,
-                              borderRadius: 6
-                            }}
-                            title="Edit Note"
-                          >
-                            <Edit3 size={14} />
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setConfirmModal({
-                                isOpen: true,
-                                title: 'Delete Note?',
-                                message: `Are you sure you want to delete "${note.title || 'this note'}"?`,
-                                confirmText: 'Delete Note',
-                                onConfirm: () => {
-                                  triggerLightHaptic();
-                                  onDeleteNote(note.id);
-                                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
-                                }
-                              });
-                            }}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--ios-text-muted)',
-                              cursor: 'pointer',
-                              padding: 6,
-                              borderRadius: 6
-                            }}
-                            title="Delete Note"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                        {/* Footer */}
+                        <div className="sticky-note-bottom-bar">
+                          <span>{new Date(note.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                          <span>•</span>
+                          <span>{stats.wordCount}w</span>
+                          <span>•</span>
+                          <span>{stats.readTimeMinutes}m read</span>
                         </div>
                       </div>
-
-                      {/* Note Body (Collapsible preview or full formatted view) */}
-                      <div 
-                        style={{ 
-                          position: 'relative',
-                          maxHeight: isExpanded || !isLongNote ? 'none' : '90px',
-                          overflow: isExpanded || !isLongNote ? 'visible' : 'hidden',
-                          fontSize: 13,
-                          color: 'var(--ios-text-secondary)',
-                          lineHeight: 1.5,
-                          transition: 'max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-                        }}
-                      >
-                        {renderFormattedNoteContent(note.content)}
-
-                        {/* Fade gradient overlay when collapsed */}
-                        {!isExpanded && isLongNote && (
-                          <div 
-                            style={{
-                              position: 'absolute',
-                              bottom: 0,
-                              left: 0,
-                              right: 0,
-                              height: 44,
-                              background: 'linear-gradient(to bottom, transparent, var(--ios-card-bg))',
-                              pointerEvents: 'none'
-                            }}
-                          />
-                        )}
-                      </div>
-
-                      {/* Collapsible Toggle Bar */}
-                      {isLongNote && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 6, borderTop: '1px solid var(--ios-card-border)' }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              triggerLightHaptic();
-                              setExpandedNoteId(isExpanded ? null : note.id);
-                            }}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: themeColor,
-                              fontSize: 12,
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 4,
-                              padding: 0
-                            }}
-                          >
-                            {isExpanded ? (
-                              <>
-                                <ChevronUp size={14} strokeWidth={2.5} />
-                                <span>Collapse note</span>
-                              </>
-                            ) : (
-                              <>
-                                <ChevronDown size={14} strokeWidth={2.5} />
-                                <span>Expand full note</span>
-                              </>
-                            )}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              triggerLightHaptic();
-                              setReadingNote(note);
-                            }}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--ios-text-muted)',
-                              fontSize: 11.5,
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 3
-                            }}
-                          >
-                            <BookOpen size={12} />
-                            <span>Study View</span>
-                          </button>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -2913,10 +3003,12 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
           </div>
         )}
 
+          </div>
+        </div>
       </div>
 
       {/* ================= 📱 AUTHENTIC FLOATING BOTTOM DOCK NAVBAR ================= */}
-      <div className="ios-tab-bar-container" style={{ zIndex: 250 }}>
+      <div className="subject-detail-tab-bar-container" style={{ zIndex: 250 }}>
         <nav className="ios-tab-bar-dock" aria-label="Course Hub Navigation">
           {/* Deadlines Tab */}
           <button

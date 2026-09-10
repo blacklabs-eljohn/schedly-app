@@ -159,7 +159,12 @@ export type EventCategory =
   | 'reporting' 
   | 'project'
   | 'meeting' 
-  | 'activity' 
+  | 'activity'
+  | 'campus_event'
+  | 'department_event'
+  | 'org_event'
+  | 'seminar_workshop'
+  | 'sports'
   | 'personal';
 
 export interface CustomEvent {

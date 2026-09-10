@@ -10,12 +10,15 @@ import {
   X, 
   Plus, 
   Layers, 
-  LayoutList, 
+  LayoutGrid, 
   CalendarDays, 
   Edit3, 
   ChevronUp,
   BookOpen,
-  Pin
+  Pin,
+  FileText,
+  Folder,
+  CheckCircle2
 } from 'lucide-react';
 import { triggerSelectionHaptic } from '../services/hapticsService';
 import { EditSubjectModal } from './EditSubjectModal';
@@ -35,7 +38,7 @@ interface SubjectsListProps {
 }
 
 type FilterType = 'all' | 'lecture' | 'lab' | 'conflicts';
-type DisplayMode = 'stack' | 'list';
+type DisplayMode = 'stack' | 'grid';
 
 // Helper to format days cleanly without repeating strings
 const formatCleanDays = (days: any[]): string => {
@@ -73,6 +76,18 @@ const formatCleanDays = (days: any[]): string => {
 };
 
 import { getSubjectIconComponent } from '../services/iconService';
+
+// Curated Rich Clean Vibrant Gradients matching the original stack palette
+const STACK_VIBRANT_PALETTES = [
+  'linear-gradient(135deg, #4F46E5 0%, #4338CA 100%)', // Electric Indigo
+  'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', // Ocean Blue
+  'linear-gradient(135deg, #10B981 0%, #059669 100%)', // Emerald Green
+  'linear-gradient(135deg, #F43F5E 0%, #E11D48 100%)', // Sunset Rose
+  'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)', // Royal Purple
+  'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', // Amber Gold
+  'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)', // Cyber Teal
+  'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)'  // Neon Pink
+];
 
 export const SubjectsList: React.FC<SubjectsListProps> = ({
   courses,
@@ -135,6 +150,7 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
   };
 
   const handleCardClick = (course: Course) => {
+    triggerSelectionHaptic();
     if (expandedCourseId === course.id) {
       setExpandedCourseId(null);
     } else {
@@ -144,12 +160,10 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
 
   return (
     <div className="ios-section" style={{ paddingBottom: 78, paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))' }}>
-      {/* Minimal Top Header Bar: "Courses" + Subtitle + Circular [+] Button */}
+      {/* Minimal Top Header Bar: "Subjects" + Subtitle + Circular [+] Button */}
       <div className="subjects-top-bar" style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', minWidth: 0 }}>
-          <h1 className="subjects-title" style={{ textAlign: 'left', margin: 0, padding: 0, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-            Courses
-          </h1>
+          <h1 className="subjects-title">Courses</h1>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ios-text-secondary)', marginTop: 3, textAlign: 'left', letterSpacing: '-0.01em' }}>
             {courses.length} {courses.length === 1 ? 'Course' : 'Courses'} • {totalUnits} {totalUnits === 1 ? 'Unit' : 'Total Units'}
           </div>
@@ -158,25 +172,28 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
         <button 
           type="button"
           className="subjects-add-btn"
-          onClick={() => setIsAddingSubject(true)}
-          aria-label="Add Course"
-          title="Add Course Manually"
+          onClick={() => {
+            triggerSelectionHaptic();
+            setIsAddingSubject(true);
+          }}
+          title="Add New Course"
         >
-          <Plus size={18} />
+          <Plus size={18} color="#FFFFFF" />
         </button>
       </div>
 
       {/* Full-Width Search Pill */}
-      <div className="subjects-search-pill" style={{ marginBottom: 12 }}>
+      <div className="subjects-search-pill" style={{ marginBottom: 14 }}>
         <Search className="search-icon-left" size={16} />
         <input 
+          type="text"
           placeholder="Search courses, codes, instructors..."
           value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
         {searchQuery && (
           <button 
-            type="button"
+            type="button" 
             className="search-clear-btn"
             onClick={() => setSearchQuery('')}
           >
@@ -203,12 +220,12 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
                 setActiveFilter(f.id as FilterType);
               }}
               style={{
-                padding: '5px 12px',
+                padding: '6px 14px',
                 borderRadius: 999,
                 border: activeFilter === f.id ? '1px solid var(--ios-blue)' : '1px solid var(--ios-card-border)',
                 background: activeFilter === f.id ? 'var(--ios-blue)' : 'var(--ios-card-bg)',
                 color: activeFilter === f.id ? '#FFFFFF' : 'var(--ios-text-secondary)',
-                fontSize: 12,
+                fontSize: 12.5,
                 fontWeight: 700,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
@@ -220,28 +237,29 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
           ))}
         </div>
 
-        {/* View Switcher: Stack vs List */}
+        {/* View Mode Toggle: Stack vs Grid */}
         <div className="schedule-view-switcher" style={{ flexShrink: 0, margin: 0 }}>
-          <button 
+          <button
+            type="button"
             className={`schedule-view-btn ${displayMode === 'stack' ? 'active' : ''}`}
             onClick={() => {
               triggerSelectionHaptic();
               setDisplayMode('stack');
-              setExpandedCourseId(null);
             }}
-            title="Pastel Stack View"
+            title="Card Deck Stack View"
           >
             <Layers size={13} /> Stack
           </button>
-          <button 
-            className={`schedule-view-btn ${displayMode === 'list' ? 'active' : ''}`}
+          <button
+            type="button"
+            className={`schedule-view-btn ${displayMode === 'grid' ? 'active' : ''}`}
             onClick={() => {
               triggerSelectionHaptic();
-              setDisplayMode('list');
+              setDisplayMode('grid');
             }}
-            title="List View"
+            title="Folder Grid View"
           >
-            <LayoutList size={13} /> List
+            <LayoutGrid size={13} /> Grid
           </button>
         </div>
       </div>
@@ -252,7 +270,7 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
           No matching courses found.
         </div>
       ) : displayMode === 'stack' ? (
-        /* FULL-WIDTH PASTEL CARD DECK (LEVIS / OPEN BANKING STYLE) */
+        /* FULL-WIDTH PASTEL CARD DECK */
         <div className="wallet-stack-container" style={{ marginTop: 2 }}>
           {filteredCourses.map((course, idx) => {
             const isExpanded = expandedCourseId === course.id;
@@ -260,7 +278,8 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
             const isConflicting = conflicts.some(c => c.course1.id === course.id || c.course2.id === course.id);
             const durationMins = timeToMinutes(course.endTime) - timeToMinutes(course.startTime);
             const formattedDuration = formatDuration(Math.max(durationMins, 0));
-            const customBg = getSubjectCardGradient(idx, filteredCourses.length, subjectCardTheme || 'bluebook');
+            // Match the user selected color theme (e.g. Monochrome / Obsidian black cascade)
+            const customBg = getSubjectCardGradient(idx, filteredCourses.length, subjectCardTheme || 'obsidian');
             const cleanDays = formatCleanDays(course.days);
             const cleanInstructor = course.instructor 
               ? course.instructor.startsWith('Prof.') ? course.instructor : `Prof. ${course.instructor}`
@@ -381,9 +400,9 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
           })}
         </div>
       ) : (
-        /* STANDARD BENTO LIST VIEW */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-          {filteredCourses.map(course => {
+        /* FOLDER BENTO GRID VIEW */
+        <div className="courses-folder-grid">
+          {filteredCourses.map((course, idx) => {
             const isConflicting = conflicts.some(c => c.course1.id === course.id || c.course2.id === course.id);
             const isLab = course.courseCode?.toLowerCase().includes('lab') || course.courseName?.toLowerCase().includes('lab');
             const cleanDays = formatCleanDays(course.days);
@@ -391,80 +410,185 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
               ? course.instructor.startsWith('Prof.') ? course.instructor : `Prof. ${course.instructor}`
               : 'No Instructor';
             
-            const pendingTasks = events.filter(e => e.subjectId === course.id && !e.isCompleted).length;
-            const notesCount = notes.filter(n => n.subjectId === course.id).length;
+            const cardGradient = getSubjectCardGradient(idx, filteredCourses.length, subjectCardTheme || 'bluebook');
+            const courseTasks = events.filter(e => 
+              (e.subjectId === course.id || (Boolean(e.subjectCode && course.courseCode) && (e.subjectCode || '').trim().toUpperCase() === (course.courseCode || '').trim().toUpperCase())) && !e.isCompleted
+            );
+            const courseNotes = notes.filter(n => n.subjectId === course.id || (Boolean(course.courseCode) && n.subjectId === course.courseCode));
+            const urgentTask = courseTasks.length > 0 ? courseTasks[0] : null;
+            const latestNote = courseNotes.length > 0 ? courseNotes[0] : null;
+            const hasMultipleSheets = (courseTasks.length > 0 && courseNotes.length > 0) || (courseTasks.length > 1) || (courseNotes.length > 1);
 
             return (
               <div 
                 key={course.id}
-                className="bento-card"
+                className="folder-card"
                 onClick={() => onSelectCourse(course)}
-                style={{ marginBottom: 0 }}
+                role="button"
+                tabIndex={0}
               >
-                <div className="bento-top-row">
-                  <div className="bento-badges-left">
+                {/* Back Folder Silhouette with Theme Liquid Glass Tint */}
+                <div 
+                  className="folder-back-shape"
+                  style={{
+                    background: cardGradient
+                  }}
+                >
+                  <div className="folder-back-tab" />
+                  <div className="folder-back-shoulder" />
+                </div>
+
+                {/* Layered Peeking Sheet 3 (Background Depth Sheet) */}
+                {hasMultipleSheets && (
+                  <div className="folder-sheet-layer-back">
+                    <div className="folder-sheet-layer-tab">
+                      <span className="folder-sheet-layer-text">
+                        {courseNotes.length > 1 ? `NOTE #2` : courseTasks.length > 1 ? `TASK #2` : `SYLLABUS`}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Layered Peeking Sheet 2 (Middle Depth Sheet) */}
+                {(courseTasks.length > 0 && courseNotes.length > 0) && (
+                  <div className="folder-sheet-layer-mid">
+                    <div className="folder-sheet-layer-tab">
+                      <span className="folder-sheet-layer-text">
+                        📝 {courseNotes[0].title || 'Lecture Note'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Front Primary Peeking Sheet 1 (Main Actionable Document) */}
+                <div className="folder-inner-sheet">
+                  <div className="folder-sheet-header">
                     <span 
-                      className="bento-code-tag"
+                      className="folder-sheet-badge"
                       style={{
-                        background: course.color ? `${course.color}18` : 'var(--ios-blue-light)',
-                        color: course.color || 'var(--ios-blue)'
+                        background: urgentTask 
+                          ? 'rgba(239, 68, 68, 0.15)' 
+                          : latestNote 
+                            ? 'rgba(37, 99, 235, 0.15)' 
+                            : 'var(--ios-blue-light)',
+                        color: urgentTask 
+                          ? '#DC2626' 
+                          : latestNote 
+                            ? '#2563EB' 
+                            : 'var(--ios-blue)'
                       }}
                     >
-                      {course.courseCode}
+                      {urgentTask ? (
+                        <>
+                          <CheckCircle2 size={10} style={{ color: '#DC2626' }} />
+                          <span>DUE {urgentTask.category ? urgentTask.category.toUpperCase().replace('_', ' ') : 'TASK'}</span>
+                        </>
+                      ) : latestNote ? (
+                        <>
+                          <FileText size={10} style={{ color: '#2563EB' }} />
+                          <span>NOTE</span>
+                        </>
+                      ) : (
+                        <>
+                          <BookOpen size={10} />
+                          <span>SYLLABUS</span>
+                        </>
+                      )}
                     </span>
-                    {isLab ? (
-                      <span className="ios-tag-pill ios-tag-pill-purple">LAB</span>
+
+                    <div className="folder-sheet-dots">
+                      <span className="folder-sheet-dot" />
+                      <span className="folder-sheet-dot" />
+                    </div>
+                  </div>
+
+                  <div className="folder-sheet-preview">
+                    {urgentTask ? (
+                      <div className="folder-sheet-task-content">
+                        <span className="folder-sheet-task-title">{urgentTask.title}</span>
+                        {urgentTask.startTime && (
+                          <span className="folder-sheet-task-time">⏰ Due {formatTime12H(urgentTask.startTime)}</span>
+                        )}
+                      </div>
+                    ) : latestNote ? (
+                      <div className="folder-sheet-note-content">
+                        <span className="folder-sheet-text">"{latestNote.title || 'Untitled Note'}"</span>
+                        {latestNote.content && (
+                          <div className="folder-sheet-snippet">
+                            {latestNote.content.replace(/[#*`_]/g, '').slice(0, 48)}...
+                          </div>
+                        )}
+                      </div>
                     ) : (
-                      <span className="ios-tag-pill">LEC</span>
-                    )}
-                    {pendingTasks > 0 && (
-                      <span className="ios-tag-pill" style={{ background: '#F59E0B20', color: '#D97706', fontWeight: 800 }}>
-                        📌 {pendingTasks} {pendingTasks === 1 ? 'Deadline' : 'Deadlines'}
-                      </span>
-                    )}
-                    {notesCount > 0 && (
-                      <span className="ios-tag-pill" style={{ background: 'var(--ios-divider)', color: 'var(--ios-text-secondary)' }}>
-                        📝 {notesCount}
-                      </span>
-                    )}
-                    {isConflicting && (
-                      <span title="Schedule conflict detected" style={{ background: 'var(--ios-red-light)', padding: '2px 5px', borderRadius: 6, display: 'inline-flex', alignItems: 'center' }}>
-                        <AlertTriangle size={12} color="var(--ios-red)" />
-                      </span>
+                      <div className="folder-sheet-lines">
+                        <div className="folder-sheet-line-1" />
+                        <div className="folder-sheet-line-2" />
+                      </div>
                     )}
                   </div>
-
-                  <span className="bento-time-text">
-                    {formatTime12H(course.startTime)} – {formatTime12H(course.endTime)}
-                  </span>
                 </div>
 
-                <div className="bento-course-name">
-                  {course.courseName}
-                </div>
+                {/* Front Pocket Card with Frosted Liquid Glass */}
+                <div className="folder-front-pocket">
+                  <div>
+                    <div className="folder-pocket-top">
+                      <div className="folder-badges-left">
+                        <span 
+                          className="folder-code-tag"
+                          style={{
+                            background: course.color ? `${course.color}18` : 'var(--ios-blue-light)',
+                            color: course.color || 'var(--ios-blue)',
+                            borderColor: course.color ? `${course.color}35` : 'rgba(0,122,255,0.2)'
+                          }}
+                        >
+                          {course.courseCode}
+                        </span>
+                        {isLab ? (
+                          <span className="ios-tag-pill ios-tag-pill-purple" style={{ fontSize: 9.5, padding: '2px 6px' }}>LAB</span>
+                        ) : (
+                          <span className="ios-tag-pill" style={{ fontSize: 9.5, padding: '2px 6px' }}>LEC</span>
+                        )}
+                        {courseTasks.length > 0 && (
+                          <span className="ios-tag-pill" style={{ background: '#F59E0B18', color: '#D97706', fontWeight: 800, fontSize: 9.5, padding: '2px 6px' }}>
+                            📌 {courseTasks.length}
+                          </span>
+                        )}
+                      </div>
 
-                <div className="bento-footer-row">
-                  <div className="bento-meta-items">
-                    <span className="bento-pill-chip">
-                      <Clock size={12} color="var(--ios-blue)" /> {cleanDays}
-                    </span>
+                      {isConflicting && (
+                        <span title="Schedule conflict detected" style={{ background: 'var(--ios-red-light)', padding: '2px 5px', borderRadius: 6, display: 'inline-flex', alignItems: 'center' }}>
+                          <AlertTriangle size={11} color="var(--ios-red)" />
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="folder-course-title" title={course.courseName}>
+                      {course.courseName}
+                    </div>
+
+                    <div className="folder-meta-row">
+                      <span className="folder-notes-count">
+                        {courseNotes.length} {courseNotes.length === 1 ? 'note' : 'notes'}
+                      </span>
+                      <span className="folder-meta-dot">•</span>
+                      <span className="folder-units-count">
+                        {course.units || 3} Units
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="folder-footer-row">
+                    <div className="folder-footer-item">
+                      <Clock size={11} className="folder-footer-icon" />
+                      <span>{cleanDays} {formatTime12H(course.startTime)}</span>
+                    </div>
                     {course.room && (
-                      <span className="bento-pill-chip">
-                        <MapPin size={12} color="var(--ios-green)" /> {course.room}
-                      </span>
-                    )}
-                    {course.instructor && (
-                      <span className="bento-pill-chip">
-                        <User size={12} color="var(--ios-orange)" /> {cleanInstructor}
-                      </span>
+                      <div className="folder-footer-item">
+                        <MapPin size={11} className="folder-footer-icon" />
+                        <span>{course.room}</span>
+                      </div>
                     )}
                   </div>
-
-                  {course.units && (
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ios-text-muted)' }}>
-                      {course.units} {course.units === 1 ? 'Unit' : 'Units'}
-                    </span>
-                  )}
                 </div>
               </div>
             );

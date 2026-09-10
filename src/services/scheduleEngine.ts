@@ -350,8 +350,8 @@ export function getSubjectCardGradient(
   // 1. DUOS (2-Tone Alternating: Schedly Indigo & Cyan)
   if (theme === 'duos' || theme === 'dual-tone') {
     return index % 2 === 0
-      ? 'linear-gradient(135deg, #4F46E5 0%, #4338CA 100%)' // Electric Indigo
-      : 'linear-gradient(135deg, #0284C7 0%, #0F172A 100%)'; // Midnight Cyan
+      ? 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)' // Electric Indigo
+      : 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)'; // Midnight Cyan
   }
 
   // 2. HIGHLIGHTER (Multicolor Study Notes Spectrum)
@@ -372,15 +372,15 @@ export function getSubjectCardGradient(
   // 3. CRIMSON (🔴 Rich, energetic red cascade)
   if (theme === 'crimson') {
     const crimsonGradients = [
+      'linear-gradient(135deg, #F87171 0%, #EF4444 100%)',
       'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
       'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
+      'linear-gradient(135deg, #E11D48 0%, #BE123C 100%)',
       'linear-gradient(135deg, #B91C1C 0%, #991B1B 100%)',
-      'linear-gradient(135deg, #991B1B 0%, #7F1D1D 100%)',
-      'linear-gradient(135deg, #7F1D1D 0%, #450A0A 100%)',
-      'linear-gradient(135deg, #450A0A 0%, #1C0404 100%)'
+      'linear-gradient(135deg, #BE123C 0%, #881337 100%)'
     ];
     if (total <= 1) return crimsonGradients[1];
-    const step = Math.min(index, crimsonGradients.length - 1);
+    const step = index % crimsonGradients.length;
     return crimsonGradients[step];
   }
 
@@ -390,57 +390,57 @@ export function getSubjectCardGradient(
       'linear-gradient(135deg, #F472B6 0%, #EC4899 100%)',
       'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)',
       'linear-gradient(135deg, #DB2777 0%, #BE185D 100%)',
+      'linear-gradient(135deg, #F43F5E 0%, #E11D48 100%)',
       'linear-gradient(135deg, #BE185D 0%, #9D174D 100%)',
-      'linear-gradient(135deg, #9D174D 0%, #831843 100%)',
-      'linear-gradient(135deg, #831843 0%, #500724 100%)'
+      'linear-gradient(135deg, #E11D48 0%, #9F1239 100%)'
     ];
     if (total <= 1) return biniGradients[1];
-    const step = Math.min(index, biniGradients.length - 1);
+    const step = index % biniGradients.length;
     return biniGradients[step];
   }
 
   // 5. UBE (🟣 Filipino Distinctive Ube Violet cascade)
   if (theme === 'ube') {
     const ubeGradients = [
-      'linear-gradient(135deg, #A78BFA 0%, #8B5CF6 100%)',
+      'linear-gradient(135deg, #C084FC 0%, #A855F7 100%)',
+      'linear-gradient(135deg, #A855F7 0%, #9333EA 100%)',
       'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+      'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)',
       'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
-      'linear-gradient(135deg, #6D28D9 0%, #5B21B6 100%)',
-      'linear-gradient(135deg, #5B21B6 0%, #4C1D95 100%)',
-      'linear-gradient(135deg, #4C1D95 0%, #2E1065 100%)'
+      'linear-gradient(135deg, #7E22CE 0%, #581C87 100%)'
     ];
     if (total <= 1) return ubeGradients[1];
-    const step = Math.min(index, ubeGradients.length - 1);
+    const step = index % ubeGradients.length;
     return ubeGradients[step];
   }
 
   // 6. COFFEE (☕ Warm cozy mocha & espresso cascade)
   if (theme === 'coffee') {
     const coffeeGradients = [
+      'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
       'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
       'linear-gradient(135deg, #B45309 0%, #92400E 100%)',
+      'linear-gradient(135deg, #D97706 0%, #A16207 100%)',
       'linear-gradient(135deg, #92400E 0%, #78350F 100%)',
-      'linear-gradient(135deg, #78350F 0%, #5C2C16 100%)',
-      'linear-gradient(135deg, #5C2C16 0%, #451A03 100%)',
-      'linear-gradient(135deg, #451A03 0%, #2A1208 100%)'
+      'linear-gradient(135deg, #B45309 0%, #713F12 100%)'
     ];
     if (total <= 1) return coffeeGradients[1];
-    const step = Math.min(index, coffeeGradients.length - 1);
+    const step = index % coffeeGradients.length;
     return coffeeGradients[step];
   }
 
   // 7. MATCHA (🍵 Fresh calming matcha sage cascade)
   if (theme === 'matcha') {
     const matchaGradients = [
+      'linear-gradient(135deg, #86EFAC 0%, #4ADE80 100%)',
       'linear-gradient(135deg, #4ADE80 0%, #22C55E 100%)',
       'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+      'linear-gradient(135deg, #10B981 0%, #059669 100%)',
       'linear-gradient(135deg, #16A34A 0%, #15803D 100%)',
-      'linear-gradient(135deg, #15803D 0%, #166534 100%)',
-      'linear-gradient(135deg, #166534 0%, #14532D 100%)',
-      'linear-gradient(135deg, #14532D 0%, #052E16 100%)'
+      'linear-gradient(135deg, #059669 0%, #047857 100%)'
     ];
     if (total <= 1) return matchaGradients[1];
-    const step = Math.min(index, matchaGradients.length - 1);
+    const step = index % matchaGradients.length;
     return matchaGradients[step];
   }
 
@@ -459,17 +459,17 @@ export function getSubjectCardGradient(
     return obsidianGradients[step];
   }
 
-  // 9. BLUEBOOK (🔵 Default Academic Blue Cascade)
+  // 9. BLUEBOOK (🔵 Default Academic Royal Blue Cascade)
   const cascadeGradients = [
-    'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', // Light/Medium Royal Blue (Top of stack)
-    'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', // Royal Blue
-    'linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%)', // Cobalt Blue
-    'linear-gradient(135deg, #1E40AF 0%, #172554 100%)', // Deep Navy
-    'linear-gradient(135deg, #1E3A8A 0%, #0F172A 100%)', // Midnight Indigo
-    'linear-gradient(135deg, #0F172A 0%, #090D16 100%)'  // Obsidian Navy (Bottom of stack)
+    'linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%)', // Sky to Royal Blue
+    'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', // Royal Blue
+    'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', // Cobalt Blue
+    'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', // Ocean Cobalt
+    'linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%)', // Deep Sapphire
+    'linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)'  // Indigo Royal
   ];
 
   if (total <= 1) return cascadeGradients[1];
-  const step = Math.min(index, cascadeGradients.length - 1);
+  const step = index % cascadeGradients.length;
   return cascadeGradients[step];
 }

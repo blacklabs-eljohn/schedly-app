@@ -153,19 +153,39 @@ export const HomeTodoList: React.FC<HomeTodoListProps> = ({
         return { label: 'Oral Reporting', emoji: '🎤', color: '#8B5CF6' };
       case 'project':
         return { label: 'Project / Output', emoji: '💻', color: '#06B6D4' };
+      case 'campus_event':
+        return { label: 'Campus Event', emoji: '🏫', color: '#EC4899' };
+      case 'department_event':
+        return { label: 'Dept Event', emoji: '🏛️', color: '#6366F1' };
+      case 'org_event':
+        return { label: 'Org / Club', emoji: '👥', color: '#10B981' };
+      case 'seminar_workshop':
+        return { label: 'Seminar', emoji: '💡', color: '#F59E0B' };
+      case 'sports':
+        return { label: 'Sports & Intrams', emoji: '⚽', color: '#16A34A' };
       case 'meeting':
-        return { label: 'Meeting / Defense', emoji: '👥', color: '#6366F1' };
+        return { label: 'Meeting / Defense', emoji: '🤝', color: '#4F46E5' };
       case 'activity':
         return { label: 'Campus Life', emoji: '🏆', color: '#EC4899' };
       case 'personal':
       default:
-        return { label: 'Personal Task', emoji: '🎯', color: '#10B981' };
+        return { label: 'Personal Task', emoji: '🎯', color: '#059669' };
     }
   };
 
-  // Separate completed and pending
-  const pendingEvents = events.filter(e => !e.isCompleted);
-  const completedEvents = events.filter(e => e.isCompleted);
+  // Only actionable academic deadlines & deliverables are shown in Home Deadlines & Tasks
+  const ACADEMIC_DEADLINE_CATEGORIES: EventCategory[] = [
+    'exam',
+    'long_quiz',
+    'short_quiz',
+    'assignment',
+    'reporting',
+    'project'
+  ];
+
+  const academicEvents = events.filter(e => ACADEMIC_DEADLINE_CATEGORIES.includes(e.category));
+  const pendingEvents = academicEvents.filter(e => !e.isCompleted);
+  const completedEvents = academicEvents.filter(e => e.isCompleted);
 
   // Apply Category / Urgency Filters to Pending
   const filteredPending = pendingEvents.filter(e => {

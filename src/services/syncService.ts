@@ -295,21 +295,27 @@ export async function pullCloudData(userId: string, defaultFullName?: string): P
           .eq('user_id', userId);
 
         if (!eventErr && eventRows && eventRows.length > 0) {
-          userEvents = eventRows.map((r: any) => ({
-            id: r.id,
-            title: r.title,
-            category: r.category,
-            date: r.date,
-            startTime: r.start_time || undefined,
-            endTime: r.end_time || undefined,
-            isAllDay: Boolean(r.is_all_day),
-            location: r.location || '',
-            reminderMinutes: r.reminder_minutes ?? 30,
-            notes: r.notes || '',
-            color: r.color || undefined,
-            isCompleted: Boolean(r.is_completed),
-            createdAt: r.created_at || new Date().toISOString()
-          }));
+          userEvents = eventRows.map((r: any) => {
+            const localMatch = userEvents.find(le => le.id === r.id);
+            return {
+              id: r.id,
+              title: r.title,
+              category: r.category,
+              date: r.date,
+              startTime: r.start_time || undefined,
+              endTime: r.end_time || undefined,
+              isAllDay: Boolean(r.is_all_day),
+              location: r.location || '',
+              reminderMinutes: r.reminder_minutes ?? 30,
+              notes: r.notes || '',
+              color: r.color || undefined,
+              isCompleted: Boolean(r.is_completed),
+              subjectId: r.subject_id || r.subjectId || localMatch?.subjectId || undefined,
+              subjectCode: r.subject_code || r.subjectCode || localMatch?.subjectCode || undefined,
+              subjectName: r.subject_name || r.subjectName || localMatch?.subjectName || undefined,
+              createdAt: r.created_at || localMatch?.createdAt || new Date().toISOString()
+            };
+          });
           saveEvents(userEvents, userId, false);
         } else if (!eventErr && userEvents.length > 0) {
           await pushEventsToCloud(userId, userEvents);
@@ -532,10 +538,18 @@ export async function pushEventsToCloud(userId: string, events: CustomEvent[]): 
       notes: e.notes || null,
       color: e.color || null,
       is_completed: e.isCompleted || false,
+      subject_id: e.subjectId || null,
+      subject_code: e.subjectCode || null,
+      subject_name: e.subjectName || null,
       updated_at: new Date().toISOString()
     }));
 
-    await supabase.from('custom_events').upsert(payloads);
+    const { error: upsertErr } = await supabase.from('custom_events').upsert(payloads);
+    if (upsertErr) {
+      console.warn('[SyncService] Custom events upsert with subject columns failed, retrying basic fields:', upsertErr);
+      const fallbackPayloads = payloads.map(({ subject_id, subject_code, subject_name, ...rest }) => rest);
+      await supabase.from('custom_events').upsert(fallbackPayloads);
+    }
   } catch (err) {
     console.warn('[SyncService] Custom events cloud sync skipped:', err);
   }

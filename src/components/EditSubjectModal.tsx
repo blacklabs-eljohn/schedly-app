@@ -28,6 +28,19 @@ export const VIBRANT_COLOR_PALETTES = [
   { id: 'obsidian', color: 'linear-gradient(135deg, #475569 0%, #1E293B 100%)', hex: '#1E293B', name: 'Obsidian', emoji: '🖤' }
 ];
 
+const DEFAULT_NEW_COURSE: Course = {
+  id: '',
+  courseCode: '',
+  courseName: '',
+  instructor: '',
+  room: '',
+  units: 3,
+  days: ['Mon', 'Thu'],
+  startTime: '09:00',
+  endTime: '10:30',
+  color: '#2563EB'
+};
+
 export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
   course: initialCourse,
   isOpen,
@@ -35,15 +48,17 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
   onSave,
   onDelete
 }) => {
-  const [course, setCourse] = useState<Course | null>(initialCourse);
+  const [course, setCourse] = useState<Course | null>(initialCourse || DEFAULT_NEW_COURSE);
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (initialCourse) {
       setCourse({ ...initialCourse });
+    } else if (isOpen) {
+      setCourse({ ...DEFAULT_NEW_COURSE, id: `course_${Date.now()}` });
     }
-  }, [initialCourse]);
+  }, [initialCourse, isOpen]);
 
   if (!isOpen || !course) return null;
 
@@ -74,6 +89,7 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
 
   const activeIconId = course.icon || detectSubjectIcon(course.courseCode, course.courseName);
   const activeIconDef = SUBJECT_ICONS.find(i => i.id === activeIconId);
+  const isEditing = Boolean(initialCourse && initialCourse.courseCode);
 
   return (
     <div className="ios-modal-overlay" onClick={onClose}>
@@ -82,9 +98,9 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div>
-            <h2 className="ios-modal-title" style={{ margin: 0 }}>Edit Course</h2>
+            <h2 className="ios-modal-title" style={{ margin: 0 }}>{isEditing ? 'Edit Course' : 'Add New Course'}</h2>
             <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 1 }}>
-              Customize course icon, color theme, venue & schedule
+              {isEditing ? 'Customize course icon, color theme, venue & schedule' : 'Enter enrolled subject details and weekly timetable'}
             </div>
           </div>
           <button 
@@ -303,15 +319,19 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
             className="ios-btn-primary"
             onClick={() => {
               if (course) {
+                if (!course.courseCode.trim()) {
+                  alert('Please enter a course code (e.g. IT 211).');
+                  return;
+                }
                 onSave(course);
                 onClose();
               }
             }}
           >
-            Save Course
+            {isEditing ? 'Save Course' : 'Create Course'}
           </button>
 
-          {onDelete && (
+          {isEditing && onDelete && (
             <button 
               type="button"
               className="ios-btn-secondary"

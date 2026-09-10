@@ -37,6 +37,7 @@ import {
 } from './services/syncService';
 
 import { BottomTabBar, TabType } from './components/BottomTabBar';
+import { DesktopSidebar } from './components/DesktopSidebar';
 import { DigitalIDCard } from './components/DigitalIDCard';
 import { NextClassHero } from './components/NextClassHero';
 import { TimelineSchedule } from './components/TimelineSchedule';
@@ -61,10 +62,16 @@ import { AuthScreen } from './components/AuthScreen';
 import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { HomeTodoList } from './components/HomeTodoList';
 import { AddEventModal } from './components/AddEventModal';
+import { CommandPaletteModal } from './components/CommandPaletteModal';
+import { FloatingActionPill } from './components/FloatingActionPill';
+import { EditSubjectModal } from './components/EditSubjectModal';
+import { CreateNoteModal } from './components/CreateNoteModal';
+import { HomeMiniCalendar } from './components/HomeMiniCalendar';
 import { syncWidgetsData } from './services/widgetBridge';
 import { getSubjectIconComponent } from './services/iconService';
+import { getUpcomingHolidays } from './services/phHolidaysService';
 
-import { Camera, ArrowRight, MapPin, User as UserIcon, Sparkles, Clock, CalendarDays, ChevronUp, CloudOff, Calendar as CalendarIcon, CheckCircle2 } from 'lucide-react';
+import { Camera, ArrowRight, MapPin, User as UserIcon, Sparkles, Clock, CalendarDays, ChevronUp, CloudOff, Calendar as CalendarIcon, CheckCircle2, GraduationCap, BookOpen, Search, Palmtree } from 'lucide-react';
 import './styles/apple-design-system.css';
 
 export function App() {
@@ -113,6 +120,21 @@ export function App() {
   const [reviewCourses, setReviewCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedInstructor, setSelectedInstructor] = useState<string | null>(null);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isGlobalAddNoteOpen, setIsGlobalAddNoteOpen] = useState(false);
+  const [isGlobalAddCourseOpen, setIsGlobalAddCourseOpen] = useState(false);
+
+  // Global Command Palette Shortcut (⌘K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Check Privacy Policy Acceptance after splash screen
   useEffect(() => {
@@ -749,6 +771,19 @@ export function App() {
 
   const nowMins = today.getHours() * 60 + today.getMinutes();
 
+  // Academic Overview stats for Desktop Bento Widget
+  const todayClassesList = courses.filter(c => c.days?.includes(todayDayName));
+  const todayClassHours = todayClassesList.reduce((acc, c) => {
+    const startM = timeToMinutes(c.startTime);
+    const endM = timeToMinutes(c.endTime);
+    return acc + Math.max(0, (endM - startM) / 60);
+  }, 0);
+  const totalEnrolledUnits = courses.reduce((acc, c) => acc + (c.units || 3), 0);
+  const ACADEMIC_DEADLINE_CATEGORIES = ['exam', 'long_quiz', 'short_quiz', 'assignment', 'reporting', 'project'];
+  const pendingTasksTotal = customEvents.filter(
+    e => ACADEMIC_DEADLINE_CATEGORIES.includes(e.category) && !e.isCompleted
+  ).length;
+
   return (
     <div id="root">
       {/* 3-Step Animated Splash Screen */}
@@ -779,66 +814,89 @@ export function App() {
           }}
         />
       ) : (
-        <>
-          {/* Top Utility Header Bar (Editorial Minimal Style Matching Mockup) */}
-          {activeTab === 'home' && (
-            <header className="top-utility-row">
-              <div className="top-utility-left">
-                <span className="top-utility-subheading">
-                  {timeOfDayGreeting},
-                </span>
-                <h1 className="top-utility-greeting">
-                  {studentFirstName}
-                </h1>
-              </div>
-
-              <div className="top-utility-right" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {syncState === 'SYNCING' && (
-                  <div className="sync-indicator-pill" title="Syncing schedule with cloud...">
-                    <div className="sync-spinner" />
-                    <span>Syncing...</span>
-                  </div>
-                )}
-                {syncState === 'OFFLINE' && (
-                  <div 
-                    className="sync-indicator-pill" 
-                    title="Offline Mode: All your data is saved locally on device."
-                    style={{ background: 'rgba(255, 255, 255, 0.08)', color: 'var(--ios-text-muted)' }}
-                  >
-                    <CloudOff size={12} />
-                    <span>Offline</span>
-                  </div>
-                )}
-                <div 
-                  className="home-logo-circle"
-                  onClick={handleToggleTheme}
-                  title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <img 
-                    src="/schedly-logo.png" 
-                    alt="Schedly" 
-                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                  />
-                </div>
-              </div>
-            </header>
+        <div className="app-shell-layout">
+          {/* Desktop & Tablet macOS-style Glass Sidebar Navigation (Hidden on Mobile) */}
+          {!isCorrectionOpen && (
+            <DesktopSidebar 
+              activeTab={activeTab}
+              onSelectTab={handleSelectTab}
+              profile={profile}
+              theme={theme}
+              onToggleTheme={handleToggleTheme}
+              syncState={syncState}
+              isOnline={isOnline}
+              onTriggerSync={() => currentUser && handleTriggerCloudSync(currentUser.id, currentUser.user_metadata?.full_name, true)}
+              onOpenIDModal={() => setIsFullscreenIDOpen(true)}
+              onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+            />
           )}
 
-          {/* Main Content Area based on Active Tab */}
-          {isCorrectionOpen ? (
-            <CorrectionScreen 
-              courses={reviewCourses}
-              profile={profile}
-              onSaveSchedule={handleSaveSchedule}
-              onCancel={() => setIsCorrectionOpen(false)}
-            />
-          ) : (
-            <>
-              {activeTab === 'home' && (
-                <main>
-                  {/* DIGITAL STUDENT ID CARD HERO AT THE VERY TOP (WITH 3D FLIP) */}
-                  <div className="ios-section" style={{ paddingBottom: 0, paddingTop: 4 }}>
+          {/* Main App Content Area */}
+          <div className="app-main-content">
+            {/* Top Utility Header Bar (Clean Editorial Greeting) */}
+            {activeTab === 'home' && (
+              <header className="top-utility-row">
+                <div className="top-utility-left">
+                  <div className="top-utility-greeting-row">
+                    <span className="top-utility-subheading">
+                      {timeOfDayGreeting},
+                    </span>
+                    <h1 className="top-utility-greeting">
+                      {studentFirstName}
+                    </h1>
+                  </div>
+                </div>
+
+                <div className="top-utility-right" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {/* Desktop / Tablet: Academic Semester Badge on the Right Edge */}
+                  <div className="top-header-academic-badge">
+                    <GraduationCap size={13} className="academic-badge-icon" />
+                    <span className="academic-badge-sem">1st Sem A.Y. 2026–2027</span>
+                  </div>
+                  {syncState === 'SYNCING' && (
+                    <div className="sync-indicator-pill" title="Syncing schedule with cloud...">
+                      <div className="sync-spinner" />
+                      <span>Syncing...</span>
+                    </div>
+                  )}
+                  {syncState === 'OFFLINE' && (
+                    <div 
+                      className="sync-indicator-pill" 
+                      title="Offline Mode: All your data is saved locally on device."
+                      style={{ background: 'rgba(255, 255, 255, 0.08)', color: 'var(--ios-text-muted)' }}
+                    >
+                      <CloudOff size={12} />
+                      <span>Offline</span>
+                    </div>
+                  )}
+                  <div 
+                    className="home-logo-circle"
+                    onClick={handleToggleTheme}
+                    title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <img 
+                      src="/schedly-logo.png" 
+                      alt="Schedly" 
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  </div>
+                </div>
+              </header>
+            )}
+
+            {/* Main Content Area based on Active Tab */}
+            {isCorrectionOpen ? (
+              <CorrectionScreen 
+                courses={reviewCourses}
+                profile={profile}
+                onSaveSchedule={handleSaveSchedule}
+                onCancel={() => setIsCorrectionOpen(false)}
+              />
+            ) : (
+              <>
+                {activeTab === 'home' && (
+                  <main>
                     {/* Developer Remote Announcements & Maintenance Notice Banners */}
                     {announcements.filter(a => a.type === 'banner').map(banner => (
                       <AnnouncementBanner 
@@ -862,457 +920,665 @@ export function App() {
                       }}
                     />
 
-                    <DigitalIDCard 
-                      profile={profile}
-                      onEditClick={() => setIsEditIDOpen(true)}
-                      onCardClick={() => setIsFullscreenIDOpen(true)}
-                    />
+                    {/* Responsive Grid: Center Workspace & Right Side Panel on Desktop/Tablet */}
+                    <div className="home-desktop-grid">
+                      {/* Center Column: Iconic Stacked Cards & Deadlines Workspace */}
+                      <div className="home-col-main">
+                        <div className="ios-section" style={{ paddingBottom: 0, paddingTop: 4 }}>
+                          {/* Onboarding Welcome Card if no courses */}
+                          {courses.length === 0 && (
+                            <div className="ios-card" style={{ padding: '24px 20px', textAlign: 'center', marginBottom: 14 }}>
+                              <div style={{
+                                width: 48,
+                                height: 48,
+                                borderRadius: 14,
+                                background: 'var(--ios-blue-light)',
+                                color: 'var(--ios-blue)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                margin: '0 auto 12px auto'
+                              }}>
+                                <Sparkles size={24} />
+                              </div>
+                              <h3 style={{ fontSize: 17, fontWeight: 800, marginBottom: 4 }}>Welcome to Schedly</h3>
+                              <p style={{ fontSize: 13, color: 'var(--ios-text-muted)', marginBottom: 16 }}>
+                                Upload or scan your Certificate of Registration (COR) to generate your smart student timetable.
+                              </p>
+                              <button 
+                                className="ios-btn-primary" 
+                                onClick={() => setIsScannerOpen(true)}
+                              >
+                                <Camera size={16} /> Scan / Upload COR
+                              </button>
+                            </div>
+                          )}
 
-                    {/* AMIE & CRON INSPIRED UPCOMING CLASS HERO */}
-                    <NextClassHero 
+                          {/* iOS Segmented Mode Switcher: Class Schedule ⇄ Deadlines & Tasks */}
+                          <div style={{ marginTop: 0, marginBottom: 12 }}>
+                            <div 
+                              style={{
+                                background: 'var(--ios-card-bg)',
+                                borderRadius: 14,
+                                padding: 3,
+                                display: 'flex',
+                                gap: 4,
+                                border: '1px solid var(--ios-card-border)',
+                                boxShadow: 'var(--ios-shadow-sm)',
+                                alignItems: 'center'
+                              }}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  triggerLightHaptic();
+                                  setHomeViewMode('schedule');
+                                }}
+                                style={{
+                                  flex: 1,
+                                  minHeight: 38,
+                                  height: 38,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 5,
+                                  padding: '6px 10px',
+                                  borderRadius: 11,
+                                  border: 'none',
+                                  background: homeViewMode === 'schedule' ? 'var(--ios-blue)' : 'transparent',
+                                  color: homeViewMode === 'schedule' ? '#FFFFFF' : 'var(--ios-text-secondary)',
+                                  fontSize: 12.5,
+                                  fontWeight: homeViewMode === 'schedule' ? 800 : 600,
+                                  cursor: 'pointer',
+                                  transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                                  boxShadow: homeViewMode === 'schedule' ? '0 2px 8px rgba(37, 99, 235, 0.28)' : 'none',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                <CalendarIcon size={14} style={{ flexShrink: 0 }} />
+                                <span style={{ whiteSpace: 'nowrap' }}>Class Schedule</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  triggerLightHaptic();
+                                  setHomeViewMode('tasks');
+                                }}
+                                style={{
+                                  flex: 1,
+                                  minHeight: 38,
+                                  height: 38,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 5,
+                                  padding: '6px 8px',
+                                  borderRadius: 11,
+                                  border: 'none',
+                                  background: homeViewMode === 'tasks' ? 'var(--ios-blue)' : 'transparent',
+                                  color: homeViewMode === 'tasks' ? '#FFFFFF' : 'var(--ios-text-secondary)',
+                                  fontSize: 12.5,
+                                  fontWeight: homeViewMode === 'tasks' ? 800 : 600,
+                                  cursor: 'pointer',
+                                  transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                                  boxShadow: homeViewMode === 'tasks' ? '0 2px 8px rgba(37, 99, 235, 0.28)' : 'none',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                <CheckCircle2 size={14} style={{ flexShrink: 0 }} />
+                                <span style={{ whiteSpace: 'nowrap' }}>Deadlines & Tasks</span>
+                                {pendingTasksTotal > 0 && (
+                                  <span 
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 800,
+                                      padding: '1px 5px',
+                                      borderRadius: 8,
+                                      background: homeViewMode === 'tasks' ? 'rgba(255, 255, 255, 0.28)' : 'rgba(239, 68, 68, 0.14)',
+                                      color: homeViewMode === 'tasks' ? '#FFFFFF' : '#EF4444',
+                                      flexShrink: 0,
+                                      lineHeight: '14px'
+                                    }}
+                                  >
+                                    {pendingTasksTotal}
+                                  </span>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Mode 1: Tasks & Deadlines Board */}
+                        {homeViewMode === 'tasks' && (
+                          <div className="ios-section" style={{ paddingBottom: 78, paddingTop: 6 }}>
+                            <HomeTodoList 
+                              events={customEvents}
+                              courses={courses}
+                              onToggleEventComplete={handleToggleEventComplete}
+                              onEditEvent={(event) => {
+                                setEditingHomeEvent(event);
+                                setIsAddingHomeEvent(true);
+                              }}
+                              onDeleteEvent={handleDeleteCustomEvent}
+                              onOpenAddTask={() => {
+                                setEditingHomeEvent(null);
+                                setIsAddingHomeEvent(true);
+                              }}
+                              onSelectCourse={(course) => {
+                                setSelectedCourse(course);
+                                setActiveTab('subjects');
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        {/* Mode 2: Today's Classes List (The Iconic Stacked Cards) */}
+                        {homeViewMode === 'schedule' && courses.length > 0 && (
+                          <div className="ios-section" style={{ paddingBottom: 78, paddingTop: 6 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                              <div className="ios-section-header" style={{ margin: 0 }}>
+                                Classes Today ({todayInfo.courses.length})
+                              </div>
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  triggerLightHaptic();
+                                  setSelectedTimetableDay(todayDayName);
+                                  handleSelectTab('schedule');
+                                }}
+                                style={{ background: 'none', border: 'none', color: 'var(--ios-blue)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
+                              >
+                                View Timetable <ArrowRight size={13} />
+                              </button>
+                            </div>
+
+                            {todayInfo.courses.length === 0 ? (
+                              <div className="ios-card" style={{ color: 'var(--ios-text-muted)', textAlign: 'center', padding: '24px 16px', fontSize: 13 }}>
+                                No classes scheduled for today ({todayDayName}). Enjoy your free day! 🎉
+                              </div>
+                            ) : (
+                              <div className="wallet-stack-container" style={{ marginTop: 4 }}>
+                                {todayInfo.courses.map((course, idx) => {
+                                  const startMins = timeToMinutes(course.startTime);
+                                  const endMins = timeToMinutes(course.endTime);
+                                  const isCompleted = nowMins > endMins;
+                                  const isLive = nowMins >= startMins && nowMins <= endMins;
+                                  const isLab = course.courseCode?.toLowerCase().includes('lab') || course.courseName?.toLowerCase().includes('lab');
+                                  const isExpanded = selectedCourse?.id === course.id;
+                                  const customBg = getSubjectCardGradient(idx, todayInfo.courses.length, settings.colorTheme || settings.subjectCardTheme || 'bluebook');
+
+                                  const cleanInstructor = course.instructor 
+                                    ? course.instructor.startsWith('Prof.') ? course.instructor : `Prof. ${course.instructor}`
+                                    : 'No Instructor Assigned';
+
+                                  return (
+                                    <div 
+                                      key={course.id}
+                                      className={`wallet-card-item ${isExpanded ? 'is-expanded' : 'is-stacked'}`}
+                                      style={{ 
+                                        background: customBg,
+                                        zIndex: isExpanded ? 99 : idx + 1
+                                      }}
+                                      onClick={() => {
+                                        triggerLightHaptic();
+                                        if (isExpanded) {
+                                          setSelectedCourse(null);
+                                        } else {
+                                          setSelectedCourse(course);
+                                        }
+                                      }}
+                                    >
+                                      <div className="wallet-card-header">
+                                        <div className="wallet-card-header-left">
+                                          <div className="wallet-card-avatar-circle">
+                                            {getSubjectIconComponent(course.icon, course.courseCode, course.courseName, 17, '#FFFFFF')}
+                                          </div>
+
+                                          <div className="wallet-card-text-group">
+                                            <div className="wallet-card-category">
+                                              {isLab ? 'LABORATORY' : 'LECTURE'} · {course.units || 3} UNITS
+                                            </div>
+                                            <div className="wallet-card-code">
+                                              {course.courseCode}
+                                            </div>
+                                            <div className="wallet-card-sub">
+                                              {course.courseName}
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div className="wallet-card-header-right">
+                                          {isLive && (
+                                            <span className="wallet-pill-tag" style={{ background: '#10B981', color: '#FFFFFF', border: 'none' }}>
+                                              ● LIVE
+                                            </span>
+                                          )}
+
+                                          {isCompleted && (
+                                            <span className="wallet-pill-tag" style={{ background: 'rgba(255, 255, 255, 0.25)', color: '#FFFFFF' }}>
+                                              ✓ DONE
+                                            </span>
+                                          )}
+
+                                          <div className="wallet-card-right-bold" style={{ marginTop: isLive || isCompleted ? 3 : 0 }}>
+                                            {formatTime12H(course.startTime)}
+                                          </div>
+                                          <div className="wallet-card-right-sub">
+                                            {formatTime12H(course.endTime)}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {isExpanded && (
+                                        <div className="wallet-card-expanded-body" onClick={e => e.stopPropagation()}>
+                                          <div className="wallet-detail-grid">
+                                            <div className="wallet-detail-cell">
+                                              <label>SCHEDULE & TIME</label>
+                                              <span>
+                                                <Clock size={13} style={{ flexShrink: 0 }} /> 
+                                                <span>{formatTime12H(course.startTime)} – {formatTime12H(course.endTime)}</span>
+                                              </span>
+                                              <div style={{ fontSize: 11, opacity: 0.75, marginTop: 3 }}>
+                                                Today ({todayDayName})
+                                              </div>
+                                            </div>
+
+                                            <div className="wallet-detail-cell">
+                                              <label>CLASSROOM</label>
+                                              <span>
+                                                <MapPin size={13} style={{ flexShrink: 0 }} /> 
+                                                <span>{course.room || 'TBA'}</span>
+                                              </span>
+                                              <div style={{ fontSize: 11, opacity: 0.75, marginTop: 3 }}>
+                                                {course.units || 3} Academic Units
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          <div className="wallet-detail-cell">
+                                            <label>INSTRUCTOR</label>
+                                            <span>
+                                              <UserIcon size={13} style={{ flexShrink: 0 }} /> 
+                                              <span>{cleanInstructor}</span>
+                                            </span>
+                                          </div>
+
+                                          <div className="wallet-card-actions">
+                                            <button 
+                                              type="button"
+                                              className="wallet-action-btn"
+                                              onClick={() => setSelectedCourse(course)}
+                                            >
+                                              <CalendarDays size={13} /> Open Class Details
+                                            </button>
+
+                                            <button 
+                                              type="button"
+                                              className="wallet-action-btn wallet-action-btn-secondary"
+                                              style={{ maxWidth: 46, padding: 0 }}
+                                              onClick={() => setSelectedCourse(null)}
+                                              title="Collapse Card"
+                                            >
+                                              <ChevronUp size={16} />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* Upcoming Campus & Personal Events (Desktop & Tablet Only) */}
+                            <div className="home-desktop-only-events">
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                <div className="ios-section-header" style={{ margin: 0, fontSize: 13.5 }}>
+                                  Upcoming Campus & Personal Events
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    triggerLightHaptic();
+                                    handleSelectTab('calendar');
+                                  }}
+                                  style={{ background: 'none', border: 'none', color: 'var(--ios-blue)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
+                                >
+                                  Full Calendar <ArrowRight size={13} />
+                                </button>
+                              </div>
+
+                              {(() => {
+                                const now = new Date();
+                                const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+                                // 1. Map Philippine Holidays
+                                const holidayItems = getUpcomingHolidays(now, 10).map(h => {
+                                  const d = new Date(h.year, h.month - 1, h.day);
+                                  const monthAbbr = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+                                  const dayNum = d.getDate();
+                                  return {
+                                    id: `holiday_${h.id}`,
+                                    title: h.name,
+                                    subtitle: `${h.typeLabel} • ${h.formattedDate}`,
+                                    dateObj: d,
+                                    timestamp: d.getTime(),
+                                    monthAbbr,
+                                    dayNum,
+                                    categoryLabel: 'HOLIDAY',
+                                    tagClass: 'ios-tag-pill-green',
+                                    countdown: h.countdownText,
+                                    isHoliday: true,
+                                    rawEvent: null as CustomEvent | null,
+                                  };
+                                });
+
+                                // 2. Map Custom Events (Non-deadlines only)
+                                const nonDeadlineCategories = ['campus_event', 'department_event', 'org_event', 'seminar_workshop', 'sports', 'activity', 'meeting', 'personal'];
+                                const categoryTagConfig: Record<string, { label: string; tagClass: string }> = {
+                                  campus_event: { label: 'CAMPUS', tagClass: 'ios-tag-pill-blue' },
+                                  department_event: { label: 'DEPT', tagClass: 'ios-tag-pill-purple' },
+                                  org_event: { label: 'ORG', tagClass: 'ios-tag-pill-orange' },
+                                  seminar_workshop: { label: 'SEMINAR', tagClass: 'ios-tag-pill-teal' },
+                                  sports: { label: 'SPORTS', tagClass: 'ios-tag-pill-green' },
+                                  meeting: { label: 'MEETING', tagClass: 'ios-tag-pill-purple' },
+                                  activity: { label: 'ACTIVITY', tagClass: 'ios-tag-pill-blue' },
+                                  personal: { label: 'PERSONAL', tagClass: 'ios-tag-pill-muted' }
+                                };
+
+                                const customItems = customEvents
+                                  .filter(e => nonDeadlineCategories.includes(e.category) && !e.isCompleted)
+                                  .map(e => {
+                                    const [y, m, d] = e.date.split('-').map(Number);
+                                    const dateObj = new Date(y, (m || 1) - 1, d || 1);
+                                    const time = dateObj.getTime();
+                                    const diffDays = Math.round((time - todayMidnight) / (1000 * 60 * 60 * 24));
+
+                                    let countdown = '';
+                                    if (diffDays === 0) countdown = 'Today';
+                                    else if (diffDays === 1) countdown = 'Tomorrow';
+                                    else if (diffDays > 1 && diffDays <= 7) countdown = `In ${diffDays} days`;
+                                    else if (diffDays > 7 && diffDays <= 30) countdown = `In ${Math.ceil(diffDays / 7)} weeks`;
+                                    else if (diffDays > 30) countdown = `In ${Math.ceil(diffDays / 30)} months`;
+                                    else countdown = e.date;
+
+                                    const catInfo = categoryTagConfig[e.category] || { label: 'EVENT', tagClass: 'ios-tag-pill-blue' };
+                                    const monthAbbr = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+                                    const dayNum = dateObj.getDate();
+
+                                    return {
+                                      id: e.id,
+                                      title: e.title,
+                                      subtitle: e.location ? `📍 ${e.location}` : e.startTime ? `⏰ ${formatTime12H(e.startTime)}` : 'Campus Schedule',
+                                      dateObj,
+                                      timestamp: time,
+                                      monthAbbr,
+                                      dayNum,
+                                      categoryLabel: catInfo.label,
+                                      tagClass: catInfo.tagClass,
+                                      countdown,
+                                      isHoliday: false,
+                                      rawEvent: e,
+                                    };
+                                  })
+                                  .filter(item => item.timestamp >= todayMidnight);
+
+                                // 3. Merge and sort strictly ascending by timestamp, limit to exactly 4
+                                const unifiedUpcoming = [...holidayItems, ...customItems]
+                                  .sort((a, b) => a.timestamp - b.timestamp)
+                                  .slice(0, 4);
+
+                                if (unifiedUpcoming.length === 0) {
+                                  return (
+                                    <div className="ios-card" style={{ padding: '16px', color: 'var(--ios-text-muted)', fontSize: 12, textAlign: 'center' }}>
+                                      No upcoming campus events or holidays scheduled this week.
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <div className="home-upcoming-events-grid">
+                                    {unifiedUpcoming.map((item) => (
+                                      <div 
+                                        key={item.id} 
+                                        className={`home-event-card ${item.isHoliday ? 'holiday-card' : 'custom-event-card'}`}
+                                        onClick={() => {
+                                          triggerLightHaptic();
+                                          if (item.isHoliday) {
+                                            handleSelectTab('calendar');
+                                          } else if (item.rawEvent) {
+                                            setEditingHomeEvent(item.rawEvent);
+                                            setIsAddingHomeEvent(true);
+                                          }
+                                        }}
+                                      >
+                                        <div className="home-event-card-inner">
+                                          {/* Left Date Block Chip */}
+                                          <div className={`home-event-date-chip ${item.isHoliday ? 'holiday-chip' : ''}`}>
+                                            <span className="home-event-chip-month">{item.monthAbbr}</span>
+                                            <span className="home-event-chip-day">{item.dayNum}</span>
+                                          </div>
+
+                                          {/* Right Details */}
+                                          <div className="home-event-details">
+                                            <div className="home-event-top-meta">
+                                              <span className={`ios-tag-pill ${item.tagClass}`} style={{ fontSize: 9.5, padding: '2px 6px' }}>
+                                                {item.isHoliday ? '🌴 ' : ''}{item.categoryLabel}
+                                              </span>
+                                              <span className="home-event-countdown-badge">
+                                                {item.countdown}
+                                              </span>
+                                            </div>
+                                            <div className="home-event-title" title={item.title}>{item.title}</div>
+                                            <div className="home-event-subtitle" title={item.subtitle}>{item.subtitle}</div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right Side Panel: Digital ID at Very Top, Next Class Hero, Weekly Strip & Stats */}
+                      <div className="home-col-side">
+                        {/* 1. Digital ID Card at the Very Top */}
+                        <DigitalIDCard 
+                          profile={profile}
+                          onEditClick={() => setIsEditIDOpen(true)}
+                          onCardClick={() => setIsFullscreenIDOpen(true)}
+                        />
+
+                        {/* 2. Redesigned Next Class Hero Banner (Interactive & Friendly on Desktop, Compact on Mobile) */}
+                        <NextClassHero 
+                          courses={courses}
+                          onSelectCourse={(course) => {
+                            setSelectedCourse(course);
+                            setActiveTab('subjects');
+                          }}
+                          onOpenScanner={() => setIsScannerOpen(true)}
+                          onOpenTasksTab={() => setHomeViewMode('tasks')}
+                          onOpenCalendarTab={() => handleSelectTab('calendar')}
+                        />
+
+                        {/* 3. Interactive Weekly Strip Calendar (Desktop & Tablet only) */}
+                        <div className="home-desktop-only-calendar">
+                          <HomeMiniCalendar 
+                            courses={courses}
+                            onOpenCalendarTab={() => handleSelectTab('calendar')}
+                            onSelectDate={() => {
+                              handleSelectTab('calendar');
+                            }}
+                          />
+                        </div>
+
+                        {/* 4. Student Academic Overview Bento Widget */}
+                        {courses.length > 0 && (
+                          <div className="home-desktop-stats-bento">
+                            <div className="home-stats-bento-header">
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <GraduationCap size={15} color="var(--ios-blue)" />
+                                <span className="home-stats-bento-title">Academic Snapshot</span>
+                              </div>
+                              <span className="home-stats-bento-pill">{courses.length} Courses</span>
+                            </div>
+
+                            <div className="home-stats-bento-grid">
+                              <div className="home-stat-bento-box">
+                                <div className="home-stat-bento-val">{todayClassHours.toFixed(1)}h</div>
+                                <div className="home-stat-bento-lbl">Classes Today</div>
+                              </div>
+                              <div className="home-stat-bento-box">
+                                <div className="home-stat-bento-val">{totalEnrolledUnits}</div>
+                                <div className="home-stat-bento-lbl">Enrolled Units</div>
+                              </div>
+                              <div className="home-stat-bento-box">
+                                <div 
+                                  className="home-stat-bento-val" 
+                                  style={{ color: pendingTasksTotal > 0 ? 'var(--ios-orange)' : 'var(--ios-green)' }}
+                                >
+                                  {pendingTasksTotal}
+                                </div>
+                                <div className="home-stat-bento-lbl">Active Tasks</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </main>
+                )}
+
+                {activeTab === 'schedule' && (
+                  <main>
+                    <div className="ios-section" style={{ paddingBottom: 0, paddingTop: 14 }}>
+                      <ConflictAlertBanner 
+                        conflicts={conflicts} 
+                        onAutoResolve={handleAutoResolveConflicts}
+                        onResetOfficialSchedule={handleResetOfficialSchedule}
+                        onSelectConflictCourse={(code) => {
+                          const target = courses.find(c => c.courseCode === code);
+                          if (target) {
+                            setSelectedCourse(target);
+                            setActiveTab('subjects');
+                          }
+                        }}
+                      />
+                    </div>
+                    <TimelineSchedule 
                       courses={courses}
                       onSelectCourse={(course) => {
                         setSelectedCourse(course);
                         setActiveTab('subjects');
                       }}
                       onOpenScanner={() => setIsScannerOpen(true)}
+                      initialDay={selectedTimetableDay}
+                      onSelectDay={setSelectedTimetableDay}
+                      onOpenHolidays={() => handleSelectTab('calendar')}
+                      onToggleTheme={handleToggleTheme}
+                      theme={theme}
                     />
+                  </main>
+                )}
 
-                    {/* Onboarding Welcome Card if no courses */}
-                    {courses.length === 0 && (
-                      <div className="ios-card" style={{ padding: '24px 20px', textAlign: 'center', marginBottom: 14 }}>
-                        <div style={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: 14,
-                          background: 'var(--ios-blue-light)',
-                          color: 'var(--ios-blue)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          margin: '0 auto 12px auto'
-                        }}>
-                          <Sparkles size={24} />
-                        </div>
-                        <h3 style={{ fontSize: 17, fontWeight: 800, marginBottom: 4 }}>Welcome to Schedly</h3>
-                        <p style={{ fontSize: 13, color: 'var(--ios-text-muted)', marginBottom: 16 }}>
-                          Upload or scan your Certificate of Registration (COR) to generate your smart student timetable.
-                        </p>
-                        <button 
-                          className="ios-btn-primary" 
-                          onClick={() => setIsScannerOpen(true)}
-                        >
-                          <Camera size={16} /> Scan / Upload COR
-                        </button>
-                      </div>
-                    )}
-
-                    {/* iOS Segmented Mode Switcher: Class Schedule ⇄ Deadlines & Tasks */}
-                    <div style={{ marginTop: 10, marginBottom: 8 }}>
-                      <div 
-                        style={{
-                          background: 'var(--ios-card-bg)',
-                          borderRadius: 14,
-                          padding: 3,
-                          display: 'flex',
-                          gap: 4,
-                          border: '1px solid var(--ios-card-border)',
-                          boxShadow: 'var(--ios-shadow-sm)',
-                          alignItems: 'center'
-                        }}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            triggerLightHaptic();
-                            setHomeViewMode('schedule');
-                          }}
-                          style={{
-                            flex: 1,
-                            minHeight: 38,
-                            height: 38,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 5,
-                            padding: '6px 10px',
-                            borderRadius: 11,
-                            border: 'none',
-                            background: homeViewMode === 'schedule' ? 'var(--ios-blue)' : 'transparent',
-                            color: homeViewMode === 'schedule' ? '#FFFFFF' : 'var(--ios-text-secondary)',
-                            fontSize: 12.5,
-                            fontWeight: homeViewMode === 'schedule' ? 800 : 600,
-                            cursor: 'pointer',
-                            transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-                            boxShadow: homeViewMode === 'schedule' ? '0 2px 8px rgba(37, 99, 235, 0.28)' : 'none',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          <CalendarIcon size={14} style={{ flexShrink: 0 }} />
-                          <span style={{ whiteSpace: 'nowrap' }}>Class Schedule</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            triggerLightHaptic();
-                            setHomeViewMode('tasks');
-                          }}
-                          style={{
-                            flex: 1,
-                            minHeight: 38,
-                            height: 38,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 5,
-                            padding: '6px 8px',
-                            borderRadius: 11,
-                            border: 'none',
-                            background: homeViewMode === 'tasks' ? 'var(--ios-blue)' : 'transparent',
-                            color: homeViewMode === 'tasks' ? '#FFFFFF' : 'var(--ios-text-secondary)',
-                            fontSize: 12.5,
-                            fontWeight: homeViewMode === 'tasks' ? 800 : 600,
-                            cursor: 'pointer',
-                            transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-                            boxShadow: homeViewMode === 'tasks' ? '0 2px 8px rgba(37, 99, 235, 0.28)' : 'none',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          <CheckCircle2 size={14} style={{ flexShrink: 0 }} />
-                          <span style={{ whiteSpace: 'nowrap' }}>Deadlines & Tasks</span>
-                          {customEvents.filter(e => !e.isCompleted).length > 0 && (
-                            <span 
-                              style={{
-                                fontSize: 10,
-                                fontWeight: 800,
-                                padding: '1px 5px',
-                                borderRadius: 8,
-                                background: homeViewMode === 'tasks' ? 'rgba(255, 255, 255, 0.28)' : 'rgba(239, 68, 68, 0.14)',
-                                color: homeViewMode === 'tasks' ? '#FFFFFF' : '#EF4444',
-                                flexShrink: 0,
-                                lineHeight: '14px'
-                              }}
-                            >
-                              {customEvents.filter(e => !e.isCompleted).length}
-                            </span>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Mode 1: Tasks & Deadlines Board */}
-                  {homeViewMode === 'tasks' && (
-                    <div className="ios-section" style={{ paddingBottom: 78, paddingTop: 6 }}>
-                      <HomeTodoList 
-                        events={customEvents}
-                        courses={courses}
-                        onToggleEventComplete={handleToggleEventComplete}
-                        onEditEvent={(event) => {
-                          setEditingHomeEvent(event);
-                          setIsAddingHomeEvent(true);
-                        }}
-                        onDeleteEvent={handleDeleteCustomEvent}
-                        onOpenAddTask={() => {
-                          setEditingHomeEvent(null);
-                          setIsAddingHomeEvent(true);
-                        }}
-                        onSelectCourse={(course) => {
-                          setSelectedCourse(course);
-                          setActiveTab('subjects');
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {/* Mode 2: Today's Classes List (Stacked Cards) */}
-                  {homeViewMode === 'schedule' && courses.length > 0 && (
-                    <div className="ios-section" style={{ paddingBottom: 78, paddingTop: 6 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                        <div className="ios-section-header" style={{ margin: 0 }}>
-                          Classes Today ({todayInfo.courses.length})
-                        </div>
-                        <button 
-                          type="button"
-                          onClick={() => {
-                            triggerLightHaptic();
-                            setSelectedTimetableDay(todayDayName);
-                            handleSelectTab('schedule');
-                          }}
-                          style={{ background: 'none', border: 'none', color: 'var(--ios-blue)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
-                        >
-                          View Timetable <ArrowRight size={13} />
-                        </button>
-                      </div>
-
-                      {todayInfo.courses.length === 0 ? (
-                        <div className="ios-card" style={{ color: 'var(--ios-text-muted)', textAlign: 'center', padding: '24px 16px', fontSize: 13 }}>
-                          No classes scheduled for today ({todayDayName}). Enjoy your free day! 🎉
-                        </div>
-                      ) : (
-                        <div className="wallet-stack-container" style={{ marginTop: 4 }}>
-                          {todayInfo.courses.map((course, idx) => {
-                            const startMins = timeToMinutes(course.startTime);
-                            const endMins = timeToMinutes(course.endTime);
-                            const isCompleted = nowMins > endMins;
-                            const isLive = nowMins >= startMins && nowMins <= endMins;
-                            const isLab = course.courseCode?.toLowerCase().includes('lab') || course.courseName?.toLowerCase().includes('lab');
-                            const isExpanded = selectedCourse?.id === course.id;
-                            const customBg = getSubjectCardGradient(idx, todayInfo.courses.length, settings.colorTheme || settings.subjectCardTheme || 'bluebook');
-
-                            const cleanInstructor = course.instructor 
-                              ? course.instructor.startsWith('Prof.') ? course.instructor : `Prof. ${course.instructor}`
-                              : 'No Instructor Assigned';
-
-                            return (
-                              <div 
-                                key={course.id}
-                                className={`wallet-card-item ${isExpanded ? 'is-expanded' : 'is-stacked'}`}
-                                style={{ 
-                                  background: customBg,
-                                  zIndex: isExpanded ? 99 : idx + 1
-                                }}
-                                onClick={() => {
-                                  triggerLightHaptic();
-                                  if (isExpanded) {
-                                    setSelectedCourse(null);
-                                  } else {
-                                    setSelectedCourse(course);
-                                  }
-                                }}
-                              >
-                                <div className="wallet-card-header">
-                                  <div className="wallet-card-header-left">
-                                    <div className="wallet-card-avatar-circle">
-                                      {getSubjectIconComponent(course.icon, course.courseCode, course.courseName, 17, '#FFFFFF')}
-                                    </div>
-
-                                    <div className="wallet-card-text-group">
-                                      <div className="wallet-card-category">
-                                        {isLab ? 'LABORATORY' : 'LECTURE'} · {course.units || 3} UNITS
-                                      </div>
-                                      <div className="wallet-card-code">
-                                        {course.courseCode}
-                                      </div>
-                                      <div className="wallet-card-sub">
-                                        {course.courseName}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="wallet-card-header-right">
-                                    {isLive && (
-                                      <span className="wallet-pill-tag" style={{ background: '#10B981', color: '#FFFFFF', border: 'none' }}>
-                                        ● LIVE
-                                      </span>
-                                    )}
-
-                                    {isCompleted && (
-                                      <span className="wallet-pill-tag" style={{ background: 'rgba(255, 255, 255, 0.25)', color: '#FFFFFF' }}>
-                                        ✓ DONE
-                                      </span>
-                                    )}
-
-                                    <div className="wallet-card-right-bold" style={{ marginTop: isLive || isCompleted ? 3 : 0 }}>
-                                      {formatTime12H(course.startTime)}
-                                    </div>
-                                    <div className="wallet-card-right-sub">
-                                      {formatTime12H(course.endTime)}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {isExpanded && (
-                                  <div className="wallet-card-expanded-body" onClick={e => e.stopPropagation()}>
-                                    <div className="wallet-detail-grid">
-                                      <div className="wallet-detail-cell">
-                                        <label>SCHEDULE & TIME</label>
-                                        <span>
-                                          <Clock size={13} style={{ flexShrink: 0 }} /> 
-                                          <span>{formatTime12H(course.startTime)} – {formatTime12H(course.endTime)}</span>
-                                        </span>
-                                        <div style={{ fontSize: 11, opacity: 0.75, marginTop: 3 }}>
-                                          Today ({todayDayName})
-                                        </div>
-                                      </div>
-
-                                      <div className="wallet-detail-cell">
-                                        <label>CLASSROOM</label>
-                                        <span>
-                                          <MapPin size={13} style={{ flexShrink: 0 }} /> 
-                                          <span>{course.room || 'TBA'}</span>
-                                        </span>
-                                        <div style={{ fontSize: 11, opacity: 0.75, marginTop: 3 }}>
-                                          {course.units || 3} Academic Units
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    <div className="wallet-detail-cell">
-                                      <label>INSTRUCTOR</label>
-                                      <span>
-                                        <UserIcon size={13} style={{ flexShrink: 0 }} /> 
-                                        <span>{cleanInstructor}</span>
-                                      </span>
-                                    </div>
-
-                                    <div className="wallet-card-actions">
-                                      <button 
-                                        type="button"
-                                        className="wallet-action-btn"
-                                        onClick={() => setSelectedCourse(course)}
-                                      >
-                                        <CalendarDays size={13} /> Open Class Details
-                                      </button>
-
-                                      <button 
-                                        type="button"
-                                        className="wallet-action-btn wallet-action-btn-secondary"
-                                        style={{ maxWidth: 46, padding: 0 }}
-                                        onClick={() => setSelectedCourse(null)}
-                                        title="Collapse Card"
-                                      >
-                                        <ChevronUp size={16} />
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </main>
-              )}
-
-              {activeTab === 'schedule' && (
-                <main>
-                  <div className="ios-section" style={{ paddingBottom: 0, paddingTop: 14 }}>
-                    <ConflictAlertBanner 
-                      conflicts={conflicts} 
-                      onAutoResolve={handleAutoResolveConflicts}
-                      onResetOfficialSchedule={handleResetOfficialSchedule}
-                      onSelectConflictCourse={(code) => {
-                        const target = courses.find(c => c.courseCode === code);
-                        if (target) {
-                          setSelectedCourse(target);
-                          setActiveTab('subjects');
-                        }
-                      }}
-                    />
-                  </div>
-                  <TimelineSchedule 
-                    courses={courses}
-                    onSelectCourse={(course) => {
-                      setSelectedCourse(course);
-                      setActiveTab('subjects');
-                    }}
-                    onOpenScanner={() => setIsScannerOpen(true)}
-                    initialDay={selectedTimetableDay}
-                    onSelectDay={setSelectedTimetableDay}
-                    onOpenHolidays={() => handleSelectTab('calendar')}
-                    onToggleTheme={handleToggleTheme}
-                    theme={theme}
-                  />
-                </main>
-              )}
-
-              {activeTab === 'calendar' && (
-                <main>
-                  <CalendarView 
-                    events={customEvents}
-                    courses={courses}
-                    onOpenSubject={(course) => {
-                      setSelectedCourse(course);
-                      setActiveTab('subjects');
-                    }}
-                    onSaveEvent={handleSaveCustomEvent}
-                    onDeleteEvent={handleDeleteCustomEvent}
-                    onToggleEventComplete={handleToggleEventComplete}
-                    onToggleTheme={handleToggleTheme} 
-                    theme={theme} 
-                  />
-                </main>
-              )}
-
-              {activeTab === 'subjects' && (
-                <main>
-                  {selectedCourse ? (
-                    <SubjectDetailScreen 
-                      course={selectedCourse}
-                      allCourses={courses}
+                {activeTab === 'calendar' && (
+                  <main>
+                    <CalendarView 
                       events={customEvents}
-                      notes={subjectNotes}
-                      conflicts={conflicts}
-                      links={courseLinks}
-                      topics={courseTopics}
-                      onBack={() => setSelectedCourse(null)}
-                      onSelectInstructor={setSelectedInstructor}
-                      onViewInTimetable={(day) => {
-                        setSelectedCourse(null);
-                        handleViewInTimetable(day);
+                      courses={courses}
+                      onOpenSubject={(course) => {
+                        setSelectedCourse(course);
+                        setActiveTab('subjects');
                       }}
-                      onUpdateCourse={handleUpdateCourse}
-                      onDeleteCourse={handleDeleteCourse}
                       onSaveEvent={handleSaveCustomEvent}
                       onDeleteEvent={handleDeleteCustomEvent}
                       onToggleEventComplete={handleToggleEventComplete}
-                      onSaveNote={handleSaveSubjectNote}
-                      onDeleteNote={handleDeleteSubjectNote}
-                      onTogglePinNote={handleTogglePinSubjectNote}
-                      onSaveLink={handleSaveCourseLink}
-                      onDeleteLink={handleDeleteCourseLink}
-                      onSaveTopic={handleSaveCourseTopic}
-                      onDeleteTopic={handleDeleteCourseTopic}
-                      onToggleTopicComplete={handleToggleCourseTopicComplete}
+                      onToggleTheme={handleToggleTheme} 
+                      theme={theme} 
                     />
-                  ) : (
-                    <SubjectsList 
-                      courses={courses}
-                      conflicts={conflicts}
-                      events={customEvents}
-                      notes={subjectNotes}
-                      onSelectCourse={setSelectedCourse}
-                      onUpdateCourse={handleUpdateCourse}
-                      onDeleteCourse={handleDeleteCourse}
-                      onAddCourse={handleAddCourse}
+                  </main>
+                )}
+
+                {activeTab === 'subjects' && (
+                  <main>
+                    {selectedCourse ? (
+                      <SubjectDetailScreen 
+                        course={selectedCourse}
+                        allCourses={courses}
+                        events={customEvents}
+                        notes={subjectNotes}
+                        conflicts={conflicts}
+                        links={courseLinks}
+                        topics={courseTopics}
+                        onBack={() => setSelectedCourse(null)}
+                        onSelectInstructor={setSelectedInstructor}
+                        onViewInTimetable={(day) => {
+                          setSelectedCourse(null);
+                          handleViewInTimetable(day);
+                        }}
+                        onUpdateCourse={handleUpdateCourse}
+                        onDeleteCourse={handleDeleteCourse}
+                        onSaveEvent={handleSaveCustomEvent}
+                        onDeleteEvent={handleDeleteCustomEvent}
+                        onToggleEventComplete={handleToggleEventComplete}
+                        onSaveNote={handleSaveSubjectNote}
+                        onDeleteNote={handleDeleteSubjectNote}
+                        onTogglePinNote={handleTogglePinSubjectNote}
+                        onSaveLink={handleSaveCourseLink}
+                        onDeleteLink={handleDeleteCourseLink}
+                        onSaveTopic={handleSaveCourseTopic}
+                        onDeleteTopic={handleDeleteCourseTopic}
+                        onToggleTopicComplete={handleToggleCourseTopicComplete}
+                      />
+                    ) : (
+                      <SubjectsList 
+                        courses={courses}
+                        conflicts={conflicts}
+                        events={customEvents}
+                        notes={subjectNotes}
+                        onSelectCourse={setSelectedCourse}
+                        onUpdateCourse={handleUpdateCourse}
+                        onDeleteCourse={handleDeleteCourse}
+                        onAddCourse={handleAddCourse}
+                        onToggleTheme={handleToggleTheme}
+                        theme={theme}
+                        subjectCardTheme={settings.colorTheme || settings.subjectCardTheme || 'bluebook'}
+                      />
+                    )}
+                  </main>
+                )}
+
+                {activeTab === 'settings' && (
+                  <main>
+                    <SettingsView 
+                      settings={settings}
+                      onUpdateSettings={handleUpdateSettings}
+                      onOpenScanner={() => setIsScannerOpen(true)}
+                      onResetData={handleResetData}
+                      onTestNotification={handleTestNotification}
                       onToggleTheme={handleToggleTheme}
                       theme={theme}
-                      subjectCardTheme={settings.colorTheme || settings.subjectCardTheme || 'blue-cascade'}
+                      userEmail={currentUser?.email}
+                      onSignOut={handleSignOut}
+                      onManualSync={() => currentUser && handleTriggerCloudSync(currentUser.id, currentUser.user_metadata?.full_name, true)}
+                      isSyncing={syncState === 'SYNCING'}
+                      isOnline={isOnline}
+                      onOpenPrivacyPolicy={() => {
+                        setIsPrivacyConsentMode(false);
+                        setIsPrivacyModalOpen(true);
+                      }}
                     />
-                  )}
-                </main>
-              )}
+                  </main>
+                )}
+              </>
+            )}
+          </div>
 
-              {activeTab === 'settings' && (
-                <main>
-                  <SettingsView 
-                    settings={settings}
-                    onUpdateSettings={handleUpdateSettings}
-                    onOpenScanner={() => setIsScannerOpen(true)}
-                    onResetData={handleResetData}
-                    onTestNotification={handleTestNotification}
-                    onToggleTheme={handleToggleTheme}
-                    theme={theme}
-                    userEmail={currentUser?.email}
-                    onSignOut={handleSignOut}
-                    onManualSync={() => currentUser && handleTriggerCloudSync(currentUser.id, currentUser.user_metadata?.full_name, true)}
-                    isSyncing={syncState === 'SYNCING'}
-                    isOnline={isOnline}
-                    onOpenPrivacyPolicy={() => {
-                      setIsPrivacyConsentMode(false);
-                      setIsPrivacyModalOpen(true);
-                    }}
-                  />
-                </main>
-              )}
-            </>
-          )}
-
-          {/* Floating Bottom Tab Bar */}
+          {/* Floating Bottom Tab Bar for Mobile (< 768px) */}
           {!isCorrectionOpen && !selectedCourse && (
             <BottomTabBar activeTab={activeTab} onSelectTab={handleSelectTab} />
           )}
@@ -1397,7 +1663,74 @@ export function App() {
             initialEvent={editingHomeEvent}
             courses={courses}
           />
-        </>
+
+          {/* Spotlight Command Palette (⌘K / Ctrl+K) */}
+          <CommandPaletteModal 
+            isOpen={isCommandPaletteOpen}
+            onClose={() => setIsCommandPaletteOpen(false)}
+            courses={courses}
+            events={customEvents}
+            onSelectTab={handleSelectTab}
+            onSelectCourse={(course) => {
+              setSelectedCourse(course);
+              handleSelectTab('subjects');
+            }}
+            onOpenAddTask={() => {
+              setEditingHomeEvent(null);
+              setIsAddingHomeEvent(true);
+            }}
+            onOpenAddCourse={() => {
+              setIsGlobalAddCourseOpen(true);
+            }}
+            onToggleTheme={handleToggleTheme}
+            theme={theme}
+            onOpenScanner={() => setIsScannerOpen(true)}
+          />
+
+          {/* Global Add / Edit Course Modal */}
+          <EditSubjectModal 
+            course={null}
+            isOpen={isGlobalAddCourseOpen}
+            onClose={() => setIsGlobalAddCourseOpen(false)}
+            onSave={(newCourse) => {
+              handleAddCourse(newCourse);
+              setIsGlobalAddCourseOpen(false);
+            }}
+          />
+
+          {/* Global Study Note Creator Modal */}
+          <CreateNoteModal 
+            isOpen={isGlobalAddNoteOpen}
+            onClose={() => setIsGlobalAddNoteOpen(false)}
+            courses={courses}
+            preselectedCourseId={selectedCourse?.id || courses[0]?.id}
+            onSaveNote={(note) => {
+              handleSaveSubjectNote(note);
+              setIsGlobalAddNoteOpen(false);
+            }}
+          />
+
+          {/* Global Floating Quick Action Pill (Tablet & Desktop Only) */}
+          {!isCorrectionOpen && (
+            <FloatingActionPill 
+              onAddTask={() => {
+                setEditingHomeEvent(null);
+                setIsAddingHomeEvent(true);
+              }}
+              onAddEvent={() => {
+                setEditingHomeEvent(null);
+                setIsAddingHomeEvent(true);
+              }}
+              onAddNote={() => {
+                setIsGlobalAddNoteOpen(true);
+              }}
+              onAddCourse={() => {
+                setIsGlobalAddCourseOpen(true);
+              }}
+              onOpenScanner={() => setIsScannerOpen(true)}
+            />
+          )}
+        </div>
       )}
     </div>
   );

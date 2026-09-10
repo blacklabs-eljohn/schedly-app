@@ -34,9 +34,14 @@ const CATEGORIES: { id: EventCategory; label: string; icon: string; defaultColor
   { id: 'assignment', label: 'Assignment', icon: '📌', defaultColor: '#3B82F6' },
   { id: 'reporting', label: 'Reporting', icon: '🎤', defaultColor: '#8B5CF6' },
   { id: 'project', label: 'Project / Output', icon: '💻', defaultColor: '#06B6D4' },
-  { id: 'meeting', label: 'Meeting / Defense', icon: '👥', defaultColor: '#6366F1' },
+  { id: 'campus_event', label: 'Campus Event', icon: '🏫', defaultColor: '#EC4899' },
+  { id: 'department_event', label: 'Dept Event', icon: '🏛️', defaultColor: '#6366F1' },
+  { id: 'org_event', label: 'Org / Club', icon: '👥', defaultColor: '#10B981' },
+  { id: 'seminar_workshop', label: 'Seminar / Workshop', icon: '💡', defaultColor: '#F59E0B' },
+  { id: 'sports', label: 'Sports & Intrams', icon: '⚽', defaultColor: '#16A34A' },
+  { id: 'meeting', label: 'Meeting / Defense', icon: '🤝', defaultColor: '#4F46E5' },
   { id: 'activity', label: 'Campus Life', icon: '🏆', defaultColor: '#EC4899' },
-  { id: 'personal', label: 'Personal', icon: '🎯', defaultColor: '#10B981' }
+  { id: 'personal', label: 'Personal', icon: '🎯', defaultColor: '#059669' }
 ];
 
 const COLOR_PALETTES = [
@@ -92,7 +97,11 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       if (initialEvent) {
         setTitle(initialEvent.title);
         setCategory(initialEvent.category);
-        setSelectedSubjectId(initialEvent.subjectId || '');
+        const matchInitialCourse = courses.find(c => 
+          (initialEvent.subjectId && c.id === initialEvent.subjectId) ||
+          (initialEvent.subjectCode && c.courseCode && c.courseCode.trim().toUpperCase() === initialEvent.subjectCode.trim().toUpperCase())
+        );
+        setSelectedSubjectId(matchInitialCourse ? matchInitialCourse.id : (initialEvent.subjectId || ''));
         setDate(initialEvent.date);
         setIsAllDay(initialEvent.isAllDay);
         setStartTime(initialEvent.startTime || '09:00');
@@ -111,7 +120,6 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
         setReminderMinutes(30);
         setNotes('');
         
-        // If preselected subject exists, auto-populate class schedule times, room & color
         const targetCourse = courses.find(c => c.id === defaultSubId);
         if (targetCourse) {
           if (targetCourse.color) setSelectedColor(targetCourse.color);
@@ -138,16 +146,16 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
         }
       }
     }
-  }, [isOpen, initialEvent, defaultDate, preselectedSubjectId, courses]);
+  }, [isOpen, initialEvent, preselectedSubjectId, courses]);
 
   if (!isOpen) return null;
 
-  const handleCategorySelect = (cat: EventCategory) => {
+  const handleCategorySelect = (catId: EventCategory) => {
     triggerSelectionHaptic();
-    setCategory(cat);
-    const catConfig = CATEGORIES.find(c => c.id === cat);
-    if (catConfig && !selectedSubjectId) {
-      setSelectedColor(catConfig.defaultColor);
+    setCategory(catId);
+    const catMeta = CATEGORIES.find(c => c.id === catId);
+    if (catMeta && !matchedCourse) {
+      setSelectedColor(catMeta.defaultColor);
     }
   };
 
@@ -156,17 +164,17 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
     setSelectedSubjectId(subjectId);
     if (subjectId) {
       const course = courses.find(c => c.id === subjectId);
-      if (course?.color) {
-        setSelectedColor(course.color);
+      if (course) {
+        if (course.color) setSelectedColor(course.color);
+        if (course.room && !location) setLocation(course.room);
+        if (course.startTime && isAllDay) {
+          setStartTime(course.startTime);
+          setEndTime(course.endTime || course.startTime);
+        }
       }
-      // Auto-populate course scheduled time if available
-      if (course?.startTime) {
-        setStartTime(course.startTime);
-        setEndTime(course.endTime || course.startTime);
-      }
-      if (course?.room && !location) {
-        setLocation(course.room);
-      }
+    } else {
+      const catMeta = CATEGORIES.find(c => c.id === category);
+      if (catMeta) setSelectedColor(catMeta.defaultColor);
     }
   };
 
@@ -176,6 +184,8 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       alert('Please enter an event title.');
       return;
     }
+
+    const resolvedCourse = courses.find(c => c.id === selectedSubjectId) || matchedCourse;
 
     const newEvent: CustomEvent = {
       id: initialEvent ? initialEvent.id : `evt_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
@@ -190,9 +200,9 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       notes: notes.trim() || undefined,
       color: selectedColor,
       isCompleted: initialEvent?.isCompleted || false,
-      subjectId: matchedCourse ? matchedCourse.id : undefined,
-      subjectCode: matchedCourse ? matchedCourse.courseCode : undefined,
-      subjectName: matchedCourse ? matchedCourse.courseName : undefined,
+      subjectId: resolvedCourse ? resolvedCourse.id : (selectedSubjectId || initialEvent?.subjectId || undefined),
+      subjectCode: resolvedCourse ? resolvedCourse.courseCode : (initialEvent?.subjectCode || undefined),
+      subjectName: resolvedCourse ? resolvedCourse.courseName : (initialEvent?.subjectName || undefined),
       createdAt: initialEvent?.createdAt || new Date().toISOString()
     };
 
