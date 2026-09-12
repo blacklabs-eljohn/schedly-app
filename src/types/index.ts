@@ -9,6 +9,8 @@ export interface FieldConfidence {
   times: boolean;
 }
 
+export type CourseType = 'lecture' | 'laboratory';
+
 export interface Course {
   id: string;
   courseCode: string;
@@ -21,8 +23,17 @@ export interface Course {
   units?: number;
   color?: string;
   icon?: string;     // Custom subject icon ID e.g. 'code', 'flask', 'calculator'
+  courseType?: CourseType; // Explicit Lecture vs Laboratory type
   confidence?: FieldConfidence;
   rawTextSnippet?: string;
+}
+
+export function isLaboratoryCourse(course?: Partial<Course> | null): boolean {
+  if (!course) return false;
+  if (course.courseType) return course.courseType === 'laboratory';
+  const code = course.courseCode?.toLowerCase() || '';
+  const name = course.courseName?.toLowerCase() || '';
+  return code.includes('lab') || name.includes('lab') || code.endsWith('l') || code.endsWith('-l');
 }
 
 export interface Instructor {

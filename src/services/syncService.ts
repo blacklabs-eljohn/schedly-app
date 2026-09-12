@@ -273,6 +273,7 @@ export async function pullCloudData(userId: string, defaultFullName?: string): P
             units: Number(cRow.units) || 3,
             color: resolvedColor,
             icon: resolvedIcon,
+            courseType: (cRow as any).course_type || localMatch?.courseType || undefined,
             days: resolvedDays,
             startTime: resolvedStartTime,
             endTime: resolvedEndTime
@@ -435,7 +436,7 @@ export async function pushCoursesToCloud(userId: string, courses: Course[]): Pro
 
     if (courses.length === 0) return;
 
-    // 2. Upsert courses with icon
+    // 2. Upsert courses with icon and course_type
     const coursePayloads = courses.map(c => ({
       id: c.id,
       user_id: userId,
@@ -446,6 +447,7 @@ export async function pushCoursesToCloud(userId: string, courses: Course[]): Pro
       units: c.units || 3,
       color: c.color || '#2563EB',
       icon: c.icon || null,
+      course_type: c.courseType || null,
       updated_at: new Date().toISOString()
     }));
 

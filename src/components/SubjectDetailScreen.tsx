@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Course, CustomEvent, SubjectNote, ScheduleConflict, DayOfWeek, CourseLink, CourseTopic, AcademicTerm, AppStoredFile } from '../types';
+import { Course, CustomEvent, SubjectNote, ScheduleConflict, DayOfWeek, CourseLink, CourseTopic, AcademicTerm, AppStoredFile, isLaboratoryCourse } from '../types';
 import { formatTime12H, timeToMinutes, formatDuration } from '../services/scheduleEngine';
 import { getSubjectIconComponent } from '../services/iconService';
 import { triggerTaskConfetti } from '../services/confettiService';
@@ -778,7 +778,7 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
   };
 
   const isConflicting = conflicts.some(c => c.course1.id === course.id || c.course2.id === course.id);
-  const isLab = course.courseCode?.toLowerCase().includes('lab') || course.courseName?.toLowerCase().includes('lab');
+  const isLab = isLaboratoryCourse(course);
   const durationMins = timeToMinutes(course.endTime) - timeToMinutes(course.startTime);
   const formattedDuration = formatDuration(Math.max(durationMins, 0));
 

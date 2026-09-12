@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Course } from '../types';
+import { Course, isLaboratoryCourse } from '../types';
 import { formatTime12H, timeToMinutes, formatDuration } from '../services/scheduleEngine';
 import { MapPin, User, Clock, Calendar, X, AlertTriangle, ChevronRight, CalendarDays, Copy, Edit3, Palette, Check } from 'lucide-react';
 import { showSystemToast } from '../services/notificationService';
@@ -41,7 +41,7 @@ export const SubjectDetailModal: React.FC<SubjectDetailModalProps> = ({
 
   if (!course) return null;
 
-  const isLab = course.courseCode?.toLowerCase().includes('lab') || course.courseName?.toLowerCase().includes('lab');
+  const isLab = isLaboratoryCourse(course);
   const durationMins = timeToMinutes(course.endTime) - timeToMinutes(course.startTime);
   const formattedDuration = formatDuration(Math.max(durationMins, 0));
 

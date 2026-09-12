@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Course, NotificationSettings, StudentProfile, DayOfWeek, CustomEvent, SubjectNote, CourseLink, CourseTopic } from './types';
+import { Course, NotificationSettings, StudentProfile, DayOfWeek, CustomEvent, SubjectNote, CourseLink, CourseTopic, isLaboratoryCourse } from './types';
 import { User } from '@supabase/supabase-js';
 import { 
   getStoredCourses, 
@@ -1120,7 +1120,7 @@ export function App() {
                                   const endMins = timeToMinutes(course.endTime);
                                   const isCompleted = nowMins > endMins;
                                   const isLive = nowMins >= startMins && nowMins <= endMins;
-                                  const isLab = course.courseCode?.toLowerCase().includes('lab') || course.courseName?.toLowerCase().includes('lab');
+                                  const isLab = isLaboratoryCourse(course);
                                   const isExpanded = selectedCourse?.id === course.id;
                                   const customBg = getSubjectCardGradient(idx, todayInfo.courses.length, settings.colorTheme || settings.subjectCardTheme || 'bluebook');
 

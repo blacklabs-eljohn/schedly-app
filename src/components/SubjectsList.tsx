@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Course, ScheduleConflict, SubjectCardTheme, CustomEvent, SubjectNote } from '../types';
+import { Course, ScheduleConflict, SubjectCardTheme, CustomEvent, SubjectNote, isLaboratoryCourse } from '../types';
 import { formatTime12H, timeToMinutes, formatDuration, getSubjectCardGradient } from '../services/scheduleEngine';
 import { 
   MapPin, 
@@ -118,7 +118,7 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
 
     if (!matchesSearch) return false;
 
-    const isLab = c.courseCode?.toLowerCase().includes('lab') || c.courseName?.toLowerCase().includes('lab');
+    const isLab = isLaboratoryCourse(c);
     const isConflicting = conflicts.some(conf => conf.course1.id === c.id || conf.course2.id === c.id);
 
     if (activeFilter === 'lecture') return !isLab;
@@ -274,7 +274,7 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
         <div className="wallet-stack-container" style={{ marginTop: 2 }}>
           {filteredCourses.map((course, idx) => {
             const isExpanded = expandedCourseId === course.id;
-            const isLab = course.courseCode?.toLowerCase().includes('lab') || course.courseName?.toLowerCase().includes('lab');
+            const isLab = isLaboratoryCourse(course);
             const isConflicting = conflicts.some(c => c.course1.id === course.id || c.course2.id === course.id);
             const durationMins = timeToMinutes(course.endTime) - timeToMinutes(course.startTime);
             const formattedDuration = formatDuration(Math.max(durationMins, 0));
@@ -404,7 +404,7 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
         <div className="courses-folder-grid">
           {filteredCourses.map((course, idx) => {
             const isConflicting = conflicts.some(c => c.course1.id === course.id || c.course2.id === course.id);
-            const isLab = course.courseCode?.toLowerCase().includes('lab') || course.courseName?.toLowerCase().includes('lab');
+            const isLab = isLaboratoryCourse(course);
             const cleanDays = formatCleanDays(course.days);
             const cleanInstructor = course.instructor 
               ? course.instructor.startsWith('Prof.') ? course.instructor : `Prof. ${course.instructor}`

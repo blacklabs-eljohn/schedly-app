@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Course, DayOfWeek, StudentProfile } from '../types';
+import { Course, DayOfWeek, StudentProfile, isLaboratoryCourse } from '../types';
 import { DAYS_OF_WEEK } from '../services/scheduleEngine';
 import { 
   AlertTriangle, 
@@ -86,7 +86,13 @@ export const CorrectionScreen: React.FC<CorrectionScreenProps> = ({
 
   const handleSave = () => {
     triggerSuccessHaptic();
-    onSaveSchedule(courses, studentProfile);
+    const sanitizedCourses = courses.map(c => ({
+      ...c,
+      units: (typeof c.units === 'number' && !isNaN(c.units)) 
+        ? c.units 
+        : (parseFloat(c.units as any) || 3)
+    }));
+    onSaveSchedule(sanitizedCourses, studentProfile);
   };
 
   return (
@@ -264,6 +270,77 @@ export const CorrectionScreen: React.FC<CorrectionScreenProps> = ({
               </div>
             )}
 
+            {/* Course Classification: Lecture vs Laboratory */}
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <label className="ios-input-label" style={{ margin: 0, fontSize: 11 }}>Classification</label>
+                <span style={{ 
+                  fontSize: 10, 
+                  fontWeight: 800, 
+                  color: (course.courseType === 'laboratory' || (!course.courseType && isLaboratoryCourse(course))) ? '#9333EA' : 'var(--ios-blue)',
+                  textTransform: 'uppercase'
+                }}>
+                  {(course.courseType === 'laboratory' || (!course.courseType && isLaboratoryCourse(course))) ? '🔬 Laboratory' : '📖 Lecture'}
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, background: 'var(--ios-bg-secondary)', padding: 3, borderRadius: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerLightHaptic();
+                    handleUpdateField(course.id, 'courseType', 'lecture');
+                  }}
+                  style={{
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: (course.courseType === 'lecture' || (!course.courseType && !isLaboratoryCourse(course))) 
+                      ? 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)' 
+                      : 'transparent',
+                    color: (course.courseType === 'lecture' || (!course.courseType && !isLaboratoryCourse(course))) 
+                      ? '#FFFFFF' 
+                      : 'var(--ios-text-secondary)',
+                    fontWeight: (course.courseType === 'lecture' || (!course.courseType && !isLaboratoryCourse(course))) ? 800 : 600,
+                    fontSize: 12.5,
+                    cursor: 'pointer',
+                    boxShadow: (course.courseType === 'lecture' || (!course.courseType && !isLaboratoryCourse(course))) 
+                      ? '0 2px 8px rgba(37,99,235,0.35)' 
+                      : 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  📖 Lecture
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerLightHaptic();
+                    handleUpdateField(course.id, 'courseType', 'laboratory');
+                  }}
+                  style={{
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: (course.courseType === 'laboratory' || (!course.courseType && isLaboratoryCourse(course))) 
+                      ? 'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)' 
+                      : 'transparent',
+                    color: (course.courseType === 'laboratory' || (!course.courseType && isLaboratoryCourse(course))) 
+                      ? '#FFFFFF' 
+                      : 'var(--ios-text-secondary)',
+                    fontWeight: (course.courseType === 'laboratory' || (!course.courseType && isLaboratoryCourse(course))) ? 800 : 600,
+                    fontSize: 12.5,
+                    cursor: 'pointer',
+                    boxShadow: (course.courseType === 'laboratory' || (!course.courseType && isLaboratoryCourse(course))) 
+                      ? '0 2px 8px rgba(147,51,234,0.35)' 
+                      : 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  🔬 Laboratory
+                </button>
+              </div>
+            </div>
+
             {/* Course Code & Name */}
             <div className="ios-input-group">
               <label className="ios-input-label">Course Code & Units</label>
@@ -276,10 +353,15 @@ export const CorrectionScreen: React.FC<CorrectionScreenProps> = ({
                 />
                 <input 
                   type="number"
-                  step="0.5"
+                  step="any"
+                  min="0"
+                  max="50"
                   className="ios-input"
-                  value={course.units || 3}
-                  onChange={e => handleUpdateField(course.id, 'units', parseFloat(e.target.value) || 3)}
+                  value={course.units !== undefined && course.units !== null ? course.units : ''}
+                  onChange={e => {
+                    const val = e.target.value;
+                    handleUpdateField(course.id, 'units', val === '' ? '' : parseFloat(val));
+                  }}
                   placeholder="Units"
                 />
               </div>

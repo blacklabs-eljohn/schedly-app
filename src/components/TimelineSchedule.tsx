@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Course, DayOfWeek, FreeTimeGap } from '../types';
+import { Course, DayOfWeek, FreeTimeGap, isLaboratoryCourse } from '../types';
 import { 
   DAYS_OF_WEEK, 
   timeToMinutes, 
@@ -430,7 +430,7 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
                   const isConflicting = conflicts.some(
                     c => c.course1.id === course.id || c.course2.id === course.id
                   );
-                  const isLab = course.courseCode?.toLowerCase().includes('lab') || course.courseName?.toLowerCase().includes('lab');
+                  const isLab = isLaboratoryCourse(course);
                   const cleanInstructor = course.instructor 
                     ? course.instructor.startsWith('Prof.') ? course.instructor : `Prof. ${course.instructor}`
                     : 'No Instructor';
@@ -615,7 +615,7 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
                   const isConflicting = conflicts.some(
                     c => c.course1.id === course.id || c.course2.id === course.id
                   );
-                  const isLab = course.courseCode?.toLowerCase().includes('lab') || course.courseName?.toLowerCase().includes('lab');
+                  const isLab = isLaboratoryCourse(course);
                   const cleanInstructor = course.instructor 
                     ? course.instructor.startsWith('Prof.') ? course.instructor : `Prof. ${course.instructor}`
                     : '';

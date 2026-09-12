@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Course, DayOfWeek } from '../types';
+import { Course, DayOfWeek, isLaboratoryCourse, CourseType } from '../types';
 import { DAYS_OF_WEEK } from '../services/scheduleEngine';
-import { X, Palette, Trash2, Check, ChevronRight } from 'lucide-react';
+import { X, Palette, Trash2, Check, ChevronRight, BookOpen, FlaskConical } from 'lucide-react';
 import { SubjectIconPickerModal } from './SubjectIconPickerModal';
 import { ConfirmationModal } from './ConfirmationModal';
 import { getSubjectIconComponent, detectSubjectIcon, SUBJECT_ICONS } from '../services/iconService';
-import { triggerLightHaptic } from '../services/hapticsService';
+import { triggerLightHaptic, triggerSelectionHaptic } from '../services/hapticsService';
 
 interface EditSubjectModalProps {
   course: Course | null;
@@ -35,6 +35,7 @@ const DEFAULT_NEW_COURSE: Course = {
   instructor: '',
   room: '',
   units: 3,
+  courseType: 'lecture',
   days: ['Mon', 'Thu'],
   startTime: '09:00',
   endTime: '10:30',
@@ -203,6 +204,109 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
           </div>
         </div>
 
+        {/* Course Type: Lecture vs Laboratory Segmented Selector */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <label className="ios-input-label" style={{ display: 'flex', alignItems: 'center', gap: 5, margin: 0 }}>
+              <BookOpen size={13} color="var(--ios-blue)" /> Course Classification
+            </label>
+            <span style={{ 
+              fontSize: 11, 
+              fontWeight: 800, 
+              color: (course.courseType === 'laboratory' || (!course.courseType && isLaboratoryCourse(course))) 
+                ? '#9333EA' 
+                : 'var(--ios-blue)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em'
+            }}>
+              {(course.courseType === 'laboratory' || (!course.courseType && isLaboratoryCourse(course))) 
+                ? '🔬 Laboratory' 
+                : '📖 Lecture'}
+            </span>
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 6,
+            background: 'var(--ios-bg-secondary)',
+            padding: 4,
+            borderRadius: 14,
+            border: '1px solid var(--ios-card-border)'
+          }}>
+            <button
+              type="button"
+              onClick={() => {
+                triggerSelectionHaptic();
+                handleUpdate('courseType', 'lecture');
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: '11px 14px',
+                borderRadius: 10,
+                border: 'none',
+                background: (course.courseType === 'lecture' || (!course.courseType && !isLaboratoryCourse(course))) 
+                  ? 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)' 
+                  : 'transparent',
+                color: (course.courseType === 'lecture' || (!course.courseType && !isLaboratoryCourse(course))) 
+                  ? '#FFFFFF' 
+                  : 'var(--ios-text-secondary)',
+                fontWeight: (course.courseType === 'lecture' || (!course.courseType && !isLaboratoryCourse(course))) ? 800 : 600,
+                fontSize: 13.5,
+                boxShadow: (course.courseType === 'lecture' || (!course.courseType && !isLaboratoryCourse(course))) 
+                  ? '0 4px 14px rgba(37,99,235,0.4), inset 0 1px 0 rgba(255,255,255,0.25)' 
+                  : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            >
+              <span style={{ fontSize: 15 }}>📖</span>
+              <span>Lecture</span>
+              {(course.courseType === 'lecture' || (!course.courseType && !isLaboratoryCourse(course))) && (
+                <Check size={14} strokeWidth={3} style={{ marginLeft: 2 }} />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                triggerSelectionHaptic();
+                handleUpdate('courseType', 'laboratory');
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: '11px 14px',
+                borderRadius: 10,
+                border: 'none',
+                background: (course.courseType === 'laboratory' || (!course.courseType && isLaboratoryCourse(course))) 
+                  ? 'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)' 
+                  : 'transparent',
+                color: (course.courseType === 'laboratory' || (!course.courseType && isLaboratoryCourse(course))) 
+                  ? '#FFFFFF' 
+                  : 'var(--ios-text-secondary)',
+                fontWeight: (course.courseType === 'laboratory' || (!course.courseType && isLaboratoryCourse(course))) ? 800 : 600,
+                fontSize: 13.5,
+                boxShadow: (course.courseType === 'laboratory' || (!course.courseType && isLaboratoryCourse(course))) 
+                  ? '0 4px 14px rgba(147,51,234,0.4), inset 0 1px 0 rgba(255,255,255,0.25)' 
+                  : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+            >
+              <span style={{ fontSize: 15 }}>🔬</span>
+              <span>Laboratory</span>
+              {(course.courseType === 'laboratory' || (!course.courseType && isLaboratoryCourse(course))) && (
+                <Check size={14} strokeWidth={3} style={{ marginLeft: 2 }} />
+              )}
+            </button>
+          </div>
+        </div>
+
         {/* Form Inputs */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div className="ios-input-group">
@@ -219,9 +323,16 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
             <label className="ios-input-label">Units</label>
             <input 
               type="number"
+              min="0"
+              max="50"
+              step="any"
               className="ios-input"
-              value={course.units || 3}
-              onChange={e => handleUpdate('units', Number(e.target.value))}
+              value={course.units !== undefined && course.units !== null ? course.units : ''}
+              onChange={e => {
+                const val = e.target.value;
+                handleUpdate('units', val === '' ? '' : parseFloat(val));
+              }}
+              placeholder="e.g. 3"
             />
           </div>
         </div>
@@ -323,7 +434,13 @@ export const EditSubjectModal: React.FC<EditSubjectModalProps> = ({
                   alert('Please enter a course code (e.g. IT 211).');
                   return;
                 }
-                onSave(course);
+                const sanitizedCourse: Course = {
+                  ...course,
+                  units: (typeof course.units === 'number' && !isNaN(course.units)) 
+                    ? course.units 
+                    : (parseFloat(course.units as any) || 3)
+                };
+                onSave(sanitizedCourse);
                 onClose();
               }
             }}
