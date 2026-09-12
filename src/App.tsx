@@ -30,6 +30,7 @@ import { onAuthStateChange, getCurrentUser, signOutUser, getOfflineCachedUser } 
 import { 
   pullCloudData, 
   flushSyncQueue,
+  pushProfileToCloud,
   uploadAvatarToStorage, 
   isNetworkOnline,
   subscribeSyncState,
@@ -401,27 +402,37 @@ export function App() {
   const handleSaveProfile = async (updatedProfile: StudentProfile) => {
     let finalProfile = { ...updatedProfile };
 
-    // If there's a base64 photo, upload to Supabase storage when online
-    if (
-      currentUser && 
-      isOnline && 
-      finalProfile.profilePhoto && 
-      finalProfile.profilePhoto.startsWith('data:image')
-    ) {
-      const publicUrl = await uploadAvatarToStorage(currentUser.id, finalProfile.profilePhoto);
-      if (publicUrl) {
-        finalProfile.profilePhoto = publicUrl;
-      }
-    }
-
+    // 1. Instant Optimistic State & Local Storage Save (zero-lag UI)
     setProfile(finalProfile);
     saveStudentProfile(finalProfile, currentUser?.id, true);
     setIsEditIDOpen(false);
     showSystemToast('ID Updated', 'Your Digital Student ID has been saved.');
 
-    if (currentUser && isNetworkOnline()) {
-      flushSyncQueue(currentUser.id);
-    }
+    // 2. Background Avatar Upload & Cloud Sync
+    (async () => {
+      try {
+        if (
+          currentUser && 
+          isNetworkOnline() && 
+          finalProfile.profilePhoto && 
+          finalProfile.profilePhoto.startsWith('data:image')
+        ) {
+          const publicUrl = await uploadAvatarToStorage(currentUser.id, finalProfile.profilePhoto);
+          if (publicUrl) {
+            finalProfile.profilePhoto = publicUrl;
+            setProfile(finalProfile);
+            saveStudentProfile(finalProfile, currentUser.id, false);
+          }
+        }
+
+        if (currentUser && isNetworkOnline()) {
+          await pushProfileToCloud(currentUser.id, finalProfile);
+          await flushSyncQueue(currentUser.id);
+        }
+      } catch (err) {
+        console.warn('[ProfileSave] Background sync warning:', err);
+      }
+    })();
   };
 
   // Self-heal corrupted student name from previous OCR bug if present

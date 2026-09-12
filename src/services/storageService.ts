@@ -69,7 +69,7 @@ export const createBlankProfile = (userId?: string, fullName?: string): StudentP
   program: '',
   yearLevel: '1ST YEAR',
   section: '',
-  schoolName: 'NEMSU',
+  schoolName: '',
   academicYear: '2026–2027',
   profilePhoto: DEFAULT_AVATAR,
   schoolLogo: 'nemsu_star',

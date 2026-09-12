@@ -56,7 +56,7 @@ export const DigitalIDCard: React.FC<DigitalIDCardProps> = ({
           <div className="id-card-top-row" style={{ marginBottom: 12 }}>
             <div className="id-card-school" style={{ fontSize: 13.5, fontWeight: 800, letterSpacing: '0.04em' }}>
               <Shield size={15} />
-              <span>{profile.schoolName || 'NEMSU'}</span>
+              <span>{profile.schoolName || 'STUDENT PASS'}</span>
             </div>
           </div>
 

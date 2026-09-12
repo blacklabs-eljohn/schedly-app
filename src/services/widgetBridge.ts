@@ -60,7 +60,7 @@ export async function syncWidgetsData(
 
     // 3. Profile Data
     const profileData = {
-      schoolName: profile.schoolName || 'NEMSU',
+      schoolName: profile.schoolName || 'STUDENT PASS',
       fullName: profile.fullName || 'Student Name',
       program: profile.program || 'College Program',
       studentId: profile.studentNumber || 'ID: ---',

@@ -189,7 +189,7 @@ export async function pullCloudData(userId: string, defaultFullName?: string): P
           program: profileRow.program || userProfile.program || '',
           yearLevel: profileRow.year_level || userProfile.yearLevel || '1ST YEAR',
           section: profileRow.section || userProfile.section || '',
-          schoolName: profileRow.school_name || userProfile.schoolName || 'NEMSU',
+          schoolName: profileRow.school_name || userProfile.schoolName || '',
           academicYear: profileRow.academic_year || userProfile.academicYear || '2026–2027',
           profilePhoto: profileRow.profile_photo_url || userProfile.profilePhoto,
           schoolLogo: profileRow.school_logo_url || userProfile.schoolLogo || 'nemsu_star',

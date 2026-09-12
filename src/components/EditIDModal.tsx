@@ -34,7 +34,7 @@ export const EditIDModal: React.FC<EditIDModalProps> = ({
       const isAuto = initialProfile.useAppTheme !== false || initialProfile.selectedTheme === 'app-dynamic';
       setProfile({
         ...initialProfile,
-        schoolName: initialProfile.schoolName || 'NEMSU',
+        schoolName: initialProfile.schoolName || '',
         academicYear: initialProfile.academicYear || '2026–2027',
         fullName: initialProfile.fullName || '',
         studentNumber: initialProfile.studentNumber || '',
