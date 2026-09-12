@@ -346,6 +346,15 @@ body {
   margin: 0 auto;
 }
 
+.schedly-app-root {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
 main {
   flex: 1;
 }
@@ -2789,12 +2798,15 @@ input:checked + .ios-toggle-slider:before {
 /* MODERN iOS AUTH SCREEN WITH CAMPUS ARTWORK BACKGROUND    */
 /* ======================================================== */
 .auth-screen-container {
-  position: relative;
-  min-height: 100vh;
-  width: 100%;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  min-height: 100dvh;
+  z-index: 1000;
   background-image: url('/background.png');
   background-size: cover;
-  background-position: center top;
+  background-position: center center;
   background-repeat: no-repeat;
   display: flex;
   align-items: center;
@@ -3850,6 +3862,314 @@ input:checked + .ios-toggle-slider:before {
 
 .calendar-add-btn-label {
   display: none;
+}
+
+/* ======================================================== */
+/* MODERN STREAMLINED MOBILE CALENDAR & TIMELINE SYSTEM     */
+/* ======================================================== */
+.cal-consolidated-filters {
+  margin-bottom: 14px;
+  width: 100%;
+}
+
+.cal-filter-scroll-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cal-filter-scroll-row::-webkit-scrollbar {
+  display: none;
+}
+
+.cal-filter-chip {
+  height: 32px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid var(--ios-card-border);
+  background: var(--ios-card-bg);
+  color: var(--ios-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cal-filter-chip:active {
+  transform: scale(0.96);
+}
+
+.cal-filter-chip.active {
+  background: var(--ios-blue-light);
+  color: var(--ios-blue);
+  border-color: var(--ios-blue);
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+}
+
+.cal-course-dropdown-wrapper {
+  flex-shrink: 0;
+}
+
+.cal-filter-select-chip {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--ios-card-border);
+  background: var(--ios-card-bg);
+  color: var(--ios-text-secondary);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.cal-filter-select-chip.active {
+  background: var(--ios-blue-light);
+  color: var(--ios-blue);
+  border-color: var(--ios-blue);
+  font-weight: 800;
+}
+
+/* Month Section Headers */
+.cal-month-group {
+  margin-bottom: 20px;
+}
+
+.cal-month-group-title {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ios-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+.cal-month-group-count {
+  font-size: 10.5px;
+  font-weight: 800;
+  background: var(--ios-bg-secondary);
+  border: 1px solid var(--ios-card-border);
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--ios-text-secondary);
+}
+
+/* Apple-Style Date Badge Cards */
+.cal-timeline-badge-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--ios-card-bg);
+  border: 1px solid var(--ios-card-border);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.cal-timeline-badge-card:active {
+  transform: scale(0.985);
+}
+
+.cal-timeline-badge-card:hover {
+  border-color: rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.cal-date-badge {
+  width: 48px;
+  min-width: 48px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--ios-bg-secondary);
+  border: 1px solid var(--ios-card-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.cal-badge-month {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ios-text-muted);
+  line-height: 1;
+}
+
+.cal-badge-day {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--ios-text-primary);
+  line-height: 1.1;
+  margin: 2px 0 1px 0;
+}
+
+.cal-badge-weekday {
+  font-size: 8.5px;
+  font-weight: 700;
+  color: var(--ios-text-muted);
+  line-height: 1;
+}
+
+/* Holiday Badge Variant */
+.cal-date-badge.holiday-reg {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+.cal-date-badge.holiday-reg .cal-badge-month,
+.cal-date-badge.holiday-reg .cal-badge-weekday,
+.cal-date-badge.holiday-reg .cal-badge-day {
+  color: var(--ios-green);
+}
+
+.cal-date-badge.holiday-spec {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+.cal-date-badge.holiday-spec .cal-badge-month,
+.cal-date-badge.holiday-spec .cal-badge-weekday,
+.cal-date-badge.holiday-spec .cal-badge-day {
+  color: var(--ios-orange);
+}
+
+.cal-card-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cal-card-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ios-text-primary);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ios-text-muted);
+  flex-wrap: wrap;
+}
+
+.cal-card-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.cal-card-tags {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.cal-countdown-tag {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--ios-bg-secondary);
+  border: 1px solid var(--ios-card-border);
+  color: var(--ios-text-secondary);
+}
+
+.cal-countdown-tag.urgent {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--ios-red);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.cal-countdown-tag.today {
+  background: var(--ios-blue-light);
+  color: var(--ios-blue);
+  border-color: var(--ios-blue);
+}
+
+/* Day Agenda Refinements */
+.cal-agenda-card {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: var(--ios-card-bg);
+  border: 1px solid var(--ios-card-border);
+  box-shadow: var(--ios-shadow-sm);
+  margin-top: 14px;
+}
+
+.cal-agenda-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.cal-agenda-day-title {
+  font-size: 15.5px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--ios-text-primary);
+}
+
+.cal-agenda-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ios-text-muted);
+  margin-top: 2px;
+}
+
+.cal-agenda-add-btn {
+  background: var(--ios-blue);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  transition: transform 0.15s ease;
+}
+
+.cal-agenda-add-btn:active {
+  transform: scale(0.94);
 }
 
 .calendar-desktop-split {

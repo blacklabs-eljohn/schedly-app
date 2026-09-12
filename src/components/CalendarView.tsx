@@ -242,7 +242,34 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     return [...holidayItems, ...filteredCustom].sort((a, b) => a.timestamp - b.timestamp);
   };
 
-  const feedItems = getFilteredFeedItems();
+  const feedItems = getFilteredFeedItems();  // Group items by month for structured timeline viewing
+  interface MonthSection {
+    monthKey: string;
+    items: TimelineItem[];
+  }
+
+  const groupFeedItemsByMonth = (items: TimelineItem[]): MonthSection[] => {
+    const map = new Map<string, TimelineItem[]>();
+    items.forEach(item => {
+      let dateObj: Date;
+      if (item.itemType === 'holiday') {
+        dateObj = new Date(item.data.year, item.data.month - 1, item.data.day);
+      } else {
+        const [y, m, d] = item.data.date.split('-').map(Number);
+        dateObj = new Date(y, m - 1, d);
+      }
+      const monthKey = dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      if (!map.has(monthKey)) {
+        map.set(monthKey, []);
+      }
+      map.get(monthKey)!.push(item);
+    });
+
+    return Array.from(map.entries()).map(([monthKey, sectionItems]) => ({
+      monthKey,
+      items: sectionItems
+    }));
+  };
 
   const getCategoryLabel = (cat: EventCategory) => {
     switch (cat) {
@@ -263,6 +290,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       default: return '🎯 Personal Task';
     }
   };
+
+  const monthGroupedSections = groupFeedItemsByMonth(feedItems);
 
   return (
     <div className="ios-section" style={{ paddingBottom: 88, paddingTop: 'calc(12px + env(safe-area-inset-top, 0px))' }}>
@@ -299,7 +328,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               }}
             >
               <Sparkles size={14} color={activeMainTab === 'timeline' ? '#FFFFFF' : 'currentColor'} />
-              <span>Timeline & Holidays</span>
+              <span>Timeline</span>
             </button>
           </div>
 
@@ -503,9 +532,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
                       const dayCustomEvents = events.filter(e => e.date === dateStr);
 
-                      const thisDayName = dayNames[thisDate.getDay()];
-                      const dayClasses = courses.filter(c => c.days && c.days.includes(thisDayName));
-
                       const isToday = thisDate.toDateString() === new Date().toDateString();
                       const isSelected = thisDate.toDateString() === selectedDate.toDateString();
 
@@ -554,7 +580,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             )}
                           </div>
 
-                          {/* MOBILE VIEW MULTI-DOT INDICATOR (Clean classic phone UI) */}
+                          {/* MOBILE VIEW MULTI-DOT INDICATOR */}
                           <div className="cal-cell-dots">
                             {holiday && (
                               <span 
@@ -577,7 +603,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             ))}
                           </div>
 
-                          {/* DESKTOP VIEW FULL TEXT PILLS (Desktop/Tablet wide canvas only) */}
+                          {/* DESKTOP VIEW FULL TEXT PILLS */}
                           <div className="cal-cell-text-pills">
                             {holiday && (
                               <div 
@@ -739,43 +765,30 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
           {/* RIGHT: Selected Day Activity & Events Panel */}
           <div className="calendar-split-col">
-            <div className="ios-card" style={{ padding: '20px 22px', background: 'var(--ios-card-bg)', boxShadow: 'var(--ios-shadow-sm)' }}>
+            <div className="cal-agenda-card">
               {/* Day Header Bar with + Add Event */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div className="cal-agenda-header">
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--ios-text-primary)', letterSpacing: '-0.02em' }}>
-                    {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                  <div className="cal-agenda-day-title">
+                    {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                  <div className="cal-agenda-meta">
                     {isSelectedToday && (
-                      <span className="ios-tag-pill ios-tag-pill-green" style={{ fontSize: 10 }}>● TODAY</span>
+                      <span className="ios-tag-pill ios-tag-pill-green" style={{ fontSize: 9.5 }}>● TODAY</span>
                     )}
-                    <span style={{ fontSize: 11.5, color: 'var(--ios-text-muted)' }}>
-                      {scheduledClassesForDay.length} {scheduledClassesForDay.length === 1 ? 'Class' : 'Classes'} • {selectedDayEvents.length} {selectedDayEvents.length === 1 ? 'Event' : 'Events'}
+                    <span>
+                      {scheduledClassesForDay.length} {scheduledClassesForDay.length === 1 ? 'class' : 'classes'} • {selectedDayEvents.length} {selectedDayEvents.length === 1 ? 'task' : 'tasks'}
                     </span>
                   </div>
                 </div>
 
                 <button
                   type="button"
+                  className="cal-agenda-add-btn"
                   onClick={handleOpenAddForSelectedDay}
-                  style={{
-                    background: 'var(--ios-blue)',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: 10,
-                    padding: '7px 14px',
-                    fontSize: 12.5,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    boxShadow: '0 3px 10px rgba(37, 99, 235, 0.28)'
-                  }}
                 >
-                  <Plus size={14} strokeWidth={2.5} />
-                  <span>Add Event</span>
+                  <Plus size={13} strokeWidth={2.5} />
+                  <span>Add</span>
                 </button>
               </div>
 
@@ -783,27 +796,27 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               {selectedHoliday && (
                 <div 
                   style={{
-                    background: selectedHoliday.type === 'regular' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                    border: `1px solid ${selectedHoliday.type === 'regular' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
+                    background: selectedHoliday.type === 'regular' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+                    border: `1px solid ${selectedHoliday.type === 'regular' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
                     borderRadius: 12,
-                    padding: '12px 14px',
-                    marginBottom: 14,
+                    padding: '10px 12px',
+                    marginBottom: 12,
                     display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 10
+                    alignItems: 'center',
+                    gap: 8
                   }}
                 >
-                  <Flag size={18} color={selectedHoliday.type === 'regular' ? 'var(--ios-green)' : 'var(--ios-orange)'} style={{ marginTop: 2, flexShrink: 0 }} />
+                  <Flag size={15} color={selectedHoliday.type === 'regular' ? 'var(--ios-green)' : 'var(--ios-orange)'} style={{ flexShrink: 0 }} />
                   <div>
                     <div style={{ 
-                      fontSize: 13.5, 
+                      fontSize: 12.5, 
                       fontWeight: 800, 
                       color: selectedHoliday.type === 'regular' ? 'var(--ios-green)' : 'var(--ios-orange)' 
                     }}>
-                      {selectedHoliday.name}
+                      🇵🇭 {selectedHoliday.name}
                     </div>
-                    <div style={{ fontSize: 11.5, color: 'var(--ios-text-secondary)', marginTop: 2 }}>
-                      {selectedHoliday.description || (selectedHoliday.type === 'regular' ? '🇵🇭 Regular National Holiday (No classes)' : '🇵🇭 Special Non-Working Day')}
+                    <div style={{ fontSize: 10.5, color: 'var(--ios-text-secondary)', marginTop: 1 }}>
+                      {selectedHoliday.type === 'regular' ? 'Regular National Holiday · No classes' : 'Special Non-Working Holiday'}
                     </div>
                   </div>
                 </div>
@@ -811,11 +824,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
               {/* 1. Scheduled Classes */}
               {scheduledClassesForDay.length > 0 && (
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ios-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <GraduationCap size={13} /> Scheduled University Classes
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ios-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <GraduationCap size={12} /> Classes
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {scheduledClassesForDay.map(course => (
                       <div
                         key={course.id}
@@ -823,9 +836,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         style={{
                           background: 'var(--ios-bg-secondary)',
                           border: '1px solid var(--ios-card-border)',
-                          borderLeft: `4px solid ${course.color || 'var(--ios-blue)'}`,
-                          borderRadius: 12,
-                          padding: '10px 12px',
+                          borderLeft: `3.5px solid ${course.color || 'var(--ios-blue)'}`,
+                          borderRadius: 10,
+                          padding: '8px 10px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
@@ -834,20 +847,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       >
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ios-text-primary)' }}>
+                            <span style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ios-text-primary)' }}>
                               {course.courseCode}
                             </span>
                             <span style={{ fontSize: 11, color: 'var(--ios-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {course.courseName}
                             </span>
                           </div>
-                          <div style={{ fontSize: 11, color: 'var(--ios-text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ fontSize: 10.5, color: 'var(--ios-text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                              <Clock size={11} /> {course.startTime} - {course.endTime}
+                              <Clock size={10} /> {course.startTime} - {course.endTime}
                             </span>
                             {course.room && (
                               <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                                <MapPin size={11} /> {course.room}
+                                <MapPin size={10} /> {course.room}
                               </span>
                             )}
                           </div>
@@ -860,11 +873,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
               {/* 2. Deadlines & Scheduled Events */}
               <div>
-                <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ios-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <CalendarDays size={13} /> Day Activities & Tasks
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ios-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <CalendarDays size={12} /> Tasks & Activities
                 </div>
                 {selectedDayEvents.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {selectedDayEvents.map(ev => {
                       const evColor = ev.color || 'var(--ios-blue)';
                       return (
@@ -873,13 +886,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           style={{
                             background: 'var(--ios-bg-secondary)',
                             border: '1px solid var(--ios-card-border)',
-                            borderLeft: `4px solid ${evColor}`,
-                            borderRadius: 12,
-                            padding: '12px 14px',
+                            borderLeft: `3.5px solid ${evColor}`,
+                            borderRadius: 10,
+                            padding: '10px 12px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            gap: 12
+                            gap: 10
                           }}
                         >
                           <div 
@@ -887,64 +900,52 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             style={{ flex: 1, cursor: 'pointer', minWidth: 0 }}
                           >
                             <div style={{ 
-                              fontSize: 14, 
+                              fontSize: 13, 
                               fontWeight: 800, 
                               color: 'var(--ios-text-primary)',
-                              textDecoration: ev.isCompleted ? 'line-through' : 'none'
+                              textDecoration: ev.isCompleted ? 'line-through' : 'none',
+                              opacity: ev.isCompleted ? 0.6 : 1
                             }}>
                               {ev.title}
                             </div>
-                            <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                              <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                                <Clock size={11} />
-                                {ev.isAllDay ? 'All Day' : `${ev.startTime ? formatTime12H(ev.startTime) : ''}${ev.endTime ? ` – ${formatTime12H(ev.endTime)}` : ''}`}
-                              </span>
-                              {ev.location && (
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                                  <MapPin size={11} /> {ev.location}
+                            <div style={{ fontSize: 10.5, color: 'var(--ios-text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              {ev.startTime && (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                                  <Clock size={10} />
+                                  {ev.isAllDay ? 'All Day' : `${formatTime12H(ev.startTime)}${ev.endTime ? ` – ${formatTime12H(ev.endTime)}` : ''}`}
                                 </span>
                               )}
-                              {ev.notes && (
-                                <span style={{ color: 'var(--ios-text-secondary)', fontStyle: 'italic' }}>
-                                  • {ev.notes}
+                              {ev.location && (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                                  <MapPin size={10} /> {ev.location}
                                 </span>
                               )}
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                            {ev.subjectCode && (
-                              <span 
-                                style={{ 
-                                  background: 'var(--ios-blue-light)', 
-                                  color: 'var(--ios-blue)',
-                                  padding: '3px 8px',
-                                  borderRadius: 6,
-                                  fontSize: 10.5,
-                                  fontWeight: 800
-                                }}
-                              >
-                                {ev.subjectCode}
-                              </span>
-                            )}
-                            <span className="ios-tag-pill" style={{ background: `${evColor}15`, color: evColor, fontSize: 10.5 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                            <span className="ios-tag-pill" style={{ background: `${evColor}15`, color: evColor, fontSize: 9.5 }}>
                               {getCategoryLabel(ev.category)}
                             </span>
 
                             {onToggleEventComplete && (
                               <button
                                 type="button"
-                                onClick={() => onToggleEventComplete(ev.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  triggerLightHaptic();
+                                  onToggleEventComplete(ev.id);
+                                }}
                                 style={{
                                   background: 'none',
                                   border: 'none',
                                   color: ev.isCompleted ? 'var(--ios-green)' : 'var(--ios-text-muted)',
                                   cursor: 'pointer',
-                                  padding: 4
+                                  padding: 2
                                 }}
                                 title={ev.isCompleted ? 'Mark as Pending' : 'Mark as Completed'}
                               >
-                                {ev.isCompleted ? <CheckCircle size={18} /> : <Circle size={18} />}
+                                {ev.isCompleted ? <CheckCircle2 size={16} /> : <Circle size={16} />}
                               </button>
                             )}
                           </div>
@@ -953,8 +954,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     })}
                   </div>
                 ) : (
-                  <div style={{ fontSize: 12.5, color: 'var(--ios-text-muted)', padding: '8px 0' }}>
-                    No events scheduled on this day. Tap <strong>"+ Add Event"</strong> to create one.
+                  <div 
+                    onClick={handleOpenAddForSelectedDay}
+                    style={{ 
+                      fontSize: 12, 
+                      color: 'var(--ios-text-muted)', 
+                      padding: '12px',
+                      borderRadius: 10,
+                      border: '1px dashed var(--ios-card-border)',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      background: 'var(--ios-bg-primary)'
+                    }}
+                  >
+                    No events scheduled. <span style={{ color: 'var(--ios-blue)', fontWeight: 700 }}>+ Tap to add</span>
                   </div>
                 )}
               </div>
@@ -963,264 +976,258 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       )}
 
-      {/* ================= VIEW 2: TIMELINE & HOLIDAYS (LIST WITH FILTERS) ================= */}
+      {/* ================= VIEW 2: TIMELINE & HOLIDAYS (MONTH-GROUPED WITH DATE BADGES) ================= */}
       {activeMainTab === 'timeline' && (
         <div>
-          {/* Sub Filter Chips */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, overflowX: 'auto', paddingBottom: 2 }}>
-            <button
-              type="button"
-              onClick={() => {
-                triggerSelectionHaptic();
-                setFeedFilter('all');
-              }}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '999px',
-                border: feedFilter === 'all' ? '1px solid var(--ios-blue)' : '1px solid var(--ios-card-border)',
-                background: feedFilter === 'all' ? 'var(--ios-blue-light)' : 'var(--ios-card-bg)',
-                color: feedFilter === 'all' ? 'var(--ios-blue)' : 'var(--ios-text-secondary)',
-                fontSize: 12,
-                fontWeight: feedFilter === 'all' ? 800 : 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              All Schedule ({feedItems.length})
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                triggerSelectionHaptic();
-                setFeedFilter('academic');
-              }}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '999px',
-                border: feedFilter === 'academic' ? '1px solid var(--ios-blue)' : '1px solid var(--ios-card-border)',
-                background: feedFilter === 'academic' ? 'var(--ios-blue-light)' : 'var(--ios-card-bg)',
-                color: feedFilter === 'academic' ? 'var(--ios-blue)' : 'var(--ios-text-secondary)',
-                fontSize: 12,
-                fontWeight: feedFilter === 'academic' ? 800 : 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              📝 Academic Deadlines
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                triggerSelectionHaptic();
-                setFeedFilter('campus');
-              }}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '999px',
-                border: feedFilter === 'campus' ? '1px solid var(--ios-blue)' : '1px solid var(--ios-card-border)',
-                background: feedFilter === 'campus' ? 'var(--ios-blue-light)' : 'var(--ios-card-bg)',
-                color: feedFilter === 'campus' ? 'var(--ios-blue)' : 'var(--ios-text-secondary)',
-                fontSize: 12,
-                fontWeight: feedFilter === 'campus' ? 800 : 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              🏫 Campus & Dept Events
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                triggerSelectionHaptic();
-                setFeedFilter('holidays');
-              }}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '999px',
-                border: feedFilter === 'holidays' ? '1px solid var(--ios-green)' : '1px solid var(--ios-card-border)',
-                background: feedFilter === 'holidays' ? 'rgba(16, 185, 129, 0.12)' : 'var(--ios-card-bg)',
-                color: feedFilter === 'holidays' ? 'var(--ios-green)' : 'var(--ios-text-secondary)',
-                fontSize: 12,
-                fontWeight: feedFilter === 'holidays' ? 800 : 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              🇵🇭 Holidays ({upcomingHolidays.length})
-            </button>
-          </div>
-
-          {/* Course Subject Filter Pills */}
-          {courses.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, overflowX: 'auto', paddingBottom: 2 }}>
+          {/* Single Consolidated Filter Row */}
+          <div className="cal-consolidated-filters">
+            <div className="cal-filter-scroll-row">
               <button
                 type="button"
+                className={`cal-filter-chip ${feedFilter === 'all' && selectedSubjectFilter === 'all' ? 'active' : ''}`}
                 onClick={() => {
                   triggerSelectionHaptic();
+                  setFeedFilter('all');
                   setSelectedSubjectFilter('all');
                 }}
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: 8,
-                  border: selectedSubjectFilter === 'all' ? '1px solid var(--ios-blue)' : '1px solid var(--ios-card-border)',
-                  background: selectedSubjectFilter === 'all' ? 'var(--ios-blue-light)' : 'var(--ios-card-bg)',
-                  color: selectedSubjectFilter === 'all' ? 'var(--ios-blue)' : 'var(--ios-text-secondary)',
-                  fontSize: 11,
-                  fontWeight: selectedSubjectFilter === 'all' ? 800 : 600,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap'
-                }}
               >
-                All Courses
+                <span>All ({feedItems.length})</span>
               </button>
 
-              {courses.map(course => {
-                const isSelected = selectedSubjectFilter === course.id;
-                return (
-                  <button
-                    key={course.id}
-                    type="button"
-                    onClick={() => {
+              <button
+                type="button"
+                className={`cal-filter-chip ${feedFilter === 'academic' ? 'active' : ''}`}
+                onClick={() => {
+                  triggerSelectionHaptic();
+                  setFeedFilter('academic');
+                }}
+              >
+                <span>📝 Deadlines</span>
+              </button>
+
+              <button
+                type="button"
+                className={`cal-filter-chip ${feedFilter === 'campus' ? 'active' : ''}`}
+                onClick={() => {
+                  triggerSelectionHaptic();
+                  setFeedFilter('campus');
+                }}
+              >
+                <span>🏫 Campus Life</span>
+              </button>
+
+              <button
+                type="button"
+                className={`cal-filter-chip ${feedFilter === 'holidays' ? 'active' : ''}`}
+                onClick={() => {
+                  triggerSelectionHaptic();
+                  setFeedFilter('holidays');
+                }}
+              >
+                <span>🇵🇭 Holidays</span>
+              </button>
+
+              {/* Course Selector Dropdown Pill */}
+              {courses.length > 0 && (
+                <div className="cal-course-dropdown-wrapper">
+                  <select
+                    value={selectedSubjectFilter}
+                    onChange={(e) => {
                       triggerSelectionHaptic();
-                      setSelectedSubjectFilter(isSelected ? 'all' : course.id);
+                      setSelectedSubjectFilter(e.target.value);
+                      if (e.target.value !== 'all') {
+                        setFeedFilter('all');
+                      }
                     }}
-                    style={{
-                      padding: '5px 10px',
-                      borderRadius: 8,
-                      border: isSelected ? `1.5px solid ${course.color || 'var(--ios-blue)'}` : '1px solid var(--ios-card-border)',
-                      background: isSelected ? `${course.color || 'var(--ios-blue)'}18` : 'var(--ios-card-bg)',
-                      color: isSelected ? (course.color || 'var(--ios-blue)') : 'var(--ios-text-secondary)',
-                      fontSize: 11,
-                      fontWeight: isSelected ? 800 : 600,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 5
-                    }}
+                    className={`cal-filter-select-chip ${selectedSubjectFilter !== 'all' ? 'active' : ''}`}
                   >
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: course.color || 'var(--ios-blue)' }} />
-                    <span>{course.courseCode}</span>
-                  </button>
-                );
-              })}
+                    <option value="all">📚 All Courses</option>
+                    {courses.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.courseCode} · {c.courseName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
-          {/* Timeline Event Feed Cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {feedItems.length === 0 ? (
-              <div className="ios-card" style={{ textAlign: 'center', padding: '36px 16px', background: 'var(--ios-card-bg)' }}>
-                <CalendarIcon size={32} color="var(--ios-text-muted)" style={{ margin: '0 auto 8px auto', opacity: 0.6 }} />
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ios-text-primary)' }}>No matching events</div>
-                <div style={{ fontSize: 12, color: 'var(--ios-text-muted)', marginTop: 2 }}>Try changing your filter above.</div>
-              </div>
-            ) : (
-              feedItems.map((item, idx) => {
-                if (item.itemType === 'holiday') {
-                  const h = item.data;
-                  const isReg = h.type === 'regular';
-                  return (
-                    <div
-                      key={`hol_${idx}`}
-                      className="ios-card"
-                      style={{
-                        padding: '14px 18px',
-                        background: 'var(--ios-card-bg)',
-                        borderLeft: `4px solid ${isReg ? 'var(--ios-green)' : 'var(--ios-orange)'}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 12
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: isReg ? 'var(--ios-green)' : 'var(--ios-orange)' }}>
-                          {h.name}
-                        </div>
-                        <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 2 }}>
-                          {new Date(h.year, h.month - 1, h.day).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-                        </div>
-                      </div>
-                      <span 
-                        style={{
-                          fontSize: 10.5,
-                          fontWeight: 800,
-                          padding: '3px 9px',
-                          borderRadius: 6,
-                          background: isReg ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                          color: isReg ? 'var(--ios-green)' : 'var(--ios-orange)'
-                        }}
-                      >
-                        {isReg ? '🇵🇭 Regular Holiday' : '🇵🇭 Special Non-Working'}
-                      </span>
-                    </div>
-                  );
-                }
+          {/* Month Grouped Timeline Event Feed */}
+          {feedItems.length === 0 ? (
+            <div className="ios-card" style={{ textAlign: 'center', padding: '36px 16px', background: 'var(--ios-card-bg)' }}>
+              <CalendarIcon size={32} color="var(--ios-text-muted)" style={{ margin: '0 auto 8px auto', opacity: 0.6 }} />
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ios-text-primary)' }}>No matching events</div>
+              <div style={{ fontSize: 12, color: 'var(--ios-text-muted)', marginTop: 2 }}>Try selecting another category filter above.</div>
+            </div>
+          ) : (
+            <div>
+              {monthGroupedSections.map((section) => (
+                <div key={section.monthKey} className="cal-month-group">
+                  {/* Month Group Section Header */}
+                  <div className="cal-month-group-title">
+                    <span>{section.monthKey}</span>
+                    <span className="cal-month-group-count">
+                      {section.items.length} {section.items.length === 1 ? 'event' : 'events'}
+                    </span>
+                  </div>
 
-                const ev = item.data;
-                const evColor = ev.color || 'var(--ios-blue)';
-                return (
-                  <div
-                    key={`ev_${ev.id}`}
-                    className="ios-card"
-                    style={{
-                      padding: '14px 18px',
-                      background: 'var(--ios-card-bg)',
-                      borderLeft: `4px solid ${evColor}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 12,
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => handleEditEvent(ev)}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ 
-                        fontSize: 14.5, 
-                        fontWeight: 800, 
-                        color: 'var(--ios-text-primary)',
-                        textDecoration: ev.isCompleted ? 'line-through' : 'none'
-                      }}>
-                        {ev.title}
-                      </div>
-                      <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span>{ev.formattedDate}</span>
-                        {ev.startTime && (
-                          <span>• {formatTime12H(ev.startTime)}{ev.endTime ? ` – ${formatTime12H(ev.endTime)}` : ''}</span>
-                        )}
-                        {ev.location && <span>• {ev.location}</span>}
-                      </div>
-                    </div>
+                  {/* Section Items */}
+                  {section.items.map((item, idx) => {
+                    if (item.itemType === 'holiday') {
+                      const h = item.data;
+                      const isReg = h.type === 'regular';
+                      const holDate = new Date(h.year, h.month - 1, h.day);
+                      const holMonthShort = holDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+                      const holWeekday = holDate.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+                      const holDayNum = h.day;
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                      {ev.subjectCode && (
-                        <span 
-                          style={{ 
-                            background: 'var(--ios-blue-light)', 
-                            color: 'var(--ios-blue)',
-                            padding: '3px 8px',
-                            borderRadius: 6,
-                            fontSize: 10.5,
-                            fontWeight: 800
+                      return (
+                        <div
+                          key={`hol_${idx}`}
+                          className="cal-timeline-badge-card"
+                          style={{
+                            background: isReg ? 'rgba(16, 185, 129, 0.03)' : 'rgba(245, 158, 11, 0.03)',
+                            borderColor: isReg ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'
                           }}
                         >
-                          {ev.subjectCode}
-                        </span>
-                      )}
-                      <span className="ios-tag-pill" style={{ background: `${evColor}15`, color: evColor, fontSize: 10.5 }}>
-                        {getCategoryLabel(ev.category)}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+                          {/* Left Date Badge */}
+                          <div className={`cal-date-badge ${isReg ? 'holiday-reg' : 'holiday-spec'}`}>
+                            <span className="cal-badge-month">{holMonthShort}</span>
+                            <span className="cal-badge-day">{holDayNum}</span>
+                            <span className="cal-badge-weekday">{holWeekday}</span>
+                          </div>
+
+                          {/* Main Info */}
+                          <div className="cal-card-main">
+                            <div className="cal-card-title" style={{ color: isReg ? 'var(--ios-green)' : 'var(--ios-orange)' }}>
+                              🇵🇭 {h.name}
+                            </div>
+                            <div className="cal-card-meta">
+                              <span>{h.description || (isReg ? 'National Holiday · No Classes' : 'Special Non-Working Holiday')}</span>
+                            </div>
+                            <div className="cal-card-tags">
+                              <span
+                                style={{
+                                  fontSize: 9.5,
+                                  fontWeight: 800,
+                                  padding: '2px 8px',
+                                  borderRadius: 6,
+                                  background: isReg ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                                  color: isReg ? 'var(--ios-green)' : 'var(--ios-orange)'
+                                }}
+                              >
+                                {isReg ? 'Regular Holiday' : 'Special Non-Working'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    const ev = item.data;
+                    const evColor = ev.color || 'var(--ios-blue)';
+                    const [y, m, d] = ev.date.split('-').map(Number);
+                    const evDate = new Date(y, m - 1, d);
+                    const monthShort = evDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+                    const weekday = evDate.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+                    const dayNum = d;
+
+                    return (
+                      <div
+                        key={`ev_${ev.id}`}
+                        className="cal-timeline-badge-card"
+                        onClick={() => handleEditEvent(ev)}
+                      >
+                        {/* Left Date Badge */}
+                        <div className="cal-date-badge" style={{ borderLeft: `3px solid ${evColor}` }}>
+                          <span className="cal-badge-month">{monthShort}</span>
+                          <span className="cal-badge-day" style={{ color: evColor }}>{dayNum}</span>
+                          <span className="cal-badge-weekday">{weekday}</span>
+                        </div>
+
+                        {/* Main Content */}
+                        <div className="cal-card-main">
+                          <div 
+                            className="cal-card-title" 
+                            style={{ 
+                              textDecoration: ev.isCompleted ? 'line-through' : 'none', 
+                              opacity: ev.isCompleted ? 0.6 : 1 
+                            }}
+                          >
+                            {ev.title}
+                          </div>
+
+                          <div className="cal-card-meta">
+                            {ev.startTime && (
+                              <span className="cal-card-meta-item">
+                                <Clock size={11} />
+                                <span>{formatTime12H(ev.startTime)}{ev.endTime ? ` – ${formatTime12H(ev.endTime)}` : ''}</span>
+                              </span>
+                            )}
+                            {ev.location && (
+                              <span className="cal-card-meta-item">
+                                <MapPin size={11} />
+                                <span>{ev.location}</span>
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="cal-card-tags">
+                            {ev.subjectCode && (
+                              <span 
+                                style={{ 
+                                  background: 'var(--ios-blue-light)', 
+                                  color: 'var(--ios-blue)', 
+                                  padding: '2px 7px', 
+                                  borderRadius: 6, 
+                                  fontSize: 10, 
+                                  fontWeight: 800 
+                                }}
+                              >
+                                {ev.subjectCode}
+                              </span>
+                            )}
+                            <span className="ios-tag-pill" style={{ background: `${evColor}15`, color: evColor, fontSize: 10 }}>
+                              {getCategoryLabel(ev.category)}
+                            </span>
+                            {ev.countdownText && (
+                              <span className={`cal-countdown-tag ${ev.diffDays === 0 ? 'today' : ev.diffDays <= 2 ? 'urgent' : ''}`}>
+                                {ev.countdownText}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Checkbox */}
+                        {onToggleEventComplete && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              triggerLightHaptic();
+                              onToggleEventComplete(ev.id);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: ev.isCompleted ? 'var(--ios-green)' : 'var(--ios-text-muted)',
+                              cursor: 'pointer',
+                              padding: 4,
+                              flexShrink: 0
+                            }}
+                            title={ev.isCompleted ? 'Mark as Pending' : 'Mark as Completed'}
+                          >
+                            {ev.isCompleted ? <CheckCircle2 size={20} /> : <Circle size={20} />}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

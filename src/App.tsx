@@ -24,7 +24,7 @@ import {
   setAcceptedPrivacyPolicy
 } from './services/storageService';
 import { detectScheduleConflicts, autoResolveScheduleConflicts, getDayScheduleInfo, formatTime12H, timeToMinutes, getSubjectCardGradient, DAYS_OF_WEEK } from './services/scheduleEngine';
-import { parseCORText, getDefaultOfficialCourses } from './services/corParser';
+import { getDefaultOfficialCourses } from './services/corParser';
 import { scheduleClassReminders, showSystemToast, triggerTestClassNotification, scheduleCustomEventNotification, cancelCustomEventNotification, syncAllCustomEventsNotifications } from './services/notificationService';
 import { onAuthStateChange, getCurrentUser, signOutUser, getOfflineCachedUser } from './services/authService';
 import { 
@@ -72,7 +72,7 @@ import { syncWidgetsData } from './services/widgetBridge';
 import { getSubjectIconComponent } from './services/iconService';
 import { getUpcomingHolidays } from './services/phHolidaysService';
 
-import { Camera, ArrowRight, MapPin, User as UserIcon, Sparkles, Clock, CalendarDays, ChevronUp, CloudOff, Calendar as CalendarIcon, CheckCircle2, GraduationCap, BookOpen, Search, Palmtree } from 'lucide-react';
+import { Camera, ArrowRight, MapPin, User as UserIcon, Sparkles, Clock, CalendarDays, ChevronUp, CloudOff, Calendar as CalendarIcon, CheckCircle2, GraduationCap } from 'lucide-react';
 import './styles/apple-design-system.css';
 
 export function App() {
@@ -790,7 +790,7 @@ export function App() {
   ).length;
 
   return (
-    <div id="root">
+    <div className="schedly-app-root">
       {/* 3-Step Animated Splash Screen */}
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
 

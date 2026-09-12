@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   signInWithEmail, 
   signUpWithEmail, 
@@ -14,15 +14,19 @@ import {
   CheckCircle2, 
   Eye, 
   EyeOff, 
-  LogIn,
-  UserPlus,
-  Shield,
-  GraduationCap,
-  Sparkles,
-  ArrowRight,
-  ArrowLeft,
-  Building2,
-  Hash
+  LogIn, 
+  UserPlus, 
+  Shield, 
+  GraduationCap, 
+  Sparkles, 
+  ArrowRight, 
+  ArrowLeft, 
+  Building2, 
+  Hash,
+  Camera,
+  Trash2,
+  Check,
+  Zap
 } from 'lucide-react';
 import { triggerSelectionHaptic, triggerSuccessHaptic, triggerLightHaptic } from '../services/hapticsService';
 import { showSystemToast } from '../services/notificationService';
@@ -52,6 +56,29 @@ const ID_THEMES: { id: IDTheme; name: string; gradient: string; class: string }[
   { id: 'minimal-white', name: 'Clean White', gradient: 'linear-gradient(145deg, #F8FAFC 0%, #E2E8F0 100%)', class: 'theme-clean-white' }
 ];
 
+function formatAuthError(error: any): string {
+  if (!error) return 'An unexpected error occurred. Please try again.';
+  const msg = typeof error === 'string' ? error : (error.message || '');
+  const lower = msg.toLowerCase();
+
+  if (lower.includes('already registered') || lower.includes('user already exists')) {
+    return 'An account with this email address already exists. Please sign in instead.';
+  }
+  if (lower.includes('rate limit') || lower.includes('over_email_send_rate_limit')) {
+    return 'Too many attempts. Please wait a moment before trying again.';
+  }
+  if (lower.includes('invalid login credentials') || lower.includes('invalid credentials')) {
+    return 'Incorrect email or password. Please verify your details.';
+  }
+  if (lower.includes('password should be at least')) {
+    return 'Password must be at least 6 characters long.';
+  }
+  if (lower.includes('network') || lower.includes('failed to fetch')) {
+    return 'Unable to connect to the server. Please check your internet connection.';
+  }
+  return msg || 'Authentication failed. Please check your credentials.';
+}
+
 interface AuthScreenProps {
   onAuthSuccess: (user: any, initialProfile?: StudentProfile) => void;
 }
@@ -65,15 +92,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Step 2: Academic Profile & Digital Pass Setup
-  const [schoolName, setSchoolName] = useState('NEMSU');
-  const [program, setProgram] = useState('BS Computer Science');
+  const [schoolName, setSchoolName] = useState('');
+  const [program, setProgram] = useState('');
   const [yearLevel, setYearLevel] = useState('1ST YEAR');
-  const [section, setSection] = useState('CS-1C');
-  const [studentIdNumber, setStudentIdNumber] = useState('2026-10492');
+  const [section, setSection] = useState('');
+  const [studentIdNumber, setStudentIdNumber] = useState('');
+  const [profilePhoto, setProfilePhoto] = useState<string>('');
   const [selectedTheme, setSelectedTheme] = useState<IDTheme>('digital-blue');
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -84,6 +114,45 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
     setAuthMode(mode);
     setErrorMessage(null);
     setSuccessMessage(null);
+  };
+
+  // Password strength calculation
+  const getPasswordStrength = (pwd: string) => {
+    if (!pwd) return { score: 0, label: '', color: 'transparent', width: '0%' };
+    let score = 0;
+    if (pwd.length >= 6) score += 1;
+    if (pwd.length >= 8 && /[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score += 1;
+    if (/[0-9]/.test(pwd) && /[^A-Za-z0-9]/.test(pwd)) score += 1;
+    
+    if (score === 1 || pwd.length < 6) {
+      return { score: 1, label: 'Weak', color: '#EF4444', width: '33%' };
+    }
+    if (score === 2) {
+      return { score: 2, label: 'Fair', color: '#F59E0B', width: '66%' };
+    }
+    return { score: 3, label: 'Strong', color: '#10B981', width: '100%' };
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      triggerSelectionHaptic();
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        if (evt.target?.result) {
+          setProfilePhoto(evt.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    triggerLightHaptic();
+    setProfilePhoto('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -100,7 +169,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
     setIsLoading(false);
 
     if (res.error) {
-      setErrorMessage(res.error.message);
+      setErrorMessage(formatAuthError(res.error));
       return;
     }
 
@@ -126,7 +195,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
       return;
     }
     if (password !== confirmPassword) {
-      setErrorMessage('Passwords do not match.');
+      setErrorMessage('Passwords do not match. Please verify your confirm password field.');
       return;
     }
 
@@ -135,8 +204,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
     setAuthMode('signup_step2');
   };
 
-  const handleCompleteSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeSignUp = async (skipCustomization: boolean = false) => {
+    if (!schoolName.trim()) {
+      setErrorMessage('Please enter your university or college campus.');
+      return;
+    }
+
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -144,24 +217,25 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
     setIsLoading(false);
 
     if (res.error) {
-      setErrorMessage(res.error.message);
+      setErrorMessage(formatAuthError(res.error));
       return;
     }
 
     if (res.user) {
       triggerSuccessHaptic();
-      showSystemToast('Account Created!', 'Your Digital Pass is ready.');
+      showSystemToast('Account Created!', 'Your student pass is ready.');
 
-      // Construct customized student profile
+      // Construct customized student profile (or sensible defaults if skipped)
       const customProfile: StudentProfile = {
         id: res.user.id,
         fullName: fullName.trim() || 'Student Name',
-        studentNumber: studentIdNumber.trim() || '2026-10492',
-        program: program.trim() || 'BS Computer Science',
+        studentNumber: (!skipCustomization && studentIdNumber.trim()) ? studentIdNumber.trim() : 'Unassigned',
+        program: (!skipCustomization && program.trim()) ? program.trim() : 'General Program',
         yearLevel: yearLevel || '1ST YEAR',
-        section: section.trim() || 'CS-1C',
-        schoolName: schoolName.trim() || 'NEMSU',
+        section: (!skipCustomization && section.trim()) ? section.trim() : '1A',
+        schoolName: schoolName.trim(),
         academicYear: '2026–2027',
+        profilePhoto: (!skipCustomization && profilePhoto) ? profilePhoto : undefined,
         selectedTheme: selectedTheme || 'digital-blue',
         accentColor: '#2563EB',
         bloodType: 'O+'
@@ -178,6 +252,16 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
     }
   };
 
+  const handleCompleteSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await executeSignUp(false);
+  };
+
+  const handleSkipAndSignUp = async () => {
+    triggerLightHaptic();
+    await executeSignUp(true);
+  };
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
@@ -192,7 +276,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
     setIsLoading(false);
 
     if (res.error) {
-      setErrorMessage(res.error.message);
+      setErrorMessage(formatAuthError(res.error));
     } else {
       triggerSuccessHaptic();
       setSuccessMessage('Password reset link sent! Please check your inbox.');
@@ -372,7 +456,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
               </div>
 
               <div className="ios-input-group" style={{ margin: 0 }}>
-                <label className="ios-input-label">Password (min 6 chars)</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <label className="ios-input-label" style={{ margin: 0 }}>Password (min 6 chars)</label>
+                  {password && (
+                    <span style={{ 
+                      fontSize: 10.5, 
+                      fontWeight: 700, 
+                      color: getPasswordStrength(password).color 
+                    }}>
+                      {getPasswordStrength(password).label}
+                    </span>
+                  )}
+                </div>
                 <div className="auth-input-row">
                   <Lock size={16} className="auth-input-icon-left" />
                   <input 
@@ -393,6 +488,24 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+
+                {/* Live Password Strength Meter Bar */}
+                {password.length > 0 && (
+                  <div style={{ 
+                    marginTop: 5, 
+                    height: 3, 
+                    background: 'var(--ios-card-border)', 
+                    borderRadius: 2, 
+                    overflow: 'hidden' 
+                  }}>
+                    <div style={{ 
+                      height: '100%', 
+                      width: getPasswordStrength(password).width, 
+                      background: getPasswordStrength(password).color, 
+                      transition: 'all 0.3s ease' 
+                    }} />
+                  </div>
+                )}
               </div>
 
               <div className="ios-input-group" style={{ margin: 0 }}>
@@ -400,7 +513,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
                 <div className="auth-input-row">
                   <Lock size={16} className="auth-input-icon-left" />
                   <input 
-                    type={showPassword ? 'text' : 'password'}
+                    type={showConfirmPassword ? 'text' : 'password'}
                     required
                     className="auth-input-field"
                     placeholder="••••••••"
@@ -408,7 +521,37 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
                     onChange={e => setConfirmPassword(e.target.value)}
                     autoComplete="new-password"
                   />
+                  <button 
+                    type="button"
+                    className="auth-input-icon-right"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
+
+                {/* Real-time Match Indicator */}
+                {confirmPassword.length > 0 && (
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 5, 
+                    marginTop: 4, 
+                    fontSize: 11, 
+                    fontWeight: 600,
+                    color: password === confirmPassword ? '#10B981' : 'var(--ios-red)'
+                  }}>
+                    {password === confirmPassword ? (
+                      <>
+                        <Check size={12} strokeWidth={3} />
+                        <span>Passwords match</span>
+                      </>
+                    ) : (
+                      <span>Passwords do not match yet</span>
+                    )}
+                  </div>
+                )}
               </div>
 
               <button 
@@ -443,7 +586,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 800, letterSpacing: '0.04em' }}>
                     <Shield size={13} color="#F59E0B" />
-                    <span>{(schoolName.trim() || 'NEMSU').toUpperCase()} · STUDENT PASS</span>
+                    <span>{(schoolName.trim() || 'CAMPUS').toUpperCase()} · STUDENT PASS</span>
                   </div>
                   <span style={{ fontSize: 9.5, fontWeight: 700, opacity: 0.8 }}>A.Y. 2026–2027</span>
                 </div>
@@ -451,17 +594,27 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
                 {/* Body Details */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 10,
+                    width: 42,
+                    height: 42,
+                    borderRadius: 12,
                     background: 'rgba(255, 255, 255, 0.2)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 20,
-                    flexShrink: 0
+                    fontSize: 22,
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                    border: '1px solid rgba(255, 255, 255, 0.3)'
                   }}>
-                    🎓
+                    {profilePhoto ? (
+                      <img 
+                        src={profilePhoto} 
+                        alt="Student" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      />
+                    ) : (
+                      '🎓'
+                    )}
                   </div>
 
                   <div style={{ minWidth: 0, flex: 1 }}>
@@ -469,12 +622,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
                       {fullName.trim() || 'Student Name'}
                     </div>
                     <div style={{ fontSize: 11, opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 600 }}>
-                      {program.trim() || 'Degree Program'}
+                      {program.trim() || 'Degree Course / Program'}
                     </div>
                     <div style={{ display: 'flex', gap: 8, marginTop: 2, fontSize: 9.5, fontWeight: 700, opacity: 0.75 }}>
                       <span>{yearLevel}</span>
                       <span>•</span>
-                      <span>SEC: {section.trim() || 'CS-1C'}</span>
+                      <span>SEC: {section.trim() || 'Pending'}</span>
                     </div>
                   </div>
                 </div>
@@ -482,7 +635,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
                 {/* Footer Barcode */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(255, 255, 255, 0.15)' }}>
                   <span style={{ fontSize: 10, fontFamily: 'var(--ios-font-mono)', fontWeight: 700, letterSpacing: '0.05em' }}>
-                    ID: {studentIdNumber.trim() || '2026-10492'}
+                    ID: {studentIdNumber.trim() || '2026-XXXXX'}
                   </span>
                   <div style={{ fontSize: 8.5, letterSpacing: '0.12em', opacity: 0.6, fontWeight: 800 }}>
                     || | ||| | || |||| | ||
@@ -490,16 +643,66 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
                 </div>
               </div>
 
+              {/* Photo Upload & Quick Controls */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <input 
+                  ref={fileInputRef}
+                  type="file" 
+                  accept="image/*" 
+                  style={{ display: 'none' }} 
+                  onChange={handlePhotoUpload} 
+                />
+                <button
+                  type="button"
+                  className="ios-btn-secondary"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ 
+                    fontSize: 12, 
+                    padding: '6px 12px', 
+                    height: 32, 
+                    width: 'auto', 
+                    margin: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                >
+                  <Camera size={13} />
+                  <span>{profilePhoto ? 'Change Photo' : 'Upload ID Photo (Optional)'}</span>
+                </button>
+
+                {profilePhoto && (
+                  <button
+                    type="button"
+                    className="ios-btn-secondary"
+                    onClick={handleRemovePhoto}
+                    style={{ 
+                      fontSize: 12, 
+                      padding: '6px 10px', 
+                      height: 32, 
+                      color: 'var(--ios-red)', 
+                      width: 'auto', 
+                      margin: 0 
+                    }}
+                    title="Remove Photo"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
+
               {/* Input Fields */}
               <div className="ios-input-group" style={{ margin: 0 }}>
-                <label className="ios-input-label">University / College Campus</label>
+                <label className="ios-input-label">
+                  University / College Campus <span style={{ color: 'var(--ios-red, #EF4444)', fontWeight: 800 }}>*</span>
+                </label>
                 <div className="auth-input-row">
                   <Building2 size={16} className="auth-input-icon-left" />
                   <input 
                     type="text"
                     required
                     className="auth-input-field"
-                    placeholder="e.g. NEMSU"
+                    placeholder="e.g. NEMSU, UST, DLSU"
                     value={schoolName}
                     onChange={e => setSchoolName(e.target.value)}
                   />
@@ -512,7 +715,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
                   <GraduationCap size={16} className="auth-input-icon-left" />
                   <input 
                     type="text"
-                    required
                     className="auth-input-field"
                     placeholder="e.g. BS Computer Science"
                     value={program}
@@ -567,10 +769,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
                   <label className="ios-input-label">Section Code</label>
                   <input 
                     type="text"
-                    required
                     className="auth-input-field"
                     style={{ padding: '0 14px' }}
-                    placeholder="e.g. CS-1C"
+                    placeholder="e.g. 1A or CS-1C"
                     value={section}
                     onChange={e => setSection(e.target.value)}
                   />
@@ -579,7 +780,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
 
               {/* Student ID Number */}
               <div className="ios-input-group" style={{ margin: 0 }}>
-                <label className="ios-input-label">Student ID Number</label>
+                <label className="ios-input-label">Student ID Number (Optional)</label>
                 <div className="auth-input-row">
                   <Hash size={16} className="auth-input-icon-left" />
                   <input 
@@ -640,13 +841,33 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
                 )}
               </button>
 
+              {/* Fast Path: Skip customization and launch immediately */}
+              <button 
+                type="button"
+                className="ios-btn-secondary"
+                disabled={isLoading}
+                onClick={handleSkipAndSignUp}
+                style={{ 
+                  margin: 0, 
+                  padding: '9px 14px', 
+                  fontSize: 12.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6
+                }}
+              >
+                <Zap size={14} color="#F59E0B" />
+                <span>Skip for now & setup pass later</span>
+              </button>
+
               <button 
                 type="button"
                 className="ios-btn-secondary"
                 onClick={() => setAuthMode('signup_step1')}
-                style={{ margin: 0, padding: '10px 14px', fontSize: 13 }}
+                style={{ margin: 0, padding: '9px 14px', fontSize: 12.5 }}
               >
-                <ArrowLeft size={15} /> Back to Account Details
+                <ArrowLeft size={14} /> Back to Account Details
               </button>
 
               <div style={{ textAlign: 'center', marginTop: 4 }}>
