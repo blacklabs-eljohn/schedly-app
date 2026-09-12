@@ -1947,6 +1947,30 @@ main {
   transform: scale(0.92);
 }
 
+.ios-modal-card {
+  width: 100%;
+  max-width: 620px;
+  max-height: 90vh;
+  background: var(--ios-card-bg);
+  border: 1px solid var(--ios-card-border);
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px -8px rgba(0, 0, 0, 0.35), 0 8px 24px -4px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  margin: auto 16px;
+  animation: ios-modal-scale-in 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+@media (max-width: 640px) {
+  .ios-modal-card {
+    max-height: 92vh;
+    border-radius: 24px;
+    margin: auto 12px;
+  }
+}
+
 /* Inset Grouped Detail List for Bottom Sheets */
 .detail-grouped-list {
   background: var(--ios-bg-primary);
