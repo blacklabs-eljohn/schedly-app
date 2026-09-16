@@ -6,7 +6,8 @@
     android:targetCellHeight="2"
     android:updatePeriodMillis="86400000"
     android:initialLayout="@layout/digital_pass_widget_layout"
+    android:initialKeyguardLayout="@layout/digital_pass_widget_layout"
     android:resizeMode="horizontal|vertical"
-    android:widgetCategory="home_screen"
+    android:widgetCategory="home_screen|keyguard"
     android:description="@string/widget_digital_pass_desc">
 </appwidget-provider>

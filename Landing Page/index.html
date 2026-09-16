@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>Schedly — Master Your Campus Life | Official Student Schedule & Academic Companion</title>
+  <meta name="description" content="The ultimate all-in-one student schedule and campus companion app for NEMSU & beyond. AI Schedule Scanner, real-time next class countdown, Digital Student ID, and Course Vault. 100% Free & Offline-Ready." />
+  <meta name="keywords" content="Schedly, NEMSU App, student schedule app, college timetable, COR scanner, digital student ID, class countdown, academic organizer, Eljohn Sienes" />
+  <meta name="author" content="Eljohn Sienes" />
+  <meta name="theme-color" content="#0B0F17" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://schedly.app/" />
+  <meta property="og:title" content="Schedly — Master Your Campus Life" />
+  <meta property="og:description" content="AI Schedule OCR Scanner, real-time class countdown, Digital Student ID, and Course Vault. Built for students, 100% free." />
+  <meta property="og:image" content="assets/cover.png" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:title" content="Schedly — Master Your Campus Life" />
+  <meta property="twitter:description" content="AI Schedule OCR Scanner, real-time class countdown, Digital Student ID, and Course Vault." />
+  <meta property="twitter:image" content="assets/cover.png" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/Schedly Icon.png" />
+  <link rel="apple-touch-icon" href="assets/Schedly Icon.png" />
+
+  <!-- Google Fonts: Inter & Outfit & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Ambient Animated Background Gradients -->
+  <div class="ambient-glow">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+    <div class="ambient-grid"></div>
+  </div>
+
+  <!-- Header / Navigation Bar -->
+  <header class="navbar-wrapper" id="navbar">
+    <nav class="navbar container">
+      <a href="#" class="nav-brand" aria-label="Schedly Home">
+        <div class="brand-logo-wrap">
+          <img src="assets/Schedly Icon.png" alt="Schedly Logo Icon" class="brand-logo" />
+          <div class="logo-glow"></div>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">Schedly</span>
+          <span class="brand-badge">NEMSU</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav Links -->
+      <div class="nav-links">
+        <a href="#features" class="nav-link"><span>Features</span></a>
+        <a href="#interactive-preview" class="nav-link"><span>Experience</span></a>
+        <a href="#scanner-preview" class="nav-link"><span>AI Scanner</span></a>
+        <a href="#story" class="nav-link"><span>Our Story</span></a>
+        <a href="#faq" class="nav-link"><span>FAQ</span></a>
+      </div>
+
+      <!-- Header Action Buttons -->
+      <div class="nav-actions">
+        <!-- Theme Toggle -->
+        <button class="theme-toggle-btn" id="themeToggle" title="Toggle Theme" aria-label="Toggle Theme">
+          <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+
+        <a href="../index.html" class="btn btn-secondary nav-btn-subtle" target="_blank" rel="noopener">
+          <span>Web App</span>
+        </a>
+
+        <a href="#download" class="btn btn-primary nav-cta">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>Get Schedly</span>
+        </a>
+
+        <!-- Mobile Menu Hamburger -->
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle Navigation Menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Mobile Dropdown Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+      <div class="mobile-links">
+        <a href="#features" class="mobile-link">Features</a>
+        <a href="#interactive-preview" class="mobile-link">Experience</a>
+        <a href="#scanner-preview" class="mobile-link">AI Scanner</a>
+        <a href="#story" class="mobile-link">Our Story</a>
+        <a href="#faq" class="mobile-link">FAQ</a>
+      </div>
+      <div class="mobile-ctas">
+        <a href="../index.html" class="btn btn-secondary w-full" target="_blank">Launch Web App</a>
+        <a href="#download" class="btn btn-primary w-full">Download Android APK</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO SECTION -->
+    <section class="hero-section" id="hero">
+      <div class="container hero-container">
+        
+        <!-- Left: Hero Copy & CTAs -->
+        <div class="hero-content reveal-on-scroll">
+          <div class="hero-pill-badge">
+            <span class="pulse-dot"></span>
+            <span class="pill-text">🎓 Built for NEMSU & Students Everywhere • 100% Free</span>
+          </div>
+
+          <h1 class="hero-title">
+            Master Your Campus Life.<br />
+            <span class="text-gradient">Go Schedly.</span>
+          </h1>
+
+          <p class="hero-description">
+            The all-in-one student schedule and academic companion. Instant <strong>AI COR Schedule Scanner</strong>, real-time class countdowns, <strong>Digital Student ID</strong>, and course vault — beautifully organized for campus success.
+          </p>
+
+          <!-- Action Buttons -->
+          <div class="hero-actions">
+            <a href="../index.html" class="btn btn-primary btn-lg" target="_blank" rel="noopener">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              <span>Launch Web App</span>
+              <span class="btn-subtext">No install needed</span>
+            </a>
+
+            <a href="#download" class="btn btn-glass btn-lg">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9992.4482.9992.9993s-.4482.9997-.9992.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993s-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1523-.5676.416.416 0 00-.5676.1523l-2.0223 3.503C15.5902 8.4116 13.8533 8.0833 12 8.0833s-3.5902.3283-5.1366.8666L4.8411 5.4469a.416.416 0 00-.5676-.1523.416.416 0 00-.1523.5676l1.9973 3.4592C2.6889 11.1867.3438 14.6581 0 18.761h24c-.3438-4.1029-2.6889-7.5743-6.1185-9.4396"></path></svg>
+              <span>Download Android APK</span>
+              <span class="btn-subtext">Direct & Fast</span>
+            </a>
+          </div>
+
+          <!-- Social Proof / Stats Strip -->
+          <div class="hero-social-proof">
+            <div class="student-avatars">
+              <span class="avatar-bubble av-1">EJ</span>
+              <span class="avatar-bubble av-2">NM</span>
+              <span class="avatar-bubble av-3">CS</span>
+              <span class="avatar-bubble av-4">IT</span>
+            </div>
+            <div class="proof-text">
+              <strong>1,000+ Classes Organized</strong>
+              <span>Trusted by students across NEMSU campuses</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Interactive Dynamic Phone Mockup -->
+        <div class="hero-mockup-wrapper reveal-on-scroll">
+          
+          <!-- Interactive Selector Pills (Folderly style) -->
+          <div class="mockup-selector-tabs" id="heroMockupTabs">
+            <button class="mockup-tab-btn active" data-mockup-target="timeline" aria-label="Show Timeline">
+              <span class="tab-indicator"></span>
+              <span class="tab-icon">⚡</span>
+              <span class="tab-label">Timeline</span>
+            </button>
+            <button class="mockup-tab-btn" data-mockup-target="scanner" aria-label="Show AI Scanner">
+              <span class="tab-indicator"></span>
+              <span class="tab-icon">📷</span>
+              <span class="tab-label">AI OCR</span>
+            </button>
+            <button class="mockup-tab-btn" data-mockup-target="idcard" aria-label="Show Digital ID">
+              <span class="tab-indicator"></span>
+              <span class="tab-icon">🪪</span>
+              <span class="tab-label">Digital ID</span>
+            </button>
+            <button class="mockup-tab-btn" data-mockup-target="vault" aria-label="Show Study Vault">
+              <span class="tab-indicator"></span>
+              <span class="tab-icon">📚</span>
+              <span class="tab-label">Vault</span>
+            </button>
+          </div>
+
+          <!-- Phone Device Frame Container -->
+          <div class="phone-device-card" id="phoneContainer">
+            <div class="phone-frame">
+              <div class="phone-speaker"></div>
+              <div class="phone-camera-island">
+                <span class="island-camera"></span>
+                <span class="island-sensor"></span>
+              </div>
+              
+              <!-- Screen Viewport -->
+              <div class="phone-screen">
+                
+                <!-- View 1: Timeline (Default) -->
+                <div class="phone-view active" id="view-timeline">
+                  <div class="screen-header">
+                    <div class="screen-time">09:41</div>
+                    <div class="screen-icons">
+                      <span>5G</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+                  <div class="screen-app-content">
+                    <div class="app-top-bar">
+                      <div>
+                        <p class="app-greeting">Good morning, Student 👋</p>
+                        <h4 class="app-date">Monday, Today</h4>
+                      </div>
+                      <div class="app-profile-badge">
+                        <img src="assets/Schedly Icon.png" alt="Profile" />
+                      </div>
+                    </div>
+
+                    <!-- Next Class Hero Card -->
+                    <div class="ui-next-class-hero">
+                      <div class="ui-hero-tag">
+                        <span class="live-dot"></span> NEXT UP • IN 18 MINS
+                      </div>
+                      <h3 class="ui-hero-subject">Advanced Database Systems</h3>
+                      <div class="ui-hero-meta">
+                        <span>📍 Room ICT-302</span>
+                        <span>👨‍🏫 Prof. E. Sienes</span>
+                      </div>
+                      <div class="ui-hero-timer">
+                        <div class="timer-box"><span class="timer-num">00</span><span class="timer-lbl">HRS</span></div>
+                        <span class="timer-sep">:</span>
+                        <div class="timer-box"><span class="timer-num">18</span><span class="timer-lbl">MIN</span></div>
+                        <span class="timer-sep">:</span>
+                        <div class="timer-box"><span class="timer-num" id="liveHeroSec">42</span><span class="timer-lbl">SEC</span></div>
+                      </div>
+                    </div>
+
+                    <!-- Class List Preview -->
+                    <div class="ui-schedule-stream">
+                      <div class="ui-class-item active-stream">
+                        <div class="class-time-col">
+                          <span class="time-main">10:00 AM</span>
+                          <span class="time-end">11:30 AM</span>
+                        </div>
+                        <div class="class-card-col cs-blue">
+                          <span class="card-code">CS 312</span>
+                          <h5 class="card-title">Software Engineering 2</h5>
+                          <span class="card-room">Lab 4 • 3 Units</span>
+                        </div>
+                      </div>
+
+                      <div class="ui-class-item">
+                        <div class="class-time-col">
+                          <span class="time-main">01:00 PM</span>
+                          <span class="time-end">03:00 PM</span>
+                        </div>
+                        <div class="class-card-col cs-emerald">
+                          <span class="card-code">IT 204</span>
+                          <h5 class="card-title">Network Administration</h5>
+                          <span class="card-room">Room 201 • 3 Units</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- View 2: AI Scanner -->
+                <div class="phone-view" id="view-scanner">
+                  <div class="screen-header">
+                    <div class="screen-time">09:41</div>
+                    <div class="screen-icons"><span>5G</span><span>100%</span></div>
+                  </div>
+                  <div class="screen-app-content">
+                    <div class="scanner-mock-view">
+                      <div class="scanner-reticle">
+                        <div class="corner tl"></div>
+                        <div class="corner tr"></div>
+                        <div class="corner bl"></div>
+                        <div class="corner br"></div>
+                        <div class="laser-scanner-line"></div>
+                        <div class="detected-box-tag">COR Schedule Detected (99.8%)</div>
+                      </div>
+                      <div class="scanner-status-card">
+                        <div class="scan-pill">⚡ AI OCR Engine Active</div>
+                        <h4>NEMSU Schedule Parsed</h4>
+                        <div class="scan-subjects-count">
+                          <span>✅ 8 Subjects</span>
+                          <span>✅ Zero Conflicts</span>
+                          <span>✅ 24 Units</span>
+                        </div>
+                        <button class="btn btn-sm btn-primary w-full mt-2">Import All to Timetable</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- View 3: Digital ID -->
+                <div class="phone-view" id="view-idcard">
+                  <div class="screen-header">
+                    <div class="screen-time">09:41</div>
+                    <div class="screen-icons"><span>5G</span><span>100%</span></div>
+                  </div>
+                  <div class="screen-app-content p-3">
+                    <div class="ui-digital-id-card">
+                      <div class="id-top">
+                        <span class="univ-title">NORTH EASTERN MINDANAO STATE UNIVERSITY</span>
+                        <span class="id-sub">STUDENT IDENTIFICATION CARD</span>
+                      </div>
+                      <div class="id-body">
+                        <div class="id-photo-frame">
+                          <img src="assets/Eljohn Sienes.png" alt="Student ID Photo" />
+                        </div>
+                        <div class="id-details">
+                          <span class="id-name">ELJOHN SIENES</span>
+                          <span class="id-num">2021-00892-TC</span>
+                          <span class="id-course">BS Computer Science</span>
+                          <span class="id-sy">A.Y. 2024-2025</span>
+                        </div>
+                      </div>
+                      <div class="id-bottom">
+                        <div class="barcode-graphic"></div>
+                        <span class="id-tap-hint">Tap to flip & show QR Code</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- View 4: Course Vault -->
+                <div class="phone-view" id="view-vault">
+                  <div class="screen-header">
+                    <div class="screen-time">09:41</div>
+                    <div class="screen-icons"><span>5G</span><span>100%</span></div>
+                  </div>
+                  <div class="screen-app-content p-3">
+                    <div class="vault-mock-header">
+                      <h4>Course Folders</h4>
+                      <span class="badge-count">6 Enrolled</span>
+                    </div>
+                    <div class="vault-grid">
+                      <div class="vault-folder-item f-blue">
+                        <span class="folder-emoji">💻</span>
+                        <strong>Web Dev 2</strong>
+                        <span class="folder-meta">4 Notes • 2 Links</span>
+                      </div>
+                      <div class="vault-folder-item f-purple">
+                        <span class="folder-emoji">🗄️</span>
+                        <strong>Database Sys</strong>
+                        <span class="folder-meta">7 Notes • 1 Quiz</span>
+                      </div>
+                      <div class="vault-folder-item f-emerald">
+                        <span class="folder-emoji">📐</span>
+                        <strong>Discrete Math</strong>
+                        <span class="folder-meta">3 Homeworks</span>
+                      </div>
+                      <div class="vault-folder-item f-amber">
+                        <span class="folder-emoji">🤖</span>
+                        <strong>AI Principles</strong>
+                        <span class="folder-meta">Midterm Prep</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+              <div class="phone-home-indicator"></div>
+            </div>
+
+            <!-- Floating Widget 1: Live Next Class Alert -->
+            <div class="floating-widget widget-hero-top">
+              <div class="widget-icon">⚡</div>
+              <div class="widget-text">
+                <span class="w-label">Live Next Class</span>
+                <span class="w-val">Room ICT-302 in 18 mins</span>
+              </div>
+            </div>
+
+            <!-- Floating Widget 2: Scan Success -->
+            <div class="floating-widget widget-hero-bottom">
+              <div class="widget-icon">✓</div>
+              <div class="widget-text">
+                <span class="w-label">COR Scanned</span>
+                <span class="w-val">7 Subjects auto-imported</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- METRICS & KEY HIGHLIGHTS RIBBON -->
+    <section class="stats-ribbon-section">
+      <div class="container stats-container">
+        <div class="stat-card">
+          <div class="stat-icon-wrap icon-cyan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+          </div>
+          <div class="stat-info">
+            <h3 class="stat-value">3 Seconds</h3>
+            <p class="stat-desc">AI OCR Schedule Import</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap icon-emerald">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"></rect><line x1="7" y1="8" x2="17" y2="8"></line><line x1="7" y1="12" x2="17" y2="12"></line><line x1="7" y1="16" x2="12" y2="16"></line></svg>
+          </div>
+          <div class="stat-info">
+            <h3 class="stat-value">100% Offline</h3>
+            <p class="stat-desc">No Wi-Fi Needed On Campus</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap icon-indigo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </div>
+          <div class="stat-info">
+            <h3 class="stat-value">Digital ID</h3>
+            <p class="stat-desc">Flip, Barcode & QR Ready</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap icon-amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+          </div>
+          <div class="stat-info">
+            <h3 class="stat-value">100% Free</h3>
+            <p class="stat-desc">Zero Ads • No Subscriptions</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INTERACTIVE FEATURE EXPERIENCE SHOWCASE (Folderly Style) -->
+    <section class="features-showcase-section" id="features">
+      <div class="container">
+        
+        <!-- Section Header -->
+        <div class="section-title-wrap text-center reveal-on-scroll">
+          <span class="section-badge">Everything in One Place</span>
+          <h2 class="section-heading">
+            Everything you need to <span class="text-gradient">ace your semester</span>
+          </h2>
+          <p class="section-subheading">
+            Built specifically for college routines. No more guessing classroom codes, scrambling for notes, or missing schedules.
+          </p>
+        </div>
+
+        <!-- Interactive Split Grid -->
+        <div class="interactive-split-grid" id="interactive-preview">
+          
+          <!-- Left: Synchronized Phone Mockup with Real Visuals -->
+          <div class="feature-mockup-col reveal-on-scroll">
+            <div class="feature-phone-wrapper">
+              <div class="phone-glow-ambient"></div>
+              <div class="feature-phone-device">
+                <div class="phone-screen-feature">
+                  
+                  <!-- Dynamic Image Display matching the selected feature -->
+                  <div class="feature-screen-slide active" id="feat-slide-1">
+                    <img src="assets/S3v.png" alt="Dynamic Timeline Preview" class="feature-img" />
+                    <div class="feature-slide-overlay">
+                      <span class="slide-tag">⏱️ Live Schedule Stream</span>
+                    </div>
+                  </div>
+
+                  <div class="feature-slide-slide" id="feat-slide-2">
+                    <img src="assets/S1v.png" alt="AI Schedule Scanner Preview" class="feature-img" />
+                    <div class="feature-slide-overlay">
+                      <span class="slide-tag">📷 Instant COR AI Parser</span>
+                    </div>
+                  </div>
+
+                  <div class="feature-slide-slide" id="feat-slide-3">
+                    <img src="assets/S3vv.png" alt="Digital Student ID Preview" class="feature-img" />
+                    <div class="feature-slide-overlay">
+                      <span class="slide-tag">🪪 Smart Campus Digital ID</span>
+                    </div>
+                  </div>
+
+                  <div class="feature-slide-slide" id="feat-slide-4">
+                    <img src="assets/cover.png" alt="Course Vault Preview" class="feature-img" />
+                    <div class="feature-slide-overlay">
+                      <span class="slide-tag">📁 Course Vault & Academic Hub</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Interactive Clickable Feature Cards (Folderly pattern) -->
+          <div class="feature-cards-col reveal-on-scroll">
+            
+            <!-- Card 1: Timeline -->
+            <div class="feature-interactive-card active" data-feature-index="1">
+              <div class="f-card-icon icon-blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              </div>
+              <div class="f-card-text">
+                <div class="f-card-header">
+                  <h3 class="f-card-title">Smart Dynamic Timetable & Countdown</h3>
+                  <span class="f-card-arrow">→</span>
+                </div>
+                <p class="f-card-desc">
+                  Live countdown timer to your next class with exact room locations, building directions, instructor names, and intelligent conflict detection alerts.
+                </p>
+                <div class="f-card-pills">
+                  <span class="tag-pill">Real-time Countdown</span>
+                  <span class="tag-pill">Room Locator</span>
+                  <span class="tag-pill">Conflict Warnings</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: AI Scanner -->
+            <div class="feature-interactive-card" data-feature-index="2">
+              <div class="f-card-icon icon-emerald">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+              </div>
+              <div class="f-card-text">
+                <div class="f-card-header">
+                  <h3 class="f-card-title">Instant AI COR Schedule Scanner</h3>
+                  <span class="f-card-arrow">→</span>
+                </div>
+                <p class="f-card-desc">
+                  Simply take a photo or upload your Certificate of Registration (COR). Our smart OCR engine instantly parses subject codes, class hours, days, rooms, and units in seconds.
+                </p>
+                <div class="f-card-pills">
+                  <span class="tag-pill">One-Tap OCR</span>
+                  <span class="tag-pill">Zero Manual Entry</span>
+                  <span class="tag-pill">High Precision</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: Digital ID -->
+            <div class="feature-interactive-card" data-feature-index="3">
+              <div class="f-card-icon icon-indigo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+              </div>
+              <div class="f-card-text">
+                <div class="f-card-header">
+                  <h3 class="f-card-title">Interactive Digital Student ID</h3>
+                  <span class="f-card-arrow">→</span>
+                </div>
+                <p class="f-card-desc">
+                  Keep your campus identity with you everywhere. Flip between photo ID, student numbers, barcodes, and fullscreen QR codes for campus entry gates and library checkouts.
+                </p>
+                <div class="f-card-pills">
+                  <span class="tag-pill">3D Flip Card</span>
+                  <span class="tag-pill">Barcode & QR</span>
+                  <span class="tag-pill">Campus Gate Ready</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 4: Study Vault -->
+            <div class="feature-interactive-card" data-feature-index="4">
+              <div class="f-card-icon icon-purple">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              </div>
+              <div class="f-card-text">
+                <div class="f-card-header">
+                  <h3 class="f-card-title">Course Vault & Academic Organizer</h3>
+                  <span class="f-card-arrow">→</span>
+                </div>
+                <p class="f-card-desc">
+                  Color-coded course folders with quick links, syllabus checklist, markdown study notes, teacher contact cards, and grade point calculation.
+                </p>
+                <div class="f-card-pills">
+                  <span class="tag-pill">Color-Coded Folders</span>
+                  <span class="tag-pill">Study Notes</span>
+                  <span class="tag-pill">Course Links</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- BENTO GRID: "AND SO MUCH MORE..." -->
+    <section class="bento-section">
+      <div class="container">
+        <div class="section-title-wrap text-center reveal-on-scroll">
+          <span class="section-badge">Crafted with Care</span>
+          <h2 class="section-heading">And so much more...</h2>
+          <p class="section-subheading">Every tiny detail is fine-tuned to make student days effortless.</p>
+        </div>
+
+        <div class="bento-grid reveal-on-scroll">
+          
+          <!-- Bento 1 -->
+          <div class="bento-card card-3d">
+            <div class="bento-icon icon-rose">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            </div>
+            <h4 class="bento-title">Smart Class Reminders</h4>
+            <p class="bento-desc">Get timely reminders before classes start so you never arrive late to a lecture or lab.</p>
+          </div>
+
+          <!-- Bento 2 -->
+          <div class="bento-card card-3d">
+            <div class="bento-icon icon-teal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </div>
+            <h4 class="bento-title">Holiday & Event Calendar</h4>
+            <p class="bento-desc">Full university holiday schedules, midterms, finals, and school breaks automatically marked.</p>
+          </div>
+
+          <!-- Bento 3 -->
+          <div class="bento-card card-3d">
+            <div class="bento-icon icon-amber">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+            </div>
+            <h4 class="bento-title">To-Do & Tasks Manager</h4>
+            <p class="bento-desc">Keep track of homework assignments, group projects, deliverables, and upcoming exams.</p>
+          </div>
+
+          <!-- Bento 4 -->
+          <div class="bento-card card-3d">
+            <div class="bento-icon icon-indigo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            </div>
+            <h4 class="bento-title">100% Private & Local</h4>
+            <p class="bento-desc">Your schedules and notes remain securely on your device with instant offline access.</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- AI SCANNER SPECIAL SPOTLIGHT -->
+    <section class="spotlight-section" id="scanner-preview">
+      <div class="container spotlight-container reveal-on-scroll">
+        <div class="spotlight-text">
+          <span class="section-badge badge-green">Zero Typing Required</span>
+          <h2 class="spotlight-title">
+            Scan your COR Schedule in seconds.
+          </h2>
+          <p class="spotlight-desc">
+            Tired of entering 8 different subjects, 5 days a week, with confusing room codes? Simply upload a picture of your enrollment form or Certificate of Registration. Schedly's AI OCR engine reads it and maps out your entire semester in a heartbeat.
+          </p>
+          <ul class="spotlight-list">
+            <li>
+              <span class="check-icon">✓</span>
+              <span>Reads messy printouts, PDFs, and camera snapshots</span>
+            </li>
+            <li>
+              <span class="check-icon">✓</span>
+              <span>Auto-detects room assignments, subject names & time blocks</span>
+            </li>
+            <li>
+              <span class="check-icon">✓</span>
+              <span>Intelligent conflict detector warns if classes overlap</span>
+            </li>
+          </ul>
+          <div class="spotlight-action">
+            <a href="../index.html" class="btn btn-primary" target="_blank">Try Scanner on Web</a>
+          </div>
+        </div>
+
+        <div class="spotlight-visual">
+          <div class="scanner-card-visual card-3d">
+            <img src="assets/S1v.png" alt="AI Schedule Scanner Visual" class="spotlight-img" />
+            <div class="scan-laser-glow"></div>
+            <div class="scanner-floating-badge">
+              <span class="ai-sparkle">✨</span>
+              <span>OCR Accuracy 99.8%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OUR STORY: BUILT BY STUDENTS, FOR STUDENTS -->
+    <section class="story-section" id="story">
+      <div class="container">
+        
+        <div class="section-title-wrap text-center reveal-on-scroll">
+          <span class="section-badge badge-amber">Our Story</span>
+          <h2 class="section-heading">
+            Built by students, <span class="text-gradient">for students</span>
+          </h2>
+          <p class="section-subheading">
+            Born out of real student struggles at North Eastern Mindanao State University (NEMSU).
+          </p>
+        </div>
+
+        <div class="story-card-wrapper reveal-on-scroll">
+          <div class="story-card">
+            
+            <!-- Founder Photo & Badge -->
+            <div class="founder-profile-col">
+              <div class="founder-img-frame">
+                <img src="assets/Eljohn Sienes.png" alt="Eljohn Sienes — Creator of Schedly" class="founder-img" />
+                <div class="founder-status-badge">
+                  <span class="pulse-dot-green"></span>
+                  <span>Lead Developer</span>
+                </div>
+              </div>
+              <div class="founder-caption">
+                <h4 class="founder-name">Eljohn Sienes</h4>
+                <p class="founder-role">Creator & NEMSU Student</p>
+              </div>
+            </div>
+
+            <!-- Story Body -->
+            <div class="story-text-col">
+              <div class="quote-icon">“</div>
+              <p class="story-paragraph">
+                Every semester at NEMSU, students face the same recurring headache: scrambling to find room assignments, checking confusing paper schedules, getting to class late, and losing track of course links and notes.
+              </p>
+              <p class="story-paragraph">
+                I built <strong>Schedly</strong> to solve this once and for all. It's completely free, operates 100% offline when campus Wi-Fi drops, and features an AI scanner so nobody has to manually type another class schedule again.
+              </p>
+              <div class="story-pills">
+                <span class="univ-tag">🎓 North Eastern Mindanao State University</span>
+                <span class="open-tag">💡 Community & Student First</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- INTERACTIVE FAQ ACCORDION -->
+    <section class="faq-section" id="faq">
+      <div class="container">
+        
+        <div class="section-title-wrap text-center reveal-on-scroll">
+          <span class="section-badge">Got Questions?</span>
+          <h2 class="section-heading">Frequently Asked Questions</h2>
+          <p class="section-subheading">Everything you need to know about Schedly and how it works.</p>
+        </div>
+
+        <div class="faq-accordion-container reveal-on-scroll">
+          
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span>Is Schedly really 100% free?</span>
+              <span class="faq-chevron">▾</span>
+            </button>
+            <div class="faq-answer">
+              <p>Yes! Schedly is completely free to use. There are no subscriptions, paywalls, or annoying banner advertisements. It was created to genuinely help fellow students navigate their college life smoothly.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span>Does Schedly work without an internet connection?</span>
+              <span class="faq-chevron">▾</span>
+            </button>
+            <div class="faq-answer">
+              <p>Absolutely. All your class timetables, digital student ID, notes, and tasks are stored locally on your device using fast offline storage. You can check your next room anytime, even with zero signal inside campus buildings.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span>How does the AI Schedule Scanner work?</span>
+              <span class="faq-chevron">▾</span>
+            </button>
+            <div class="faq-answer">
+              <p>Simply take a clear photo or upload your Certificate of Registration (COR) / class slip. Schedly's optical recognition scans the image, detects each course code, schedule time, and room, and formats it directly into your timetable with a single confirmation tap.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span>How do I download and install the Android app?</span>
+              <span class="faq-chevron">▾</span>
+            </button>
+            <div class="faq-answer">
+              <p>You can download the direct APK file from the Download section on this page, or install Schedly as a Progressive Web App (PWA) directly from Chrome on Android or Safari on iOS by tapping "Add to Home Screen".</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span>Can other schools besides NEMSU use Schedly?</span>
+              <span class="faq-chevron">▾</span>
+            </button>
+            <div class="faq-answer">
+              <p>Yes! While customized with love for NEMSU students, any high school, college, or university student can use Schedly to track their classes, timetable, and study organizers.</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- DOWNLOAD & FINAL CTA SECTION -->
+    <section class="download-section" id="download">
+      <div class="container reveal-on-scroll">
+        <div class="download-banner">
+          <div class="download-banner-glow"></div>
+          
+          <div class="download-content">
+            <div class="download-icon-wrap">
+              <img src="assets/Schedly Icon.png" alt="Schedly App" class="download-app-icon" />
+            </div>
+            
+            <h2 class="download-title">
+              Ready to take control of your semester?
+            </h2>
+            <p class="download-desc">
+              Join thousands of students who stay ahead of class times, rooms, and assignments every single day.
+            </p>
+
+            <div class="download-btn-group">
+              <a href="../index.html" class="btn btn-primary btn-lg" target="_blank" rel="noopener">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <div class="btn-text-stacked">
+                  <span class="btn-subtext">Instant Access</span>
+                  <span class="btn-title">Launch Web App</span>
+                </div>
+              </a>
+
+              <a href="../android" class="btn btn-glass btn-lg" id="apkDownloadBtn">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9992.4482.9992.9993s-.4482.9997-.9992.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993s-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1523-.5676.416.416 0 00-.5676.1523l-2.0223 3.503C15.5902 8.4116 13.8533 8.0833 12 8.0833s-3.5902.3283-5.1366.8666L4.8411 5.4469a.416.416 0 00-.5676-.1523.416.416 0 00-.1523.5676l1.9973 3.4592C2.6889 11.1867.3438 14.6581 0 18.761h24c-.3438-4.1029-2.6889-7.5743-6.1185-9.4396"></path></svg>
+                <div class="btn-text-stacked">
+                  <span class="btn-subtext">Direct Android Build</span>
+                  <span class="btn-title">Download APK</span>
+                </div>
+              </a>
+            </div>
+
+            <div class="download-badges">
+              <span>✓ 100% Free</span>
+              <span>•</span>
+              <span>✓ Offline First</span>
+              <span>•</span>
+              <span>✓ Privacy Focused</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer-container">
+      
+      <div class="footer-top">
+        <div class="footer-brand-info">
+          <div class="footer-brand">
+            <img src="assets/Schedly Icon.png" alt="Schedly Icon" class="footer-logo" />
+            <span class="footer-brand-name">Schedly</span>
+          </div>
+          <p class="footer-tagline">
+            The smart student schedule & academic companion. Engineered for North Eastern Mindanao State University and student communities everywhere.
+          </p>
+        </div>
+
+        <div class="footer-nav-group">
+          <div class="footer-col">
+            <h5>Navigation</h5>
+            <a href="#hero">Home</a>
+            <a href="#features">Features</a>
+            <a href="#scanner-preview">AI Scanner</a>
+            <a href="#story">Our Story</a>
+            <a href="#faq">FAQ</a>
+          </div>
+
+          <div class="footer-col">
+            <h5>Product</h5>
+            <a href="../index.html" target="_blank">Web Version</a>
+            <a href="#download">Android APK</a>
+            <a href="#interactive-preview">Feature Tour</a>
+            <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+          </div>
+
+          <div class="footer-col">
+            <h5>Developer</h5>
+            <span class="footer-dev-name">Eljohn Sienes</span>
+            <span class="footer-dev-loc">NEMSU Campus</span>
+            <span class="footer-dev-note">Built with passion & care</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p class="copyright">
+          &copy; <span id="currentYear">2026</span> Schedly. All rights reserved. Created by Eljohn Sienes.
+        </p>
+        <div class="footer-legal">
+          <span>Made for NEMSU Students</span>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- Floating Scroll To Top Button -->
+  <button class="scroll-top-btn" id="scrollTopBtn" aria-label="Scroll to top">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+  </button>
+
+  <!-- Custom Script -->
+  <script src="script.js"></script>
+</body>
+</html>

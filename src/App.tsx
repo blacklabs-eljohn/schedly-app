@@ -21,7 +21,8 @@ import {
   getLastActiveUserId,
   setLastActiveUserId,
   hasAcceptedPrivacyPolicy,
-  setAcceptedPrivacyPolicy
+  setAcceptedPrivacyPolicy,
+  recordLocalAppOpen
 } from './services/storageService';
 import { detectScheduleConflicts, autoResolveScheduleConflicts, getDayScheduleInfo, formatTime12H, timeToMinutes, getSubjectCardGradient, DAYS_OF_WEEK } from './services/scheduleEngine';
 import { getDefaultOfficialCourses } from './services/corParser';
@@ -34,7 +35,8 @@ import {
   uploadAvatarToStorage, 
   isNetworkOnline,
   subscribeSyncState,
-  SyncState
+  SyncState,
+  syncUserActivityHeartbeat
 } from './services/syncService';
 
 import { BottomTabBar, TabType } from './components/BottomTabBar';
@@ -219,6 +221,7 @@ export function App() {
   // Background Cloud Sync Handler (Non-blocking)
   const handleTriggerCloudSync = useCallback(async (userId: string, defaultName?: string, showToast = false) => {
     setLastActiveUserId(userId);
+    recordLocalAppOpen(userId);
 
     // Eager local state update from cache first
     const localCourses = getStoredCourses(userId);
@@ -252,7 +255,13 @@ export function App() {
       setProfile(cloudData.profile);
       setSettings(cloudData.settings);
       setCustomEvents(cloudData.customEvents);
+      if (cloudData.notes) {
+        setSubjectNotes(cloudData.notes);
+      }
       setTheme(cloudData.settings.appearanceMode === 'dark' ? 'dark' : 'light');
+
+      // 3. Heartbeat activity sync (DAU / MAU)
+      await syncUserActivityHeartbeat(userId);
 
       if (showToast) {
         showSystemToast('Cloud Synced', 'Your timetable & pass are backed up.');
@@ -292,6 +301,7 @@ export function App() {
       if (user) {
         setCurrentUser(user);
         setLastActiveUserId(user.id);
+        recordLocalAppOpen(user.id);
         setIsAuthChecking(false);
 
         const cachedCourses = getStoredCourses(user.id);
@@ -321,6 +331,7 @@ export function App() {
       } else {
         const lastId = getLastActiveUserId();
         if (lastId && lastId !== 'guest') {
+          recordLocalAppOpen(lastId);
           // If we had a previous session, keep authenticated offline
           const cachedProfile = getStoredStudentProfile(lastId);
           if (cachedProfile && cachedProfile.fullName !== 'New Student') {
@@ -778,12 +789,13 @@ export function App() {
   const studentFirstName = getStudentFirstName(profile?.fullName);
   const timeOfDayGreeting = today.getHours() < 12 ? 'Good Morning' : today.getHours() < 18 ? 'Good Afternoon' : 'Good Evening';
 
-  // Sync latest schedule, up next, and profile to Android Home Screen Widgets
+  // Sync latest schedule, up next, profile, calendar events, and reminders to Android Home Screen Widgets
   useEffect(() => {
     if (profile) {
-      syncWidgetsData(courses, profile, todayDayName);
+      const activeTheme = settings.colorTheme || settings.subjectCardTheme || 'bluebook';
+      syncWidgetsData(courses, profile, todayDayName, activeTheme, theme, customEvents);
     }
-  }, [courses, profile, todayDayName]);
+  }, [courses, profile, todayDayName, settings.colorTheme, settings.subjectCardTheme, theme, customEvents]);
 
   const nowMins = today.getHours() * 60 + today.getMinutes();
 

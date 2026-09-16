@@ -72,6 +72,45 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/digital_pass_widget_info" />
         </receiver>
+
+        <!-- 4. Calendar & Deadlines Bento Widget (4x2) -->
+        <receiver
+            android:name=".CalendarBentoWidgetProvider"
+            android:label="Calendar &amp; Deadlines (Bento)"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/calendar_bento_widget_info" />
+        </receiver>
+
+        <!-- 5. Calendar Square Widget (2x2) -->
+        <receiver
+            android:name=".CalendarSquareWidgetProvider"
+            android:label="Calendar &amp; Deadlines (Square)"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/calendar_square_widget_info" />
+        </receiver>
+
+        <!-- 6. Academic Reminders Widget (2x2) -->
+        <receiver
+            android:name=".RemindersWidgetProvider"
+            android:label="Academic Reminders"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/reminders_widget_info" />
+        </receiver>
     </application>
 
     <!-- Permissions -->

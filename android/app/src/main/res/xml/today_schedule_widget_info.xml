@@ -6,7 +6,8 @@
     android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/today_schedule_widget_layout"
+    android:initialKeyguardLayout="@layout/today_schedule_widget_layout"
     android:resizeMode="horizontal|vertical"
-    android:widgetCategory="home_screen"
+    android:widgetCategory="home_screen|keyguard"
     android:description="@string/widget_today_schedule_desc">
 </appwidget-provider>

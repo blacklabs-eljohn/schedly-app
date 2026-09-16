@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_calendar_bento_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@drawable/widget_liquid_glass_bg"
+    android:padding="11dp"
+    android:gravity="center_vertical">
+
+    <!-- Left Bento Tile: Vibrant Themed Date Card -->
+    <LinearLayout
+        android:id="@+id/widget_bento_date_card"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="0.85"
+        android:orientation="vertical"
+        android:background="@drawable/widget_up_next_bg_bluebook"
+        android:padding="12dp"
+        android:gravity="center_vertical"
+        android:layout_marginEnd="10dp">
+
+        <TextView
+            android:id="@+id/widget_bento_month"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SEPTEMBER"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.06" />
+
+        <TextView
+            android:id="@+id/widget_bento_day_number"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="14"
+            android:textColor="#FFFFFF"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:letterSpacing="-0.03"
+            android:lineSpacingExtra="-4dp" />
+
+        <TextView
+            android:id="@+id/widget_bento_day_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Monday"
+            android:textColor="#F1F5F9"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_bento_events_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_liquid_glass_pill"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:text="3 Due"
+            android:textColor="#FFFFFF"
+            android:textSize="9.5sp"
+            android:textStyle="bold"
+            android:layout_marginTop="6dp" />
+    </LinearLayout>
+
+    <!-- Right Bento Tile: Upcoming Deadlines & Agendas List -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1.15"
+        android:orientation="vertical">
+
+        <!-- Top Header: "UPCOMING" -->
+        <TextView
+            android:id="@+id/widget_bento_upcoming_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="UPCOMING"
+            android:textColor="#38BDF8"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.06"
+            android:layout_marginBottom="6dp" />
+
+        <!-- Event 1 -->
+        <LinearLayout
+            android:id="@+id/widget_bento_event_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/widget_liquid_glass_card"
+            android:padding="6dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="center_vertical">
+
+            <FrameLayout
+                android:id="@+id/widget_bento_bar_1"
+                android:layout_width="3.5dp"
+                android:layout_height="22dp"
+                android:background="#EF4444"
+                android:layout_marginEnd="7dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bento_title_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="CS 112 - Long Quiz"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold"
+                    android:singleLine="true"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/widget_bento_time_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Tomorrow · 11:59 PM"
+                    android:textColor="#94A3B8"
+                    android:textSize="9.5sp"
+                    android:singleLine="true" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Event 2 -->
+        <LinearLayout
+            android:id="@+id/widget_bento_event_2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/widget_liquid_glass_card"
+            android:padding="6dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="center_vertical">
+
+            <FrameLayout
+                android:id="@+id/widget_bento_bar_2"
+                android:layout_width="3.5dp"
+                android:layout_height="22dp"
+                android:background="#3B82F6"
+                android:layout_marginEnd="7dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bento_title_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="IT 211 - Lab Project"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold"
+                    android:singleLine="true"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/widget_bento_time_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Friday · 5:00 PM"
+                    android:textColor="#94A3B8"
+                    android:textSize="9.5sp"
+                    android:singleLine="true" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Event 3 -->
+        <LinearLayout
+            android:id="@+id/widget_bento_event_3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/widget_liquid_glass_card"
+            android:padding="6dp"
+            android:gravity="center_vertical">
+
+            <FrameLayout
+                android:id="@+id/widget_bento_bar_3"
+                android:layout_width="3.5dp"
+                android:layout_height="22dp"
+                android:background="#10B981"
+                android:layout_marginEnd="7dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_bento_title_3"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="GE 4 - Reporting"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold"
+                    android:singleLine="true"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/widget_bento_time_3"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Saturday · 8:00 AM"
+                    android:textColor="#94A3B8"
+                    android:textSize="9.5sp"
+                    android:singleLine="true" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Empty State Container -->
+        <LinearLayout
+            android:id="@+id/widget_bento_empty"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✨"
+                android:textSize="20sp" />
+
+            <TextView
+                android:id="@+id/widget_bento_empty_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="All Caught Up"
+                android:textColor="#FFFFFF"
+                android:textSize="12.5sp"
+                android:textStyle="bold"
+                android:layout_marginTop="2dp" />
+
+            <TextView
+                android:id="@+id/widget_bento_empty_sub"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No upcoming tasks due"
+                android:textColor="#94A3B8"
+                android:textSize="9.5sp" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

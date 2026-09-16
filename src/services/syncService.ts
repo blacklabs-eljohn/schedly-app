@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { Course, StudentProfile, NotificationSettings, DayOfWeek, CustomEvent } from '../types';
+import { Course, StudentProfile, NotificationSettings, DayOfWeek, CustomEvent, SubjectNote } from '../types';
 import { 
   getStoredCourses, 
   saveCourses, 
@@ -9,7 +9,11 @@ import {
   saveSettings,
   getStoredEvents,
   saveEvents,
-  getSubjectIconsMap
+  getStoredSubjectNotes,
+  saveSubjectNotes,
+  getSubjectIconsMap,
+  getPendingActiveDates,
+  clearSyncedActiveDates
 } from './storageService';
 import { 
   getPendingSyncMutations, 
@@ -97,6 +101,8 @@ export async function flushSyncQueue(userId: string): Promise<{ success: boolean
         await pushCoursesToCloud(userId, item.payload);
       } else if (item.table === 'custom_events') {
         await pushEventsToCloud(userId, item.payload);
+      } else if (item.table === 'subject_notes') {
+        await pushNotesToCloud(userId, item.payload);
       }
 
       await removeSyncMutation(item.id, userId);
@@ -131,6 +137,7 @@ export async function pullCloudData(userId: string, defaultFullName?: string): P
   profile: StudentProfile;
   settings: NotificationSettings;
   customEvents: CustomEvent[];
+  notes: SubjectNote[];
 }> {
   // 1. If offline, return local data instantly
   if (!isNetworkOnline()) {
@@ -139,7 +146,8 @@ export async function pullCloudData(userId: string, defaultFullName?: string): P
       courses: getStoredCourses(userId),
       profile: getStoredStudentProfile(userId, defaultFullName),
       settings: getStoredSettings(userId),
-      customEvents: getStoredEvents(userId)
+      customEvents: getStoredEvents(userId),
+      notes: getStoredSubjectNotes(userId)
     };
   }
 
@@ -152,6 +160,7 @@ export async function pullCloudData(userId: string, defaultFullName?: string): P
     const hasPendingProfile = pending.some(p => p.table === 'profiles');
     const hasPendingSettings = pending.some(p => p.table === 'user_settings');
     const hasPendingEvents = pending.some(p => p.table === 'custom_events');
+    const hasPendingNotes = pending.some(p => p.table === 'subject_notes');
 
     // First flush pending changes if any exist
     if (pending.length > 0) {
@@ -326,13 +335,43 @@ export async function pullCloudData(userId: string, defaultFullName?: string): P
       }
     }
 
+    // 5. Subject Notes Sync (Course Hub Study Notes)
+    let userNotes = getStoredSubjectNotes(userId);
+    if (!hasPendingNotes) {
+      try {
+        const { data: noteRows, error: noteErr } = await supabase
+          .from('subject_notes')
+          .select('*')
+          .eq('user_id', userId);
+
+        if (!noteErr && noteRows && noteRows.length > 0) {
+          userNotes = noteRows.map((r: any) => ({
+            id: r.id,
+            subjectId: r.subject_id || 'general',
+            title: r.title || 'Untitled Note',
+            content: r.content || '',
+            isPinned: Boolean(r.is_pinned),
+            createdAt: r.created_at || new Date().toISOString(),
+            updatedAt: r.updated_at || new Date().toISOString()
+          }));
+          saveSubjectNotes(userNotes, userId, false);
+        } else if (!noteErr && userNotes.length > 0) {
+          // If cloud has no notes yet but local has notes, push local notes to cloud backup
+          await pushNotesToCloud(userId, userNotes);
+        }
+      } catch (err) {
+        console.warn('[SyncService] Subject notes cloud sync skipped:', err);
+      }
+    }
+
     setSyncState('ONLINE');
 
     return {
       courses: userCourses,
       profile: userProfile,
       settings: userSettings,
-      customEvents: userEvents
+      customEvents: userEvents,
+      notes: userNotes
     };
   } catch (err) {
     console.error('Error during pullCloudData:', err);
@@ -341,7 +380,8 @@ export async function pullCloudData(userId: string, defaultFullName?: string): P
       courses: getStoredCourses(userId),
       profile: getStoredStudentProfile(userId, defaultFullName),
       settings: getStoredSettings(userId),
-      customEvents: getStoredEvents(userId)
+      customEvents: getStoredEvents(userId),
+      notes: getStoredSubjectNotes(userId)
     };
   }
 }
@@ -590,3 +630,92 @@ export async function uploadAvatarToStorage(userId: string, base64Data: string):
     return null;
   }
 }
+
+/**
+ * Push local Subject Notes to Supabase (Course Hub Study Notes)
+ */
+export async function pushNotesToCloud(userId: string, notes: SubjectNote[]): Promise<void> {
+  if (!isNetworkOnline()) return;
+
+  try {
+    const { data: existingNotes, error: fetchErr } = await supabase
+      .from('subject_notes')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (fetchErr) {
+      console.warn('[SyncService] Failed to fetch existing cloud notes:', fetchErr);
+      return;
+    }
+
+    const localIds = new Set(notes.map(n => n.id));
+    const toDeleteIds = (existingNotes || [])
+      .map(n => n.id)
+      .filter(id => !localIds.has(id));
+
+    if (toDeleteIds.length > 0) {
+      await supabase
+        .from('subject_notes')
+        .delete()
+        .eq('user_id', userId)
+        .in('id', toDeleteIds);
+    }
+
+    if (notes.length === 0) return;
+
+    const payloads = notes.map(n => ({
+      id: n.id,
+      user_id: userId,
+      subject_id: n.subjectId || 'general',
+      title: n.title || 'Untitled Note',
+      content: n.content || '',
+      is_pinned: Boolean(n.isPinned),
+      created_at: n.createdAt || new Date().toISOString(),
+      updated_at: n.updatedAt || new Date().toISOString()
+    }));
+
+    const { error: upsertErr } = await supabase.from('subject_notes').upsert(payloads);
+    if (upsertErr) {
+      console.warn('[SyncService] Subject notes upsert warning:', upsertErr);
+    }
+  } catch (err) {
+    console.warn('[SyncService] Subject notes push exception:', err);
+  }
+}
+
+/**
+ * Sync offline/online user activity to Supabase for DAU and MAU analytics
+ */
+export async function syncUserActivityHeartbeat(userId: string): Promise<void> {
+  if (!isNetworkOnline() || !userId || userId === 'guest') return;
+
+  try {
+    // 1. Update last_active_at in profiles table
+    const nowIso = new Date().toISOString();
+    await supabase
+      .from('profiles')
+      .update({ last_active_at: nowIso })
+      .eq('id', userId);
+
+    // 2. Push any pending offline active dates to user_activity_logs
+    const pendingDates = getPendingActiveDates(userId);
+    if (pendingDates && pendingDates.length > 0) {
+      const records = pendingDates.map(date => ({
+        user_id: userId,
+        active_date: date
+      }));
+
+      const { error } = await supabase
+        .from('user_activity_logs')
+        .upsert(records, { onConflict: 'user_id,active_date', ignoreDuplicates: true });
+
+      if (!error) {
+        clearSyncedActiveDates(userId, pendingDates);
+      }
+    }
+  } catch (err) {
+    console.warn('[SyncService] Failed to sync user activity heartbeat:', err);
+  }
+}
+
+

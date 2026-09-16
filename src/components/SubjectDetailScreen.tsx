@@ -35,6 +35,9 @@ import {
   Highlighter,
   Bold,
   Italic,
+  Undo,
+  Redo,
+  CheckSquare,
   Maximize2,
   Sparkles,
   RotateCcw,
@@ -49,6 +52,7 @@ import {
   Download,
   Eye,
   Search,
+  LayoutGrid,
   HardDrive
 } from 'lucide-react';
 import { showSystemToast } from '../services/notificationService';
@@ -301,6 +305,9 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
   const [readingNote, setReadingNote] = useState<SubjectNote | null>(null);
+  const [noteSearchQuery, setNoteSearchQuery] = useState('');
+  const [noteFilterTab, setNoteFilterTab] = useState<'all' | 'pinned' | 'checklist'>('all');
+  const [noteViewMode, setNoteViewMode] = useState<'wall' | 'list'>('wall');
   const noteEditorRef = useRef<HTMLDivElement | null>(null);
 
   // ================= 📂 COURSE LOCAL OFFLINE FILES STATE =================
@@ -463,10 +470,16 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
     }
   };
 
-  // Convert legacy markdown symbols (==highlight==, **bold**, *italic*, ### headings, lists) to clean visual HTML
+  // Convert legacy markdown symbols (==highlight==, **bold**, *italic*, ### headings, lists, checklists) to clean visual HTML
   const convertLegacyMarkdownOrTextToHtml = (raw: string): string => {
     if (!raw) return '';
     let text = raw;
+
+    // Convert legacy markdown checklists: - [ ] Task or - [x] Task
+    text = text.replace(/(?:^|\n)\s*[-*]\s*\[([ xX])\]\s*([^\n\r<]+)/g, (_match, check, itemText) => {
+      const isChecked = check.toLowerCase() === 'x';
+      return `\n<div class="apple-checklist-row" data-checked="${isChecked ? 'true' : 'false'}"><span class="apple-checklist-bullet" contenteditable="false" role="checkbox" aria-checked="${isChecked ? 'true' : 'false'}"></span><span class="apple-checklist-text">${itemText.trim()}</span></div>`;
+    });
 
     // Convert legacy ==highlight== to <mark>
     text = text.replace(/==([\s\S]+?)==/g, '<mark style="background: rgba(245, 158, 11, 0.35); color: inherit; padding: 1px 5px; border-radius: 4px; font-weight: 700;">$1</mark>');
@@ -480,8 +493,8 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
     // Convert legacy `code` to <code>
     text = text.replace(/`([^`]+?)`/g, '<code style="background: var(--ios-bg-secondary); padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 0.9em;">$1</code>');
 
-    // If text already has HTML tags (<p>, <div>, <mark>, <strong>, <em>, <h3>, <ul>, <li>, <br>), return cleaned text
-    if (/<(p|div|mark|strong|b|em|i|h1|h2|h3|ul|ol|li|br)[\s>]/i.test(text)) {
+    // If text already has HTML tags (<p>, <div>, <mark>, <strong>, <em>, <h3>, <ul>, <li>, <br>, apple-checklist-row), return cleaned text
+    if (/<(p|div|mark|strong|b|em|i|h1|h2|h3|ul|ol|li|br|span)[\s>]/i.test(text)) {
       return text;
     }
 
@@ -511,7 +524,17 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
     return { wordCount, readTimeMinutes };
   };
 
-  // WYSIWYG Formatting Handlers
+  // Helper to cleanly unwrap/remove a highlight element
+  const unwrapHighlightElement = (el: HTMLElement) => {
+    const parent = el.parentNode;
+    if (!parent) return;
+    while (el.firstChild) {
+      parent.insertBefore(el.firstChild, el);
+    }
+    parent.removeChild(el);
+  };
+
+  // WYSIWYG Formatting Handlers with Smart Toggle / Undo
   const handleApplyHighlight = (colorId?: string) => {
     triggerLightHaptic();
     const activeColorId = colorId || selectedHighlightColor;
@@ -521,8 +544,38 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
     const colorObj = HIGHLIGHT_COLORS.find(c => c.id === activeColorId) || HIGHLIGHT_COLORS[0];
 
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
-      showSystemToast(`Selected ${colorObj.label} highlighter. Highlight text to apply.`, 'info');
+    if (!selection || selection.rangeCount === 0) {
+      showSystemToast(`Selected ${colorObj.label} highlighter. Highlight text to apply or tap to toggle off.`, 'info');
+      return;
+    }
+
+    // 1. Check if cursor or selection is directly inside an existing highlight mark / span
+    let container: Node | null = selection.anchorNode;
+    if (container?.nodeType === Node.TEXT_NODE) {
+      container = container.parentElement;
+    }
+    const currentHighlightEl = (container as HTMLElement)?.closest('mark, span[data-highlight], span[data-highlight-color], span[style*="background"]') as HTMLElement | null;
+
+    if (currentHighlightEl) {
+      const existingColor = currentHighlightEl.getAttribute('data-highlight-color') || currentHighlightEl.getAttribute('data-highlight') || 'yellow';
+      if (existingColor === activeColorId) {
+        // Toggle OFF / Undo Highlight!
+        unwrapHighlightElement(currentHighlightEl);
+        syncEditorContent();
+        return;
+      } else {
+        // Switch highlight color
+        currentHighlightEl.setAttribute('data-highlight-color', activeColorId);
+        currentHighlightEl.setAttribute('data-highlight', activeColorId);
+        currentHighlightEl.style.background = colorObj.bg;
+        currentHighlightEl.style.color = colorObj.text || 'inherit';
+        syncEditorContent();
+        return;
+      }
+    }
+
+    if (selection.isCollapsed) {
+      showSystemToast(`Selected ${colorObj.label} highlighter. Highlight text to apply or tap to toggle off.`, 'info');
       return;
     }
 
@@ -530,30 +583,37 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
     const selectedText = range.toString();
     if (!selectedText.trim()) return;
 
-    // Toggle highlight if already inside a mark
-    const parentMark = selection.anchorNode?.parentElement?.closest('mark');
-    if (parentMark) {
-      const currentMarkColor = parentMark.getAttribute('data-highlight-color') || 'yellow';
-      if (currentMarkColor === activeColorId) {
-        // Toggle off
-        const parent = parentMark.parentNode;
-        while (parentMark.firstChild) {
-          parent?.insertBefore(parentMark.firstChild, parentMark);
+    // 2. Check if range contains any existing marks
+    const commonAncestor = range.commonAncestorContainer;
+    const ancestorEl = commonAncestor.nodeType === Node.ELEMENT_NODE ? commonAncestor as HTMLElement : commonAncestor.parentElement;
+    if (ancestorEl) {
+      const marksInRange = Array.from(ancestorEl.querySelectorAll('mark, span[data-highlight], span[data-highlight-color], span[style*="background"]')).filter(el => {
+        try {
+          return selection.containsNode(el, true);
+        } catch {
+          return false;
         }
-        parent?.removeChild(parentMark);
-        syncEditorContent();
-        return;
-      } else {
-        // Switch color of existing mark
-        parentMark.setAttribute('data-highlight-color', activeColorId);
-        parentMark.style.background = colorObj.bg;
-        syncEditorContent();
-        return;
+      }) as HTMLElement[];
+
+      if (marksInRange.length > 0) {
+        const allSameColor = marksInRange.every(el => {
+          const c = el.getAttribute('data-highlight-color') || el.getAttribute('data-highlight') || 'yellow';
+          return c === activeColorId;
+        });
+
+        if (allSameColor) {
+          // Toggle off all highlights in selection
+          marksInRange.forEach(unwrapHighlightElement);
+          syncEditorContent();
+          return;
+        }
       }
     }
 
+    // 3. Apply new highlight mark
     const mark = document.createElement('mark');
     mark.setAttribute('data-highlight-color', activeColorId);
+    mark.setAttribute('data-highlight', activeColorId);
     mark.style.background = colorObj.bg;
     mark.style.color = 'inherit';
     mark.style.padding = '1px 5px';
@@ -561,11 +621,64 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
     mark.style.fontWeight = '700';
 
     try {
-      range.surroundContents(mark);
-    } catch (e) {
+      const contents = range.extractContents();
+      mark.appendChild(contents);
+      range.insertNode(mark);
+      selection.removeAllRanges();
+      const newRange = document.createRange();
+      newRange.selectNodeContents(mark);
+      selection.addRange(newRange);
+    } catch {
       document.execCommand('hiliteColor', false, colorObj.dot);
     }
 
+    syncEditorContent();
+  };
+
+  const handleRemoveHighlight = () => {
+    triggerLightHaptic();
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    let container: Node | null = selection.anchorNode;
+    if (container?.nodeType === Node.TEXT_NODE) {
+      container = container.parentElement;
+    }
+    const currentHighlightEl = (container as HTMLElement)?.closest('mark, span[data-highlight], span[data-highlight-color], span[style*="background"]') as HTMLElement | null;
+
+    if (currentHighlightEl) {
+      unwrapHighlightElement(currentHighlightEl);
+      syncEditorContent();
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    const commonAncestor = range.commonAncestorContainer;
+    const ancestorEl = commonAncestor.nodeType === Node.ELEMENT_NODE ? commonAncestor as HTMLElement : commonAncestor.parentElement;
+    if (ancestorEl) {
+      const marksInRange = Array.from(ancestorEl.querySelectorAll('mark, span[data-highlight], span[data-highlight-color], span[style*="background"]')).filter(el => {
+        try {
+          return selection.containsNode(el, true);
+        } catch {
+          return false;
+        }
+      }) as HTMLElement[];
+      marksInRange.forEach(unwrapHighlightElement);
+    }
+
+    document.execCommand('hiliteColor', false, 'transparent');
+    syncEditorContent();
+  };
+
+  const handleUndo = () => {
+    triggerLightHaptic();
+    document.execCommand('undo', false);
+    syncEditorContent();
+  };
+
+  const handleRedo = () => {
+    triggerLightHaptic();
+    document.execCommand('redo', false);
     syncEditorContent();
   };
 
@@ -585,6 +698,218 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
     triggerLightHaptic();
     document.execCommand('formatBlock', false, '<h3>');
     syncEditorContent();
+  };
+
+  // Apple Notes Checklist handler
+  const handleInsertChecklistItem = () => {
+    triggerLightHaptic();
+    if (!noteEditorRef.current) return;
+    noteEditorRef.current.focus();
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+
+    // Check if cursor is already inside a checklist row -> toggle back to normal paragraph
+    let node: Node | null = selection.anchorNode;
+    if (node?.nodeType === Node.TEXT_NODE) node = node.parentElement;
+    const existingRow = (node as HTMLElement)?.closest('.apple-checklist-row') as HTMLElement | null;
+
+    if (existingRow) {
+      const textSpan = existingRow.querySelector('.apple-checklist-text');
+      const text = textSpan ? textSpan.textContent || '' : existingRow.textContent || '';
+      const p = document.createElement('p');
+      if (text.trim()) {
+        p.textContent = text;
+      } else {
+        p.innerHTML = '<br>';
+      }
+      existingRow.parentNode?.replaceChild(p, existingRow);
+      
+      const newRange = document.createRange();
+      newRange.selectNodeContents(p);
+      newRange.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(newRange);
+      syncEditorContent();
+      return;
+    }
+
+    // Extract current selection or line text
+    const selectedText = range.toString() || '';
+
+    const checklistRow = document.createElement('div');
+    checklistRow.className = 'apple-checklist-row';
+    checklistRow.setAttribute('data-checked', 'false');
+
+    const bullet = document.createElement('span');
+    bullet.className = 'apple-checklist-bullet';
+    bullet.setAttribute('contenteditable', 'false');
+    bullet.setAttribute('role', 'checkbox');
+    bullet.setAttribute('aria-checked', 'false');
+
+    const textSpan = document.createElement('span');
+    textSpan.className = 'apple-checklist-text';
+    textSpan.innerHTML = selectedText.trim() ? selectedText : '<br>';
+
+    checklistRow.appendChild(bullet);
+    checklistRow.appendChild(textSpan);
+
+    const parentBlock = (node as HTMLElement)?.closest('p, div, h1, h2, h3, li');
+    if (parentBlock && parentBlock !== noteEditorRef.current && (!parentBlock.textContent || parentBlock.textContent.trim() === '')) {
+      parentBlock.parentNode?.replaceChild(checklistRow, parentBlock);
+    } else {
+      range.deleteContents();
+      range.insertNode(checklistRow);
+    }
+
+    // Focus cursor inside textSpan
+    const newRange = document.createRange();
+    newRange.selectNodeContents(textSpan);
+    newRange.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(newRange);
+
+    syncEditorContent();
+  };
+
+  // Keyboard navigation for Apple Notes Checklist (Enter creates next checklist bullet, Backspace on empty bullet exits)
+  const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter') {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return;
+
+      let node: Node | null = selection.anchorNode;
+      if (node?.nodeType === Node.TEXT_NODE) node = node.parentElement;
+      const checklistRow = (node as HTMLElement)?.closest('.apple-checklist-row') as HTMLElement | null;
+
+      if (checklistRow) {
+        const textSpan = checklistRow.querySelector('.apple-checklist-text');
+        const text = textSpan?.textContent?.trim() || '';
+
+        if (text === '') {
+          // Empty checklist row -> exit checklist mode back to regular paragraph
+          e.preventDefault();
+          const p = document.createElement('p');
+          p.innerHTML = '<br>';
+          checklistRow.parentNode?.replaceChild(p, checklistRow);
+
+          const newRange = document.createRange();
+          newRange.selectNodeContents(p);
+          newRange.collapse(false);
+          selection.removeAllRanges();
+          selection.addRange(newRange);
+          syncEditorContent();
+          return;
+        }
+
+        // Create new unchecked checklist row below
+        e.preventDefault();
+        const newRow = document.createElement('div');
+        newRow.className = 'apple-checklist-row';
+        newRow.setAttribute('data-checked', 'false');
+
+        const bullet = document.createElement('span');
+        bullet.className = 'apple-checklist-bullet';
+        bullet.setAttribute('contenteditable', 'false');
+        bullet.setAttribute('role', 'checkbox');
+        bullet.setAttribute('aria-checked', 'false');
+
+        const newText = document.createElement('span');
+        newText.className = 'apple-checklist-text';
+        newText.innerHTML = '<br>';
+
+        newRow.appendChild(bullet);
+        newRow.appendChild(newText);
+
+        checklistRow.after(newRow);
+
+        const newRange = document.createRange();
+        newRange.selectNodeContents(newText);
+        newRange.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+        syncEditorContent();
+        return;
+      }
+    }
+
+    if (e.key === 'Backspace') {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return;
+
+      let node: Node | null = selection.anchorNode;
+      if (node?.nodeType === Node.TEXT_NODE) node = node.parentElement;
+      const checklistRow = (node as HTMLElement)?.closest('.apple-checklist-row') as HTMLElement | null;
+
+      if (checklistRow) {
+        const textSpan = checklistRow.querySelector('.apple-checklist-text');
+        const text = textSpan?.textContent?.trim() || '';
+
+        if (text === '') {
+          // Remove empty checklist bullet and convert to normal paragraph
+          e.preventDefault();
+          const p = document.createElement('p');
+          p.innerHTML = '<br>';
+          checklistRow.parentNode?.replaceChild(p, checklistRow);
+
+          const newRange = document.createRange();
+          newRange.selectNodeContents(p);
+          newRange.collapse(false);
+          selection.removeAllRanges();
+          selection.addRange(newRange);
+          syncEditorContent();
+          return;
+        }
+      }
+    }
+  };
+
+  // Click on checklist bullet inside editor
+  const handleEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const bullet = target.closest('.apple-checklist-bullet') as HTMLElement | null;
+    if (bullet) {
+      e.preventDefault();
+      e.stopPropagation();
+      const row = bullet.closest('.apple-checklist-row') as HTMLElement | null;
+      if (row) {
+        triggerSelectionHaptic();
+        const isChecked = row.getAttribute('data-checked') === 'true';
+        row.setAttribute('data-checked', isChecked ? 'false' : 'true');
+        bullet.setAttribute('aria-checked', isChecked ? 'false' : 'true');
+        syncEditorContent();
+      }
+    }
+  };
+
+  // Toggle checklist in Reader Modal
+  const handleToggleReaderChecklist = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const bullet = target.closest('.apple-checklist-bullet') as HTMLElement | null;
+    if (bullet && readingNote) {
+      e.preventDefault();
+      e.stopPropagation();
+      const row = bullet.closest('.apple-checklist-row') as HTMLElement | null;
+      if (row) {
+        triggerSelectionHaptic();
+        const isChecked = row.getAttribute('data-checked') === 'true';
+        row.setAttribute('data-checked', isChecked ? 'false' : 'true');
+        bullet.setAttribute('aria-checked', isChecked ? 'false' : 'true');
+
+        const container = bullet.closest('.study-note-rendered');
+        if (container) {
+          const updatedNote: SubjectNote = {
+            ...readingNote,
+            content: container.innerHTML,
+            updatedAt: new Date().toISOString()
+          };
+          setReadingNote(updatedNote);
+          onSaveNote(updatedNote);
+        }
+      }
+    }
   };
 
   const handleApplyBulletList = () => {
@@ -706,13 +1031,51 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
     return (a.date || '').localeCompare(b.date || '');
   });
 
+  // Helper for checklist item stats
+  const getNoteChecklistStats = (content: string) => {
+    if (!content) return { total: 0, checked: 0, totalCount: 0, checkedCount: 0, hasChecklist: false };
+    const checkedCount = (content.match(/data-checked="true"/gi) || []).length + (content.match(/-\s*\[x\]/gi) || []).length;
+    const totalCount = (content.match(/class="apple-checklist-row"/gi) || []).length + (content.match(/-\s*\[[ xX]\]/gi) || []).length;
+    return {
+      total: totalCount,
+      checked: checkedCount,
+      totalCount,
+      checkedCount,
+      hasChecklist: totalCount > 0
+    };
+  };
+
+  // Filter & Search notes
+  const totalNotesCount = linkedNotes.length;
+  const pinnedNotesCount = linkedNotes.filter(n => n.isPinned).length;
+  const checklistNotesCount = linkedNotes.filter(n => getNoteChecklistStats(n.content).hasChecklist).length;
+
+  const filteredNotes = linkedNotes.filter(n => {
+    // 1. Search Query
+    if (noteSearchQuery.trim()) {
+      const q = noteSearchQuery.toLowerCase().trim();
+      const titleMatch = (n.title || '').toLowerCase().includes(q);
+      const contentMatch = (n.content || '').toLowerCase().includes(q);
+      if (!titleMatch && !contentMatch) return false;
+    }
+
+    // 2. Filter Tab
+    if (noteFilterTab === 'pinned') return n.isPinned;
+    if (noteFilterTab === 'checklist') return getNoteChecklistStats(n.content).hasChecklist;
+
+    return true;
+  });
+
   // Sort notes: pinned first, then by updatedAt/createdAt descending
-  const sortedNotes = [...linkedNotes].sort((a, b) => {
+  const sortedNotes = [...filteredNotes].sort((a, b) => {
     if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
     const timeB = (b.updatedAt || b.createdAt || '');
     const timeA = (a.updatedAt || a.createdAt || '');
     return timeB.localeCompare(timeA);
   });
+
+  const pinnedNotesList = sortedNotes.filter(n => n.isPinned);
+  const otherNotesList = sortedNotes.filter(n => !n.isPinned);
 
   // Filter linked Course Links & Topics
   const linkedCourseLinks = (links || []).filter(l => l.courseId === course.id);
@@ -3049,47 +3412,169 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
         {/* ================= TAB 3: NOTES PINBOARD ================= */}
         {activeTab === 'notes' && (
           <div className="pinboard-canvas-container">
-            {/* Top Bar for Pinboard */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="pinboard-badge-tag">
-                  📌 PINBOARD
-                </span>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ios-text-secondary)' }}>
-                  {linkedNotes.length} {linkedNotes.length === 1 ? 'Sticky Note' : 'Sticky Notes'}
-                </span>
+            {/* Top Toolbar Surface */}
+            <div className="pinboard-toolbar-surface">
+              {/* Row 1: Search & Add Note */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+                <div className="pinboard-search-input-wrap">
+                  <Search size={15} style={{ color: 'var(--ios-text-muted)', flexShrink: 0 }} />
+                  <input
+                    type="text"
+                    placeholder="Search notes, formulas, pointers..."
+                    value={noteSearchQuery}
+                    onChange={(e) => setNoteSearchQuery(e.target.value)}
+                    className="pinboard-search-input"
+                  />
+                  {noteSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerSelectionHaptic();
+                        setNoteSearchQuery('');
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 2,
+                        cursor: 'pointer',
+                        color: 'var(--ios-text-muted)',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => {
+                    triggerLightHaptic();
+                    setEditingNoteId(null);
+                    setNoteTitle('');
+                    setNoteContent('');
+                    setIsCreatingNote(true);
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 20,
+                    border: 'none',
+                    background: themeColor,
+                    color: '#FFFFFF',
+                    fontSize: 12.5,
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    cursor: 'pointer',
+                    boxShadow: `0 4px 12px -2px ${themeColor}66`,
+                    flexShrink: 0
+                  }}
+                >
+                  <Plus size={15} strokeWidth={2.5} />
+                  <span>New Note</span>
+                </button>
               </div>
 
-              <button
-                onClick={() => {
-                  triggerLightHaptic();
-                  setEditingNoteId(null);
-                  setNoteTitle('');
-                  setNoteContent('');
-                  setIsCreatingNote(true);
-                }}
-                style={{
-                  padding: '7px 16px',
-                  borderRadius: 20,
-                  border: 'none',
-                  background: themeColor,
-                  color: '#FFFFFF',
-                  fontSize: 12.5,
-                  fontWeight: 800,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  cursor: 'pointer',
-                  boxShadow: `0 4px 12px -2px ${themeColor}66`
-                }}
-              >
-                <Plus size={15} strokeWidth={2.5} />
-                <span>New Sticky Note</span>
-              </button>
+              {/* Row 2: Filter Chips & View Mode Toggle */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 8 }}>
+                {/* Filter Chips */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerSelectionHaptic();
+                      setNoteFilterTab('all');
+                    }}
+                    className={`pinboard-filter-chip ${noteFilterTab === 'all' ? 'active' : ''}`}
+                  >
+                    All ({totalNotesCount})
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerSelectionHaptic();
+                      setNoteFilterTab('pinned');
+                    }}
+                    className={`pinboard-filter-chip ${noteFilterTab === 'pinned' ? 'active' : ''}`}
+                  >
+                    <Pin size={11} fill={noteFilterTab === 'pinned' ? 'currentColor' : 'none'} />
+                    Pinned ({pinnedNotesCount})
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerSelectionHaptic();
+                      setNoteFilterTab('checklist');
+                    }}
+                    className={`pinboard-filter-chip ${noteFilterTab === 'checklist' ? 'active' : ''}`}
+                  >
+                    <CheckSquare size={11} />
+                    Checklists ({checklistNotesCount})
+                  </button>
+                </div>
+
+                {/* View Mode Toggle */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--ios-bg-grouped)', padding: 3, borderRadius: 10, border: '1px solid var(--ios-card-border)' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerSelectionHaptic();
+                      setNoteViewMode('wall');
+                    }}
+                    style={{
+                      padding: '5px 9px',
+                      borderRadius: 7,
+                      border: 'none',
+                      background: noteViewMode === 'wall' ? 'var(--ios-card-bg)' : 'transparent',
+                      color: noteViewMode === 'wall' ? themeColor : 'var(--ios-text-muted)',
+                      boxShadow: noteViewMode === 'wall' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontSize: 11,
+                      fontWeight: 700
+                    }}
+                    title="Wall Grid View"
+                  >
+                    <LayoutGrid size={13} />
+                    <span>Wall</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerSelectionHaptic();
+                      setNoteViewMode('list');
+                    }}
+                    style={{
+                      padding: '5px 9px',
+                      borderRadius: 7,
+                      border: 'none',
+                      background: noteViewMode === 'list' ? 'var(--ios-card-bg)' : 'transparent',
+                      color: noteViewMode === 'list' ? themeColor : 'var(--ios-text-muted)',
+                      boxShadow: noteViewMode === 'list' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontSize: 11,
+                      fontWeight: 700
+                    }}
+                    title="Compact List View"
+                  >
+                    <List size={13} />
+                    <span>List</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Sticky Notes Canvas */}
-            {sortedNotes.length === 0 ? (
+            {/* Empty State: No Notes at all */}
+            {linkedNotes.length === 0 ? (
               <div className="pinboard-empty-state">
                 <div 
                   style={{ 
@@ -3107,10 +3592,10 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                   <FileText size={26} />
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ios-text-primary)', marginBottom: 4 }}>
-                  No sticky notes pinned yet
+                  No study notes pinned yet
                 </div>
                 <div style={{ fontSize: 12.5, color: 'var(--ios-text-muted)', marginBottom: 18, lineHeight: 1.45, maxWidth: 320, margin: '0 auto 18px auto' }}>
-                  Pin lecture key takeaways, formula cheats, announcements, and study pointers to this corkboard.
+                  Pin lecture takeaways, exam pointers, checklists, and formulas to this organized study wall.
                 </div>
                 <button
                   onClick={() => {
@@ -3135,148 +3620,507 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                   <Plus size={16} /> Pin First Note
                 </button>
               </div>
-            ) : (
-              <div className="sticky-notes-board-grid">
+            ) : sortedNotes.length === 0 ? (
+              /* Empty Search / Filter Result */
+              <div className="pinboard-empty-state">
+                <div 
+                  style={{ 
+                    width: 48, 
+                    height: 48, 
+                    borderRadius: 16, 
+                    background: 'var(--ios-bg-grouped)', 
+                    color: 'var(--ios-text-muted)',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    margin: '0 auto 12px auto' 
+                  }}
+                >
+                  <Search size={22} />
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ios-text-primary)', marginBottom: 4 }}>
+                  No matching notes found
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--ios-text-muted)', marginBottom: 16 }}>
+                  Try changing your search keywords or switching filter tabs.
+                </div>
+                <button
+                  onClick={() => {
+                    triggerSelectionHaptic();
+                    setNoteSearchQuery('');
+                    setNoteFilterTab('all');
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    padding: '7px 14px',
+                    borderRadius: 16,
+                    background: 'var(--ios-bg-grouped)',
+                    color: 'var(--ios-text-primary)',
+                    border: '1px solid var(--ios-card-border)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Reset Filter
+                </button>
+              </div>
+            ) : noteViewMode === 'list' ? (
+              /* ================= COMPACT LIST VIEW ================= */
+              <div className="notes-list-container">
                 {sortedNotes.map((note, idx) => {
                   const stats = getNoteStats(note.content);
+                  const clStats = getNoteChecklistStats(note.content);
                   const colorPresets = [
-                    { id: 'yellow', bg: '#FEF9C3', border: '#FDE047', text: '#713F12', pin: '#EF4444', darkBg: '#342E16', darkBorder: '#695719', darkText: '#FEF08A' },
-                    { id: 'mint', bg: '#DCFCE7', border: '#86EFAC', text: '#14532D', pin: '#10B981', darkBg: '#193021', darkBorder: '#27603B', darkText: '#BBF7D0' },
-                    { id: 'peach', bg: '#FFEDD5', border: '#FDBA74', text: '#7C2D12', pin: '#F97316', darkBg: '#342014', darkBorder: '#6D3820', darkText: '#FED7AA' },
-                    { id: 'sky', bg: '#E0F2FE', border: '#7DD3FC', text: '#0C4A6E', pin: '#0284C7', darkBg: '#162838', darkBorder: '#1F5374', darkText: '#BAE6FD' },
-                    { id: 'lavender', bg: '#F3E8FF', border: '#D8B4FE', text: '#581C87', pin: '#A855F7', darkBg: '#271838', darkBorder: '#513172', darkText: '#E9D5FF' },
-                    { id: 'rose', bg: '#FFE4E6', border: '#FDA4AF', text: '#881337', pin: '#F43F5E', darkBg: '#32161F', darkBorder: '#682337', darkText: '#FECDD3' }
+                    { id: 'yellow', border: '#FDE047', pin: '#EF4444' },
+                    { id: 'mint', border: '#86EFAC', pin: '#10B981' },
+                    { id: 'peach', border: '#FDBA74', pin: '#F97316' },
+                    { id: 'sky', border: '#7DD3FC', pin: '#0284C7' },
+                    { id: 'lavender', border: '#D8B4FE', pin: '#A855F7' },
+                    { id: 'rose', border: '#FDA4AF', pin: '#F43F5E' }
                   ];
                   const c = colorPresets[idx % colorPresets.length];
-                  const rotationDeg = note.isPinned ? 0 : ((idx % 5) - 2) * 1.3;
 
                   return (
                     <div
                       key={note.id}
-                      className={`sticky-note-card ${note.isPinned ? 'is-pinned-sticky' : ''}`}
-                      style={{
-                        '--sticky-bg': c.bg,
-                        '--sticky-border': c.border,
-                        '--sticky-text': c.text,
-                        '--sticky-dark-bg': c.darkBg,
-                        '--sticky-dark-border': c.darkBorder,
-                        '--sticky-dark-text': c.darkText,
-                        '--sticky-rot': `${rotationDeg}deg`
-                      } as React.CSSProperties}
+                      className="notes-list-item-card"
+                      onClick={() => {
+                        triggerSelectionHaptic();
+                        setReadingNote(note);
+                      }}
+                      style={{ borderLeft: `4px solid ${note.isPinned ? '#F59E0B' : c.border}` }}
                     >
-                      {/* Realistic 3D Pushpin */}
-                      <div className="sticky-pushpin-wrap">
-                        <div 
-                          className="sticky-pushpin-pin" 
-                          style={{ background: note.isPinned ? '#F59E0B' : c.pin }}
-                        >
-                          <div className="sticky-pushpin-shine" />
-                        </div>
-                        <div className="sticky-pushpin-shadow" />
-                      </div>
-
-                      {/* Sticky Note Content */}
-                      <div className="sticky-note-content-box">
-                        {/* Header */}
-                        <div className="sticky-note-top-row">
-                          <div style={{ flex: 1, minWidth: 0, paddingRight: 4 }}>
-                            {note.isPinned && (
-                              <span className="sticky-pin-pill">
-                                <Pin size={9} fill="#D97706" /> PINNED
-                              </span>
-                            )}
-                            <h3 className="sticky-note-heading" title={note.title || 'Untitled Note'}>
-                              {note.title || 'Untitled Note'}
-                            </h3>
-                          </div>
-
-                          {/* Quick Action Icons */}
-                          <div className="sticky-note-actions">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                triggerSelectionHaptic();
-                                setReadingNote(note);
-                              }}
-                              className="sticky-mini-btn"
-                              title="Read full note"
-                            >
-                              <Maximize2 size={11.5} strokeWidth={2.5} />
-                            </button>
-
-                            {onTogglePinNote && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  triggerSelectionHaptic();
-                                  onTogglePinNote(note.id);
-                                }}
-                                className={`sticky-mini-btn ${note.isPinned ? 'active-pin' : ''}`}
-                                title={note.isPinned ? 'Unpin' : 'Pin to top'}
-                              >
-                                <Pin size={11.5} fill={note.isPinned ? '#F59E0B' : 'none'} />
-                              </button>
-                            )}
-
-                            <button
-                              type="button"
-                              onClick={() => handleStartEditNote(note)}
-                              className="sticky-mini-btn"
-                              title="Edit note"
-                            >
-                              <Edit3 size={11.5} />
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setConfirmModal({
-                                  isOpen: true,
-                                  title: 'Delete Note?',
-                                  message: `Are you sure you want to delete "${note.title || 'this note'}"?`,
-                                  confirmText: 'Delete Note',
-                                  onConfirm: () => {
-                                    triggerLightHaptic();
-                                    onDeleteNote(note.id);
-                                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
-                                  }
-                                });
-                              }}
-                              className="sticky-mini-btn delete-btn"
-                              title="Delete note"
-                            >
-                              <Trash2 size={11.5} />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Note Excerpt / Content */}
-                        <div 
-                          className="sticky-note-body-preview"
-                          onClick={() => {
-                            triggerSelectionHaptic();
-                            setReadingNote(note);
-                          }}
-                        >
-                          {note.content ? (
-                            <p>{note.content}</p>
-                          ) : (
-                            <p className="sticky-empty-text">Empty note snippet...</p>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          {note.isPinned && (
+                            <span style={{ fontSize: 10, fontWeight: 800, color: '#D97706', display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <Pin size={10} fill="#D97706" /> PINNED
+                            </span>
                           )}
+                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ios-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {note.title || 'Untitled Note'}
+                          </div>
                         </div>
 
-                        {/* Footer */}
-                        <div className="sticky-note-bottom-bar">
+                        <div style={{ fontSize: 12, color: 'var(--ios-text-secondary)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <span>{new Date(note.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                           <span>•</span>
-                          <span>{stats.wordCount}w</span>
+                          <span>{stats.wordCount} words</span>
                           <span>•</span>
                           <span>{stats.readTimeMinutes}m read</span>
+                          {clStats.hasChecklist && (
+                            <>
+                              <span>•</span>
+                              <span style={{ color: clStats.checkedCount === clStats.totalCount ? '#10B981' : themeColor, fontWeight: 700 }}>
+                                ☑️ {clStats.checkedCount}/{clStats.totalCount} items
+                              </span>
+                            </>
+                          )}
                         </div>
+                      </div>
+
+                      {/* List Item Actions */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={(e) => e.stopPropagation()}>
+                        {onTogglePinNote && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              triggerSelectionHaptic();
+                              onTogglePinNote(note.id);
+                            }}
+                            className={`sticky-mini-btn ${note.isPinned ? 'active-pin' : ''}`}
+                            title={note.isPinned ? 'Unpin' : 'Pin to top'}
+                          >
+                            <Pin size={12} fill={note.isPinned ? '#F59E0B' : 'none'} />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditNote(note)}
+                          className="sticky-mini-btn"
+                          title="Edit note"
+                        >
+                          <Edit3 size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setConfirmModal({
+                              isOpen: true,
+                              title: 'Delete Note?',
+                              message: `Are you sure you want to delete "${note.title || 'this note'}"?`,
+                              confirmText: 'Delete Note',
+                              onConfirm: () => {
+                                triggerLightHaptic();
+                                onDeleteNote(note.id);
+                                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                              }
+                            });
+                          }}
+                          className="sticky-mini-btn delete-btn"
+                          title="Delete note"
+                        >
+                          <Trash2 size={12} />
+                        </button>
                       </div>
                     </div>
                   );
                 })}
+              </div>
+            ) : (
+              /* ================= ORGANIZED WALL GRID VIEW ================= */
+              <div>
+                {/* 1. If 'all' tab is active and there are pinned notes, show Pinned section first */}
+                {noteFilterTab === 'all' && pinnedNotesList.length > 0 && (
+                  <div style={{ marginBottom: 24 }}>
+                    <div className="notes-section-heading">
+                      <Pin size={13} fill="#D97706" style={{ color: '#D97706' }} />
+                      <span>PINNED KEY NOTES ({pinnedNotesList.length})</span>
+                    </div>
+
+                    <div className="sticky-notes-board-grid">
+                      {pinnedNotesList.map((note, idx) => {
+                        const stats = getNoteStats(note.content);
+                        const clStats = getNoteChecklistStats(note.content);
+                        const colorPresets = [
+                          { id: 'yellow', bg: '#FEF9C3', border: '#FDE047', text: '#713F12', pin: '#F59E0B', darkBg: '#342E16', darkBorder: '#695719', darkText: '#FEF08A' },
+                          { id: 'mint', bg: '#DCFCE7', border: '#86EFAC', text: '#14532D', pin: '#10B981', darkBg: '#193021', darkBorder: '#27603B', darkText: '#BBF7D0' },
+                          { id: 'peach', bg: '#FFEDD5', border: '#FDBA74', text: '#7C2D12', pin: '#F97316', darkBg: '#342014', darkBorder: '#6D3820', darkText: '#FED7AA' },
+                          { id: 'sky', bg: '#E0F2FE', border: '#7DD3FC', text: '#0C4A6E', pin: '#0284C7', darkBg: '#162838', darkBorder: '#1F5374', darkText: '#BAE6FD' }
+                        ];
+                        const c = colorPresets[idx % colorPresets.length];
+
+                        return (
+                          <div
+                            key={note.id}
+                            className="sticky-note-card is-pinned-sticky"
+                            style={{
+                              '--sticky-bg': c.bg,
+                              '--sticky-border': c.border,
+                              '--sticky-text': c.text,
+                              '--sticky-dark-bg': c.darkBg,
+                              '--sticky-dark-border': c.darkBorder,
+                              '--sticky-dark-text': c.darkText
+                            } as React.CSSProperties}
+                          >
+                            {/* Realistic Pushpin */}
+                            <div className="sticky-pushpin-wrap">
+                              <div className="sticky-pushpin-pin" style={{ background: '#F59E0B' }}>
+                                <div className="sticky-pushpin-shine" />
+                              </div>
+                              <div className="sticky-pushpin-shadow" />
+                            </div>
+
+                            {/* Dogear fold */}
+                            <div className="sticky-note-dogear" />
+
+                            {/* Card Content */}
+                            <div className="sticky-note-content-box">
+                              {/* Top Row */}
+                              <div className="sticky-note-top-row">
+                                <div style={{ flex: 1, minWidth: 0, paddingRight: 4 }}>
+                                  <span className="sticky-pin-pill">
+                                    <Pin size={9} fill="#D97706" /> PINNED
+                                  </span>
+                                  <h3 className="sticky-note-heading" title={note.title || 'Untitled Note'}>
+                                    {note.title || 'Untitled Note'}
+                                  </h3>
+                                </div>
+
+                                <div className="sticky-note-actions">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      triggerSelectionHaptic();
+                                      setReadingNote(note);
+                                    }}
+                                    className="sticky-mini-btn"
+                                    title="Read full note"
+                                  >
+                                    <Maximize2 size={11.5} strokeWidth={2.5} />
+                                  </button>
+
+                                  {onTogglePinNote && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        triggerSelectionHaptic();
+                                        onTogglePinNote(note.id);
+                                      }}
+                                      className="sticky-mini-btn active-pin"
+                                      title="Unpin note"
+                                    >
+                                      <Pin size={11.5} fill="#F59E0B" />
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStartEditNote(note)}
+                                    className="sticky-mini-btn"
+                                    title="Edit note"
+                                  >
+                                    <Edit3 size={11.5} />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setConfirmModal({
+                                        isOpen: true,
+                                        title: 'Delete Note?',
+                                        message: `Are you sure you want to delete "${note.title || 'this note'}"?`,
+                                        confirmText: 'Delete Note',
+                                        onConfirm: () => {
+                                          triggerLightHaptic();
+                                          onDeleteNote(note.id);
+                                          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                                        }
+                                      });
+                                    }}
+                                    className="sticky-mini-btn delete-btn"
+                                    title="Delete note"
+                                  >
+                                    <Trash2 size={11.5} />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Body preview */}
+                              <div 
+                                className="sticky-note-body-preview"
+                                onClick={(e) => {
+                                  const target = e.target as HTMLElement;
+                                  const bullet = target.closest('.apple-checklist-bullet') as HTMLElement | null;
+                                  if (bullet) {
+                                    e.stopPropagation();
+                                    const row = bullet.closest('.apple-checklist-row') as HTMLElement | null;
+                                    if (row) {
+                                      triggerSelectionHaptic();
+                                      const isChecked = row.getAttribute('data-checked') === 'true';
+                                      row.setAttribute('data-checked', isChecked ? 'false' : 'true');
+                                      bullet.setAttribute('aria-checked', isChecked ? 'false' : 'true');
+                                      const container = bullet.closest('.study-note-rendered');
+                                      if (container) {
+                                        const updatedNote = { ...note, content: container.innerHTML, updatedAt: new Date().toISOString() };
+                                        onSaveNote(updatedNote);
+                                      }
+                                    }
+                                    return;
+                                  }
+                                  triggerSelectionHaptic();
+                                  setReadingNote(note);
+                                }}
+                              >
+                                {note.content ? (
+                                  renderFormattedNoteContent(note.content)
+                                ) : (
+                                  <p className="sticky-empty-text">Empty note snippet...</p>
+                                )}
+                              </div>
+
+                              {/* Footer */}
+                              <div className="sticky-note-bottom-bar">
+                                <span>{new Date(note.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                                <span>•</span>
+                                <span>{stats.wordCount}w</span>
+                                {clStats.hasChecklist && (
+                                  <>
+                                    <span>•</span>
+                                    <span style={{ fontWeight: 700, color: clStats.checkedCount === clStats.totalCount ? '#10B981' : undefined }}>
+                                      ☑️ {clStats.checkedCount}/{clStats.totalCount}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Other Notes / Filtered Notes */}
+                <div>
+                  {noteFilterTab === 'all' && pinnedNotesList.length > 0 && otherNotesList.length > 0 && (
+                    <div className="notes-section-heading">
+                      <FileText size={13} />
+                      <span>STUDY NOTES & CHEATSHEETS ({otherNotesList.length})</span>
+                    </div>
+                  )}
+
+                  <div className="sticky-notes-board-grid">
+                    {(noteFilterTab === 'all' && pinnedNotesList.length > 0 ? otherNotesList : sortedNotes).map((note, idx) => {
+                      const stats = getNoteStats(note.content);
+                      const clStats = getNoteChecklistStats(note.content);
+                      const colorPresets = [
+                        { id: 'yellow', bg: '#FEF9C3', border: '#FDE047', text: '#713F12', pin: '#EF4444', darkBg: '#342E16', darkBorder: '#695719', darkText: '#FEF08A' },
+                        { id: 'mint', bg: '#DCFCE7', border: '#86EFAC', text: '#14532D', pin: '#10B981', darkBg: '#193021', darkBorder: '#27603B', darkText: '#BBF7D0' },
+                        { id: 'peach', bg: '#FFEDD5', border: '#FDBA74', text: '#7C2D12', pin: '#F97316', darkBg: '#342014', darkBorder: '#6D3820', darkText: '#FED7AA' },
+                        { id: 'sky', bg: '#E0F2FE', border: '#7DD3FC', text: '#0C4A6E', pin: '#0284C7', darkBg: '#162838', darkBorder: '#1F5374', darkText: '#BAE6FD' },
+                        { id: 'lavender', bg: '#F3E8FF', border: '#D8B4FE', text: '#581C87', pin: '#A855F7', darkBg: '#271838', darkBorder: '#513172', darkText: '#E9D5FF' },
+                        { id: 'rose', bg: '#FFE4E6', border: '#FDA4AF', text: '#881337', pin: '#F43F5E', darkBg: '#32161F', darkBorder: '#682337', darkText: '#FECDD3' }
+                      ];
+                      const c = colorPresets[idx % colorPresets.length];
+
+                      return (
+                        <div
+                          key={note.id}
+                          className={`sticky-note-card ${note.isPinned ? 'is-pinned-sticky' : ''}`}
+                          style={{
+                            '--sticky-bg': c.bg,
+                            '--sticky-border': c.border,
+                            '--sticky-text': c.text,
+                            '--sticky-dark-bg': c.darkBg,
+                            '--sticky-dark-border': c.darkBorder,
+                            '--sticky-dark-text': c.darkText
+                          } as React.CSSProperties}
+                        >
+                          {/* Pushpin */}
+                          <div className="sticky-pushpin-wrap">
+                            <div 
+                              className="sticky-pushpin-pin" 
+                              style={{ background: note.isPinned ? '#F59E0B' : c.pin }}
+                            >
+                              <div className="sticky-pushpin-shine" />
+                            </div>
+                            <div className="sticky-pushpin-shadow" />
+                          </div>
+
+                          {/* Dogear fold */}
+                          <div className="sticky-note-dogear" />
+
+                          {/* Card Content */}
+                          <div className="sticky-note-content-box">
+                            {/* Top Row */}
+                            <div className="sticky-note-top-row">
+                              <div style={{ flex: 1, minWidth: 0, paddingRight: 4 }}>
+                                {note.isPinned && (
+                                  <span className="sticky-pin-pill">
+                                    <Pin size={9} fill="#D97706" /> PINNED
+                                  </span>
+                                )}
+                                <h3 className="sticky-note-heading" title={note.title || 'Untitled Note'}>
+                                  {note.title || 'Untitled Note'}
+                                </h3>
+                              </div>
+
+                              <div className="sticky-note-actions">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    triggerSelectionHaptic();
+                                    setReadingNote(note);
+                                  }}
+                                  className="sticky-mini-btn"
+                                  title="Read full note"
+                                >
+                                  <Maximize2 size={11.5} strokeWidth={2.5} />
+                                </button>
+
+                                {onTogglePinNote && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      triggerSelectionHaptic();
+                                      onTogglePinNote(note.id);
+                                    }}
+                                    className={`sticky-mini-btn ${note.isPinned ? 'active-pin' : ''}`}
+                                    title={note.isPinned ? 'Unpin' : 'Pin to top'}
+                                  >
+                                    <Pin size={11.5} fill={note.isPinned ? '#F59E0B' : 'none'} />
+                                  </button>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEditNote(note)}
+                                  className="sticky-mini-btn"
+                                  title="Edit note"
+                                >
+                                  <Edit3 size={11.5} />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setConfirmModal({
+                                      isOpen: true,
+                                      title: 'Delete Note?',
+                                      message: `Are you sure you want to delete "${note.title || 'this note'}"?`,
+                                      confirmText: 'Delete Note',
+                                      onConfirm: () => {
+                                        triggerLightHaptic();
+                                        onDeleteNote(note.id);
+                                        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                                      }
+                                    });
+                                  }}
+                                  className="sticky-mini-btn delete-btn"
+                                  title="Delete note"
+                                >
+                                  <Trash2 size={11.5} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Body preview */}
+                            <div 
+                              className="sticky-note-body-preview"
+                              onClick={(e) => {
+                                const target = e.target as HTMLElement;
+                                const bullet = target.closest('.apple-checklist-bullet') as HTMLElement | null;
+                                if (bullet) {
+                                  e.stopPropagation();
+                                  const row = bullet.closest('.apple-checklist-row') as HTMLElement | null;
+                                  if (row) {
+                                    triggerSelectionHaptic();
+                                    const isChecked = row.getAttribute('data-checked') === 'true';
+                                    row.setAttribute('data-checked', isChecked ? 'false' : 'true');
+                                    bullet.setAttribute('aria-checked', isChecked ? 'false' : 'true');
+                                    const container = bullet.closest('.study-note-rendered');
+                                    if (container) {
+                                      const updatedNote = { ...note, content: container.innerHTML, updatedAt: new Date().toISOString() };
+                                      onSaveNote(updatedNote);
+                                    }
+                                  }
+                                  return;
+                                }
+                                triggerSelectionHaptic();
+                                setReadingNote(note);
+                              }}
+                            >
+                              {note.content ? (
+                                renderFormattedNoteContent(note.content)
+                              ) : (
+                                <p className="sticky-empty-text">Empty note snippet...</p>
+                              )}
+                            </div>
+
+                            {/* Footer */}
+                            <div className="sticky-note-bottom-bar">
+                              <span>{new Date(note.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                              <span>•</span>
+                              <span>{stats.wordCount}w</span>
+                              {clStats.hasChecklist && (
+                                <>
+                                  <span>•</span>
+                                  <span style={{ fontWeight: 700, color: clStats.checkedCount === clStats.totalCount ? '#10B981' : undefined }}>
+                                    ☑️ {clStats.checkedCount}/{clStats.totalCount}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -4128,7 +4972,7 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                 {readingNote.title || 'Untitled Note'}
               </h1>
 
-              <div style={{ fontSize: 14.5 }}>
+              <div style={{ fontSize: 14.5 }} onClick={handleToggleReaderChecklist}>
                 {renderFormattedNoteContent(readingNote.content)}
               </div>
             </div>
@@ -4148,46 +4992,41 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
             WebkitBackdropFilter: 'blur(12px)',
             display: 'flex',
             justifyContent: 'center',
-            alignItems: 'flex-end',
+            alignItems: 'center',
+            padding: '16px 12px',
             animation: 'fadeIn 0.2s ease-out'
           }}
           onClick={() => {
-            triggerLightHaptic();
-            setIsCreatingNote(false);
-            setEditingNoteId(null);
+            if (!noteTitle.trim() && !noteContent.trim()) {
+              setIsCreatingNote(false);
+              setEditingNoteId(null);
+            }
           }}
         >
           <div 
             style={{
               width: '100%',
               maxWidth: 720,
-              height: '94vh',
-              maxHeight: '94vh',
-              background: 'var(--ios-card-bg)',
-              borderRadius: '24px 24px 0 0',
-              border: '1px solid var(--ios-card-border)',
+              maxHeight: '92vh',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.35)',
-              overflow: 'hidden',
-              animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+              borderRadius: 24,
+              background: 'var(--ios-card-bg)',
+              border: '1px solid var(--ios-card-border)',
+              boxShadow: '0 24px 64px -12px rgba(0, 0, 0, 0.45)',
+              overflow: 'hidden'
             }}
             onClick={e => e.stopPropagation()}
           >
-            {/* Grab Handle */}
-            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, paddingBottom: 4 }}>
-              <div style={{ width: 36, height: 4.5, borderRadius: 3, background: 'var(--ios-text-muted)', opacity: 0.4 }} />
-            </div>
-
             {/* Modal Top Bar */}
             <div 
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '10px 18px',
-                borderBottom: '1px solid var(--ios-card-border)',
-                background: 'var(--ios-card-bg)'
+                padding: '14px 18px',
+                background: 'var(--ios-card-bg)',
+                borderBottom: '1px solid var(--ios-card-border)'
               }}
             >
               <button
@@ -4204,7 +5043,7 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                   fontSize: 14,
                   fontWeight: 600,
                   cursor: 'pointer',
-                  padding: '6px 8px'
+                  padding: '4px 6px'
                 }}
               >
                 Cancel
@@ -4214,8 +5053,8 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                 <span 
                   style={{
                     padding: '3px 8px',
-                    borderRadius: 7,
-                    background: `${themeColor}20`,
+                    borderRadius: 8,
+                    background: `${themeColor}18`,
                     color: themeColor,
                     fontSize: 11,
                     fontWeight: 800
@@ -4285,6 +5124,63 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                 scrollbarWidth: 'none'
               }}
             >
+              {/* Undo / Redo Actions */}
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 3, 
+                  padding: '3px 5px', 
+                  borderRadius: 8, 
+                  background: 'var(--ios-bg-secondary)', 
+                  border: '1px solid var(--ios-card-border)', 
+                  flexShrink: 0 
+                }}
+              >
+                <button
+                  type="button"
+                  onMouseDown={e => {
+                    e.preventDefault();
+                    handleUndo();
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--ios-text-primary)',
+                    cursor: 'pointer',
+                    padding: '5px 7px',
+                    borderRadius: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="Undo (Ctrl+Z / ⌘Z)"
+                >
+                  <Undo size={14} strokeWidth={2.5} />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={e => {
+                    e.preventDefault();
+                    handleRedo();
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--ios-text-primary)',
+                    cursor: 'pointer',
+                    padding: '5px 7px',
+                    borderRadius: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="Redo (Ctrl+Y / ⌘Shift+Z)"
+                >
+                  <Redo size={14} strokeWidth={2.5} />
+                </button>
+              </div>
+
               {/* Highlighter with Aesthetic Color Selector */}
               {(() => {
                 const activeHighlightObj = HIGHLIGHT_COLORS.find(c => c.id === selectedHighlightColor) || HIGHLIGHT_COLORS[0];
@@ -4320,7 +5216,7 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                         fontWeight: 800,
                         cursor: 'pointer'
                       }}
-                      title={`Highlight with ${activeHighlightObj.label}`}
+                      title={`Highlight / Toggle Off (${activeHighlightObj.label})`}
                     >
                       <Highlighter size={13} strokeWidth={2.5} />
                       <span>Highlight</span>
@@ -4350,7 +5246,7 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                               padding: 0,
                               transition: 'transform 0.15s ease, box-shadow 0.15s ease'
                             }}
-                            title={`${c.label} Highlighter`}
+                            title={`${c.label} Highlighter (tap again on highlighted text to undo)`}
                           />
                         );
                       })}
@@ -4379,7 +5275,7 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                   fontWeight: 900,
                   cursor: 'pointer'
                 }}
-                title="Bold"
+                title="Bold (Ctrl+B / ⌘B)"
               >
                 <Bold size={14} strokeWidth={2.5} />
                 <span>Bold</span>
@@ -4406,7 +5302,7 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                   fontWeight: 700,
                   cursor: 'pointer'
                 }}
-                title="Italic"
+                title="Italic (Ctrl+I / ⌘I)"
               >
                 <Italic size={14} strokeWidth={2.5} />
                 <span>Italic</span>
@@ -4435,6 +5331,32 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                 title="Heading"
               >
                 <span>H3</span>
+              </button>
+
+              {/* Apple Notes Style Checklist Button */}
+              <button
+                type="button"
+                onMouseDown={e => {
+                  e.preventDefault();
+                  handleInsertChecklistItem();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '6px 11px',
+                  borderRadius: 8,
+                  border: '1px solid var(--ios-card-border)',
+                  background: 'var(--ios-bg-secondary)',
+                  color: 'var(--ios-text-primary)',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+                title="Apple Notes Checklist Bullet"
+              >
+                <CheckSquare size={14} strokeWidth={2.5} />
+                <span>Checklist</span>
               </button>
 
               {/* Bullet List */}
@@ -4489,7 +5411,7 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                 <span>1. 2.</span>
               </button>
 
-              {/* Clear format */}
+              {/* Clear / Reset Formatting */}
               <button
                 type="button"
                 onMouseDown={e => {
@@ -4524,6 +5446,8 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                 suppressContentEditableWarning
                 onInput={syncEditorContent}
                 onBlur={syncEditorContent}
+                onKeyDown={handleEditorKeyDown}
+                onClick={handleEditorClick}
                 style={{
                   flex: 1,
                   minHeight: '260px',

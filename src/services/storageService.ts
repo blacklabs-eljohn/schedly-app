@@ -32,6 +32,49 @@ export const getCourseLinksKey = (userId?: string) => `schedly_course_links_${us
 export const getCourseTopicsKey = (userId?: string) => `schedly_course_topics_${userId || getLastActiveUserId() || 'guest'}`;
 export const getIconsKey = (userId?: string) => `schedly_custom_icons_${userId || getLastActiveUserId() || 'guest'}`;
 export const getPrivacyAcceptedKey = (userId?: string) => `schedly_privacy_accepted_${userId || getLastActiveUserId() || 'guest'}`;
+export const getActiveDatesKey = (userId?: string) => `schedly_active_dates_${userId || getLastActiveUserId() || 'guest'}`;
+
+export function recordLocalAppOpen(userId?: string): void {
+  try {
+    const key = getActiveDatesKey(userId);
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const raw = localStorage.getItem(key);
+    let dates: string[] = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(dates)) dates = [];
+    if (!dates.includes(today)) {
+      dates.push(today);
+      if (dates.length > 60) dates = dates.slice(dates.length - 60);
+      localStorage.setItem(key, JSON.stringify(dates));
+    }
+  } catch (err) {
+    console.error('Failed to record local app open', err);
+  }
+}
+
+export function getPendingActiveDates(userId?: string): string[] {
+  try {
+    const key = getActiveDatesKey(userId);
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function clearSyncedActiveDates(userId?: string, syncedDates: string[] = []): void {
+  try {
+    const key = getActiveDatesKey(userId);
+    const current = getPendingActiveDates(userId);
+    const remaining = current.filter(d => !syncedDates.includes(d));
+    if (remaining.length > 0) {
+      localStorage.setItem(key, JSON.stringify(remaining));
+    } else {
+      localStorage.removeItem(key);
+    }
+  } catch (err) {
+    console.error('Failed to clear synced active dates', err);
+  }
+}
 
 export function hasAcceptedPrivacyPolicy(userId?: string): boolean {
   try {

@@ -4,89 +4,320 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/widget_background"
-    android:padding="14dp">
+    android:background="@drawable/widget_liquid_glass_bg"
+    android:padding="11dp"
+    android:gravity="center_vertical">
 
-    <!-- Top Row: Badge & Status -->
+    <!-- Container 1: ACTIVE / UPCOMING CLASS STATE -->
     <LinearLayout
+        android:id="@+id/widget_up_next_active_container"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="SCHEDLY · UP NEXT"
-            android:textColor="#38BDF8"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.05" />
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
-
-        <TextView
-            android:id="@+id/widget_up_next_countdown"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/widget_chip_bg"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="2dp"
-            android:paddingBottom="2dp"
-            android:text="Starts soon"
-            android:textColor="#60A5FA"
-            android:textSize="10sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <!-- Main Subject Card Area -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical"
-        android:layout_marginTop="8dp">
+        android:gravity="center_vertical"
+        android:visibility="visible">
+
+        <!-- Top Header: Status Tag + Time Remaining Badge -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="5dp">
+
+            <!-- Status Tag (IN PROGRESS / UP NEXT) -->
+            <TextView
+                android:id="@+id/widget_up_next_status_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="IN PROGRESS"
+                android:textColor="#38BDF8"
+                android:textSize="9.5sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.06" />
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <!-- Countdown / Time Badge Pill -->
+            <TextView
+                android:id="@+id/widget_up_next_countdown_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/widget_liquid_glass_pill"
+                android:paddingStart="7dp"
+                android:paddingEnd="7dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:text="Ends in 45m"
+                android:textColor="#E2E8F0"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Main Course Title & Code -->
+        <TextView
+            android:id="@+id/widget_up_next_code"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="CS 112"
+            android:textColor="#FFFFFF"
+            android:textSize="16.5sp"
+            android:textStyle="bold"
+            android:letterSpacing="-0.02"
+            android:singleLine="true"
+            android:ellipsize="end" />
 
         <TextView
             android:id="@+id/widget_up_next_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="CS 112 - Data Structures"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
+            android:text="Data Structures &amp; Algorithms"
+            android:textColor="#CBD5E1"
+            android:textSize="10.5sp"
             android:textStyle="bold"
-            android:maxLines="1"
-            android:ellipsize="end" />
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:layout_marginBottom="5dp" />
 
+        <!-- Bento Details Card: Time, Room, Professor -->
+        <LinearLayout
+            android:id="@+id/widget_up_next_details_card"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:background="@drawable/widget_liquid_glass_card"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:gravity="center_vertical">
+
+            <!-- Time Span -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="2.5dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🕒 "
+                    android:textSize="9.5sp" />
+
+                <TextView
+                    android:id="@+id/widget_up_next_time"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="8:30 AM – 10:00 AM"
+                    android:textColor="#FFFFFF"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:singleLine="true"
+                    android:ellipsize="end" />
+            </LinearLayout>
+
+            <!-- Room / Venue -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="2.5dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📍 "
+                    android:textSize="9.5sp" />
+
+                <TextView
+                    android:id="@+id/widget_up_next_room"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="RM 304 · Science Bldg"
+                    android:textColor="#CBD5E1"
+                    android:textSize="9.5sp"
+                    android:singleLine="true"
+                    android:ellipsize="end" />
+            </LinearLayout>
+
+            <!-- Instructor / Professor -->
+            <LinearLayout
+                android:id="@+id/widget_up_next_instructor_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="👨‍🏫 "
+                    android:textSize="9.5sp" />
+
+                <TextView
+                    android:id="@+id/widget_up_next_instructor"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Prof. M. Dela Cruz"
+                    android:textColor="#94A3B8"
+                    android:textSize="9sp"
+                    android:singleLine="true"
+                    android:ellipsize="end" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Bottom Progress Track -->
+        <LinearLayout
+            android:id="@+id/widget_up_next_footer_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="5dp">
+
+            <ProgressBar
+                android:id="@+id/widget_up_next_progress_bar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="0dp"
+                android:layout_height="4.5dp"
+                android:layout_weight="1"
+                android:max="100"
+                android:progress="65"
+                android:progressDrawable="@drawable/widget_progress_bar_apple"
+                android:layout_marginEnd="6dp" />
+
+            <TextView
+                android:id="@+id/widget_up_next_progress_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="65%"
+                android:textColor="#38BDF8"
+                android:textSize="9.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Container 2: ALL DONE / CELEBRATION / REST DAY STATE -->
+    <LinearLayout
+        android:id="@+id/widget_up_next_done_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <!-- Top Header: Badge Pill -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="3dp"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
 
             <TextView
-                android:id="@+id/widget_up_next_details"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Lab 3 · Prof. Dela Cruz"
-                android:textColor="#94A3B8"
-                android:textSize="12sp"
-                android:maxLines="1"
-                android:ellipsize="end" />
-
-            <TextView
-                android:id="@+id/widget_up_next_time"
+                android:id="@+id/widget_up_next_done_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="8:00 AM - 9:30 AM"
-                android:textColor="#F8FAFC"
-                android:textSize="12sp"
+                android:background="@drawable/widget_liquid_glass_pill"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:text="🎉 ALL DONE"
+                android:textColor="#38BDF8"
+                android:textSize="9.5sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.06" />
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/widget_up_next_done_status_pill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/widget_liquid_glass_pill"
+                android:paddingStart="7dp"
+                android:paddingEnd="7dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:text="100% Done"
+                android:textColor="#10B981"
+                android:textSize="9sp"
                 android:textStyle="bold" />
         </LinearLayout>
+
+        <!-- Celebration Hero Card -->
+        <LinearLayout
+            android:id="@+id/widget_up_next_done_card"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:background="@drawable/widget_liquid_glass_card"
+            android:padding="8dp"
+            android:gravity="center">
+
+            <!-- Hero Emoji Icon -->
+            <TextView
+                android:id="@+id/widget_up_next_done_icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🎉"
+                android:textSize="22sp" />
+
+            <!-- Main Celebration Heading -->
+            <TextView
+                android:id="@+id/widget_up_next_done_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="All Done for Today!"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:layout_marginTop="2dp" />
+
+            <!-- Subtitle Message -->
+            <TextView
+                android:id="@+id/widget_up_next_done_sub"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="All classes completed. Enjoy your evening!"
+                android:textColor="#CBD5E1"
+                android:textSize="9.5sp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:layout_marginTop="1dp" />
+        </LinearLayout>
+
+        <!-- Footer Note: Next Schedule / Motivation -->
+        <TextView
+            android:id="@+id/widget_up_next_done_footer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="✨ See you in class tomorrow!"
+            android:textColor="#94A3B8"
+            android:textSize="9.5sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:layout_marginTop="4dp" />
     </LinearLayout>
 </LinearLayout>

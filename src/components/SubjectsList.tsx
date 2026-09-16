@@ -278,8 +278,8 @@ export const SubjectsList: React.FC<SubjectsListProps> = ({
             const isConflicting = conflicts.some(c => c.course1.id === course.id || c.course2.id === course.id);
             const durationMins = timeToMinutes(course.endTime) - timeToMinutes(course.startTime);
             const formattedDuration = formatDuration(Math.max(durationMins, 0));
-            // Match the user selected color theme (e.g. Monochrome / Obsidian black cascade)
-            const customBg = getSubjectCardGradient(idx, filteredCourses.length, subjectCardTheme || 'obsidian');
+            // Match the user selected color theme (e.g. Bluebook, Obsidian, Crimson, etc.)
+            const customBg = getSubjectCardGradient(idx, filteredCourses.length, subjectCardTheme || 'bluebook');
             const cleanDays = formatCleanDays(course.days);
             const cleanInstructor = course.instructor 
               ? course.instructor.startsWith('Prof.') ? course.instructor : `Prof. ${course.instructor}`

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Base Gradient -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#DB2777"
+                android:centerColor="#9D174D"
+                android:endColor="#430823"
+                android:angle="135" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    <!-- Top-Left Specular Light Glare -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#35FFFFFF"
+                android:centerColor="#0DFFFFFF"
+                android:endColor="#00000000"
+                android:angle="315" />
+            <corners android:radius="24dp" />
+            <stroke android:width="1.5dp" android:color="#4DFFFFFF" />
+        </shape>
+    </item>
+</layer-list>

@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_reminders_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_liquid_glass_bg"
+    android:padding="11dp">
+
+    <!-- Top Header: Title + Completion Counter -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="7dp">
+
+        <TextView
+            android:id="@+id/widget_reminders_header_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="REMINDERS"
+            android:textColor="#38BDF8"
+            android:textSize="10.5sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.05" />
+
+        <TextView
+            android:id="@+id/widget_reminders_progress_pill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_liquid_glass_pill"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:text="2 of 5 Done"
+            android:textColor="#38BDF8"
+            android:textSize="9.5sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Task List Container -->
+    <LinearLayout
+        android:id="@+id/widget_reminders_list_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- Task Item 1 -->
+        <LinearLayout
+            android:id="@+id/widget_reminder_item_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/widget_liquid_glass_card"
+            android:padding="6dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/widget_reminder_icon_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⭕"
+                android:textSize="11sp"
+                android:layout_marginEnd="6dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_reminder_title_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Submit CS 112 Lab Report"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:singleLine="true"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/widget_reminder_sub_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Due Today · 11:59 PM"
+                    android:textColor="#94A3B8"
+                    android:textSize="9sp"
+                    android:singleLine="true" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Task Item 2 -->
+        <LinearLayout
+            android:id="@+id/widget_reminder_item_2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/widget_liquid_glass_card"
+            android:padding="6dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/widget_reminder_icon_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⭕"
+                android:textSize="11sp"
+                android:layout_marginEnd="6dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_reminder_title_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Study for Math Midterm"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:singleLine="true"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/widget_reminder_sub_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Tomorrow · 8:00 AM"
+                    android:textColor="#94A3B8"
+                    android:textSize="9sp"
+                    android:singleLine="true" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Task Item 3 -->
+        <LinearLayout
+            android:id="@+id/widget_reminder_item_3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/widget_liquid_glass_card"
+            android:padding="6dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/widget_reminder_icon_3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⭕"
+                android:textSize="11sp"
+                android:layout_marginEnd="6dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_reminder_title_3"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Group Presentation Deck"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:singleLine="true"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/widget_reminder_sub_3"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Friday · 3:00 PM"
+                    android:textColor="#94A3B8"
+                    android:textSize="9sp"
+                    android:singleLine="true" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Empty State Container (Visible when 0 pending tasks) -->
+    <LinearLayout
+        android:id="@+id/widget_reminders_empty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🎉"
+            android:textSize="22sp" />
+
+        <TextView
+            android:id="@+id/widget_reminders_empty_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="All Tasks Done"
+            android:textColor="#FFFFFF"
+            android:textSize="12.5sp"
+            android:textStyle="bold"
+            android:layout_marginTop="3dp" />
+
+        <TextView
+            android:id="@+id/widget_reminders_empty_sub"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Enjoy your free time ✨"
+            android:textColor="#94A3B8"
+            android:textSize="9.5sp" />
+    </LinearLayout>
+</LinearLayout>

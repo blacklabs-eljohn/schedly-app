@@ -372,75 +372,75 @@ export function getSubjectCardGradient(
   // 3. CRIMSON (🔴 Rich, energetic red cascade)
   if (theme === 'crimson') {
     const crimsonGradients = [
-      'linear-gradient(135deg, #F87171 0%, #EF4444 100%)',
-      'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-      'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
-      'linear-gradient(135deg, #E11D48 0%, #BE123C 100%)',
-      'linear-gradient(135deg, #B91C1C 0%, #991B1B 100%)',
-      'linear-gradient(135deg, #BE123C 0%, #881337 100%)'
+      'linear-gradient(135deg, #F87171 0%, #EF4444 100%)', // Light Crimson
+      'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', // Vibrant Crimson
+      'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)', // Scarlet Red
+      'linear-gradient(135deg, #B91C1C 0%, #991B1B 100%)', // Deep Crimson
+      'linear-gradient(135deg, #991B1B 0%, #7F1D1D 100%)', // Dark Maroon
+      'linear-gradient(135deg, #7F1D1D 0%, #450A0A 100%)'  // Midnight Burgundy
     ];
     if (total <= 1) return crimsonGradients[1];
-    const step = index % crimsonGradients.length;
+    const step = Math.min(index, crimsonGradients.length - 1);
     return crimsonGradients[step];
   }
 
   // 4. BINI (🌸 Modern pink cascade)
   if (theme === 'bini') {
     const biniGradients = [
-      'linear-gradient(135deg, #F472B6 0%, #EC4899 100%)',
-      'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)',
-      'linear-gradient(135deg, #DB2777 0%, #BE185D 100%)',
-      'linear-gradient(135deg, #F43F5E 0%, #E11D48 100%)',
-      'linear-gradient(135deg, #BE185D 0%, #9D174D 100%)',
-      'linear-gradient(135deg, #E11D48 0%, #9F1239 100%)'
+      'linear-gradient(135deg, #F472B6 0%, #EC4899 100%)', // Soft Blossom Pink
+      'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)', // Vibrant Pink
+      'linear-gradient(135deg, #DB2777 0%, #BE185D 100%)', // Deep Magenta Pink
+      'linear-gradient(135deg, #BE185D 0%, #9D174D 100%)', // Berry Plum
+      'linear-gradient(135deg, #9D174D 0%, #831843 100%)', // Dark Velvet Rose
+      'linear-gradient(135deg, #831843 0%, #500724 100%)'  // Midnight Plum
     ];
     if (total <= 1) return biniGradients[1];
-    const step = index % biniGradients.length;
+    const step = Math.min(index, biniGradients.length - 1);
     return biniGradients[step];
   }
 
   // 5. UBE (🟣 Filipino Distinctive Ube Violet cascade)
   if (theme === 'ube') {
     const ubeGradients = [
-      'linear-gradient(135deg, #C084FC 0%, #A855F7 100%)',
-      'linear-gradient(135deg, #A855F7 0%, #9333EA 100%)',
-      'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
-      'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)',
-      'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
-      'linear-gradient(135deg, #7E22CE 0%, #581C87 100%)'
+      'linear-gradient(135deg, #C084FC 0%, #A855F7 100%)', // Light Ube
+      'linear-gradient(135deg, #A855F7 0%, #9333EA 100%)', // Classic Ube Purple
+      'linear-gradient(135deg, #9333EA 0%, #7E22CE 100%)', // Deep Violet
+      'linear-gradient(135deg, #7E22CE 0%, #6B21A8 100%)', // Rich Royal Violet
+      'linear-gradient(135deg, #6B21A8 0%, #581C87 100%)', // Dark Ube Wine
+      'linear-gradient(135deg, #581C87 0%, #3B0764 100%)'  // Midnight Eggplant
     ];
     if (total <= 1) return ubeGradients[1];
-    const step = index % ubeGradients.length;
+    const step = Math.min(index, ubeGradients.length - 1);
     return ubeGradients[step];
   }
 
   // 6. COFFEE (☕ Warm cozy mocha & espresso cascade)
   if (theme === 'coffee') {
     const coffeeGradients = [
-      'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-      'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
-      'linear-gradient(135deg, #B45309 0%, #92400E 100%)',
-      'linear-gradient(135deg, #D97706 0%, #A16207 100%)',
-      'linear-gradient(135deg, #92400E 0%, #78350F 100%)',
-      'linear-gradient(135deg, #B45309 0%, #713F12 100%)'
+      'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', // Golden Amber
+      'linear-gradient(135deg, #D97706 0%, #B45309 100%)', // Caramel Bronze
+      'linear-gradient(135deg, #B45309 0%, #92400E 100%)', // Warm Mocha
+      'linear-gradient(135deg, #92400E 0%, #78350F 100%)', // Roasted Espresso
+      'linear-gradient(135deg, #78350F 0%, #5E260A 100%)', // Dark Cocoa
+      'linear-gradient(135deg, #5E260A 0%, #381504 100%)'  // Midnight Roast
     ];
     if (total <= 1) return coffeeGradients[1];
-    const step = index % coffeeGradients.length;
+    const step = Math.min(index, coffeeGradients.length - 1);
     return coffeeGradients[step];
   }
 
   // 7. MATCHA (🍵 Fresh calming matcha sage cascade)
   if (theme === 'matcha') {
     const matchaGradients = [
-      'linear-gradient(135deg, #86EFAC 0%, #4ADE80 100%)',
-      'linear-gradient(135deg, #4ADE80 0%, #22C55E 100%)',
-      'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
-      'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-      'linear-gradient(135deg, #16A34A 0%, #15803D 100%)',
-      'linear-gradient(135deg, #059669 0%, #047857 100%)'
+      'linear-gradient(135deg, #86EFAC 0%, #4ADE80 100%)', // Fresh Matcha Leaf
+      'linear-gradient(135deg, #4ADE80 0%, #22C55E 100%)', // Sage Green
+      'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)', // Lush Green
+      'linear-gradient(135deg, #16A34A 0%, #15803D 100%)', // Deep Forest Green
+      'linear-gradient(135deg, #15803D 0%, #166534 100%)', // Dark Evergreen
+      'linear-gradient(135deg, #166534 0%, #052E16 100%)'  // Midnight Pine
     ];
     if (total <= 1) return matchaGradients[1];
-    const step = index % matchaGradients.length;
+    const step = Math.min(index, matchaGradients.length - 1);
     return matchaGradients[step];
   }
 
@@ -464,12 +464,12 @@ export function getSubjectCardGradient(
     'linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%)', // Sky to Royal Blue
     'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', // Royal Blue
     'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', // Cobalt Blue
-    'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', // Ocean Cobalt
     'linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%)', // Deep Sapphire
-    'linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)'  // Indigo Royal
+    'linear-gradient(135deg, #1E40AF 0%, #172554 100%)', // Midnight Navy
+    'linear-gradient(135deg, #172554 0%, #0A1128 100%)'  // Deep Abyss Blue
   ];
 
   if (total <= 1) return cascadeGradients[1];
-  const step = index % cascadeGradients.length;
+  const step = Math.min(index, cascadeGradients.length - 1);
   return cascadeGradients[step];
 }

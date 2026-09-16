@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_calendar_square_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_liquid_glass_bg"
+    android:padding="11dp">
+
+    <!-- Top Header: Date + Due Badge -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="7dp">
+
+        <TextView
+            android:id="@+id/widget_cal_sq_date_header"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="SEP 14 · MON"
+            android:textColor="#38BDF8"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.05" />
+
+        <TextView
+            android:id="@+id/widget_cal_sq_due_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_liquid_glass_pill"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:text="3 Due"
+            android:textColor="#38BDF8"
+            android:textSize="9.5sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Main Urgent Event Card -->
+    <LinearLayout
+        android:id="@+id/widget_cal_sq_card"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="@drawable/widget_liquid_glass_card"
+        android:padding="10dp"
+        android:gravity="center_vertical">
+
+        <!-- Category Tag -->
+        <TextView
+            android:id="@+id/widget_cal_sq_category_tag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📝 EXAM"
+            android:textColor="#EF4444"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.06" />
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/widget_cal_sq_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="CS 112 - Midterm Exam"
+            android:textColor="#FFFFFF"
+            android:textSize="13.5sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:layout_marginTop="3dp" />
+
+        <!-- Subject -->
+        <TextView
+            android:id="@+id/widget_cal_sq_subject"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Data Structures &amp; Algorithms"
+            android:textColor="#94A3B8"
+            android:textSize="10sp"
+            android:singleLine="true"
+            android:ellipsize="end" />
+
+        <!-- Due Time -->
+        <TextView
+            android:id="@+id/widget_cal_sq_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⏰ Tomorrow, 11:59 PM"
+            android:textColor="#38BDF8"
+            android:textSize="9.5sp"
+            android:textStyle="bold"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
+
+    <!-- Bottom Footnote: Secondary Task -->
+    <TextView
+        android:id="@+id/widget_cal_sq_footer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Next: IT 211 Project (Fri)"
+        android:textColor="#E2E8F0"
+        android:textSize="9.5sp"
+        android:textStyle="bold"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:layout_marginTop="5dp" />
+</LinearLayout>

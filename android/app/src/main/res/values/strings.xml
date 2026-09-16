@@ -7,4 +7,7 @@
     <string name="widget_up_next_desc">Shows your immediate upcoming class, room, and live countdown</string>
     <string name="widget_today_schedule_desc">Shows your full timetable list for today</string>
     <string name="widget_digital_pass_desc">Displays your official Digital Student ID pass on your home screen</string>
+    <string name="widget_calendar_bento_desc">Bento split view of your calendar date and upcoming academic deadlines</string>
+    <string name="widget_calendar_square_desc">Compact calendar view showing the next urgent exam or assignment deadline</string>
+    <string name="widget_reminders_desc">Academic tasks, study to-dos, and homework checklist</string>
 </resources>

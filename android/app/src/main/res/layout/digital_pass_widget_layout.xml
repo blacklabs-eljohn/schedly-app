@@ -4,56 +4,192 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/widget_background"
-    android:padding="12dp">
+    android:background="@drawable/widget_digital_id_bg"
+    android:paddingStart="18dp"
+    android:paddingEnd="18dp"
+    android:paddingTop="14dp"
+    android:paddingBottom="14dp">
 
-    <!-- University Top Band -->
+    <!-- Top Row: School Shield & University Name -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="8dp">
+        android:layout_marginBottom="10dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🛡️ "
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/widget_pass_school"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="NEMSU"
+            android:textColor="#FFFFFF"
+            android:textSize="14.5sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.05"
+            android:singleLine="true"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <!-- Middle Row: Photo Container + Student Details & Meta Grid -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- Student Photo Frame (76dp x 76dp) -->
+        <ImageView
+            android:id="@+id/widget_pass_avatar"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
+            android:background="@drawable/widget_id_photo_frame"
+            android:scaleType="centerCrop"
+            android:padding="2dp"
+            android:layout_marginEnd="16dp" />
+
+        <!-- Info Column -->
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="NEMSU · STUDENT PASS"
-            android:textColor="#F59E0B"
-            android:textSize="10.5sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.04" />
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/widget_pass_year"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="A.Y. 2026-2027"
-            android:textColor="#94A3B8"
-            android:textSize="9.5sp"
-            android:textStyle="bold" />
+            <!-- Name (Pure White Bold) -->
+            <TextView
+                android:id="@+id/widget_pass_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Vanessa Cacabelos"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:singleLine="true"
+                android:ellipsize="end" />
+
+            <!-- Program (High-Legibility Soft White) -->
+            <TextView
+                android:id="@+id/widget_pass_program"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="BS TOURISM MANAGEMENT"
+                android:textColor="#F1F5F9"
+                android:textSize="12.5sp"
+                android:textStyle="bold"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:layout_marginTop="2dp" />
+
+            <!-- Meta Grid (YEAR, SECTION, A.Y.) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp">
+
+                <!-- Year -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="YEAR"
+                        android:textColor="#E2E8F0"
+                        android:textSize="9.5sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05" />
+
+                    <TextView
+                        android:id="@+id/widget_pass_year_level"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="3RD YEAR"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Section -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="SECTION"
+                        android:textColor="#E2E8F0"
+                        android:textSize="9.5sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05" />
+
+                    <TextView
+                        android:id="@+id/widget_pass_section"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="TM-3B"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Academic Year -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="A.Y."
+                        android:textColor="#E2E8F0"
+                        android:textSize="9.5sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05" />
+
+                    <TextView
+                        android:id="@+id/widget_pass_academic_year"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="2026–2027"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 
-    <!-- Student Details Card -->
+    <!-- Translucent White Hairline Divider -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#33FFFFFF"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Bottom Row: ID Number & Barcode -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="@drawable/widget_inner_card"
-        android:padding="10dp"
         android:gravity="center_vertical">
 
-        <!-- Avatar / Photo Placeholder -->
-        <ImageView
-            android:id="@+id/widget_pass_avatar"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:src="@drawable/ic_launcher_background"
-            android:background="#2563EB"
-            android:layout_marginEnd="10dp" />
-
+        <!-- ID Number & Hint -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -61,54 +197,31 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/widget_pass_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Ethan Rivera"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:maxLines="1"
-                android:ellipsize="end" />
-
-            <TextView
-                android:id="@+id/widget_pass_program"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="BS Computer Science"
-                android:textColor="#38BDF8"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:maxLines="1" />
-
-            <TextView
                 android:id="@+id/widget_pass_id_number"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="ID: 2022-10492"
-                android:textColor="#94A3B8"
-                android:textSize="10.5sp"
+                android:text="2026-10492"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
                 android:textStyle="bold"
-                android:layout_marginTop="2dp" />
+                android:letterSpacing="0.04" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tap for pass details"
+                android:textColor="#E2E8F0"
+                android:textSize="10sp" />
         </LinearLayout>
-    </LinearLayout>
 
-    <!-- Barcode Strip Simulation -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_marginTop="8dp">
-
+        <!-- Simulated Crisp Barcode -->
         <TextView
-            android:id="@+id/widget_pass_barcode"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="|| | ||| | || |||| | ||| || |||| | || |"
-            android:textColor="#64748B"
-            android:textSize="12sp"
+            android:text="|||| ||| |||| | ||||| || ||| |||| | |||"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
             android:textStyle="bold"
-            android:letterSpacing="0.12" />
+            android:letterSpacing="0.08" />
     </LinearLayout>
 </LinearLayout>
