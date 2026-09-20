@@ -9,7 +9,16 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.widget.RemoteViews;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 
 public class CalendarSquareWidgetProvider extends AppWidgetProvider {
 
@@ -22,6 +31,7 @@ public class CalendarSquareWidgetProvider extends AppWidgetProvider {
 
     public static void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         SharedPreferences prefs = context.getSharedPreferences("SchedlyWidgetPrefs", Context.MODE_PRIVATE);
+        String allEventsJson = prefs.getString("all_events", null);
         String calendarJson = prefs.getString("calendar_events", null);
         String themeMode = prefs.getString("theme_mode", "light");
         String colorTheme = prefs.getString("color_theme", "bluebook");
@@ -31,7 +41,15 @@ public class CalendarSquareWidgetProvider extends AppWidgetProvider {
 
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.calendar_square_widget_layout);
 
-        String dateHeader = "SEP 14 · MON";
+        Calendar nowCal = Calendar.getInstance();
+        String[] monthShorts = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+        String[] dayShorts = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
+
+        String monthShort = monthShorts[nowCal.get(Calendar.MONTH)];
+        String dayNum = String.valueOf(nowCal.get(Calendar.DAY_OF_MONTH));
+        String dayShort = dayShorts[nowCal.get(Calendar.DAY_OF_WEEK) - 1];
+        String dateHeader = monthShort + " " + dayNum + " · " + dayShort;
+
         String dueBadge = "0 Due";
         String categoryTag = "✨ ALL CLEAR";
         String title = "No Upcoming Deadlines";
@@ -40,14 +58,67 @@ public class CalendarSquareWidgetProvider extends AppWidgetProvider {
         String footer = "Next tasks will appear here";
         String categoryColorStr = null;
 
-        if (calendarJson != null) {
+        SimpleDateFormat isoFmt = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        String todayIso = isoFmt.format(nowCal.getTime());
+
+        List<EventItem> upcomingList = new ArrayList<>();
+
+        if (allEventsJson != null && !allEventsJson.trim().isEmpty()) {
+            try {
+                JSONArray arr = new JSONArray(allEventsJson);
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject obj = arr.optJSONObject(i);
+                    if (obj == null) continue;
+                    boolean isCompleted = obj.optBoolean("isCompleted", false);
+                    if (isCompleted) continue;
+
+                    String dateStr = obj.optString("date", "9999-99-99");
+                    if (dateStr.compareTo(todayIso) < 0) continue; // Past event
+
+                    String t = obj.optString("title", "Assignment");
+                    String subjCode = obj.optString("subjectCode", "");
+                    String subjName = obj.optString("subjectName", subjCode.isEmpty() ? "Academic Task" : subjCode);
+                    String cat = obj.optString("category", "Task");
+                    String sTime = obj.optString("startTime", "");
+                    String catColor = getCategoryColor(cat);
+                    String timeDisplay = formatEventTimeDisplay(dateStr, sTime, todayIso, nowCal);
+
+                    upcomingList.add(new EventItem(t, subjName, cat, timeDisplay, catColor, dateStr, sTime));
+                }
+
+                Collections.sort(upcomingList, (a, b) -> {
+                    int c = a.date.compareTo(b.date);
+                    if (c != 0) return c;
+                    return a.startTime.compareTo(b.startTime);
+                });
+
+                int count = upcomingList.size();
+                dueBadge = count > 0 ? (count + " Upcoming") : "0 Due";
+
+                if (count > 0) {
+                    EventItem first = upcomingList.get(0);
+                    title = first.title;
+                    subject = first.subject;
+                    categoryTag = first.category.toUpperCase();
+                    time = "⏰ " + first.timeDisplay;
+                    categoryColorStr = first.categoryColor;
+
+                    if (count > 1) {
+                        EventItem second = upcomingList.get(1);
+                        footer = "Next: " + second.title + " (" + second.timeDisplay + ")";
+                    } else {
+                        footer = "Tap to open Calendar";
+                    }
+                }
+            } catch (Exception ignored) {
+                upcomingList.clear();
+            }
+        }
+
+        // Fallback to legacy calendarJson if allEventsJson wasn't processed
+        if (upcomingList.isEmpty() && calendarJson != null) {
             try {
                 JSONObject obj = new JSONObject(calendarJson);
-                String monthShort = obj.optString("monthName", "SEP").substring(0, Math.min(3, obj.optString("monthName", "SEP").length())).toUpperCase();
-                String dayNum = obj.optString("dayOfMonth", "14");
-                String dayShort = obj.optString("dayOfWeek", "MON").substring(0, Math.min(3, obj.optString("dayOfWeek", "MON").length())).toUpperCase();
-                dateHeader = monthShort + " " + dayNum + " · " + dayShort;
-
                 int count = obj.optInt("totalDue", 0);
                 dueBadge = obj.optString("badgeText", count > 0 ? (count + " Upcoming") : "0 Due");
 
@@ -122,32 +193,102 @@ public class CalendarSquareWidgetProvider extends AppWidgetProvider {
         appWidgetManager.updateAppWidget(appWidgetId, views);
     }
 
+    private static class EventItem {
+        String title;
+        String subject;
+        String category;
+        String timeDisplay;
+        String categoryColor;
+        String date;
+        String startTime;
+
+        EventItem(String title, String subject, String category, String timeDisplay, String categoryColor, String date, String startTime) {
+            this.title = title;
+            this.subject = subject;
+            this.category = category;
+            this.timeDisplay = timeDisplay;
+            this.categoryColor = categoryColor;
+            this.date = date;
+            this.startTime = startTime;
+        }
+    }
+
+    private static String formatEventTimeDisplay(String eventDateIso, String startTimeStr, String todayIso, Calendar nowCal) {
+        String timePart = formatTime12h(startTimeStr);
+        if (timePart.isEmpty()) timePart = "All Day";
+
+        if (eventDateIso.equals(todayIso)) {
+            return "Today · " + timePart;
+        }
+
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+            Date targetDate = sdf.parse(eventDateIso);
+            if (targetDate != null) {
+                Calendar targetCal = Calendar.getInstance();
+                targetCal.setTime(targetDate);
+
+                long diffDays = (targetCal.getTimeInMillis() - nowCal.getTimeInMillis()) / (1000 * 60 * 60 * 24);
+                if (diffDays == 1 || (targetCal.get(Calendar.DAY_OF_YEAR) - nowCal.get(Calendar.DAY_OF_YEAR) == 1)) {
+                    return "Tomorrow · " + timePart;
+                }
+                String[] dayNames = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+                if (diffDays > 1 && diffDays < 7) {
+                    return dayNames[targetCal.get(Calendar.DAY_OF_WEEK) - 1] + " · " + timePart;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return eventDateIso + " · " + timePart;
+    }
+
+    private static String formatTime12h(String timeStr) {
+        if (timeStr == null || !timeStr.contains(":")) return "";
+        try {
+            String[] parts = timeStr.trim().split(":");
+            int h = Integer.parseInt(parts[0]);
+            int m = Integer.parseInt(parts[1]);
+            String ampm = h >= 12 ? "PM" : "AM";
+            int displayH = h % 12 == 0 ? 12 : h % 12;
+            return displayH + ":" + (m < 10 ? "0" + m : m) + " " + ampm;
+        } catch (Exception e) {
+            return timeStr;
+        }
+    }
+
+    private static String getCategoryColor(String category) {
+        if (category == null) return "#6366F1";
+        switch (category.toLowerCase()) {
+            case "exam": return "#EF4444";
+            case "long_quiz":
+            case "short_quiz":
+            case "quiz": return "#F59E0B";
+            case "assignment": return "#3B82F6";
+            case "reporting": return "#8B5CF6";
+            case "project": return "#10B981";
+            case "meeting": return "#06B6D4";
+            case "task": return "#EC4899";
+            default: return "#6366F1";
+        }
+    }
+
     private static int getThemePrimaryColor(String themeId, boolean isLightMode) {
         if (themeId == null) themeId = "bluebook";
         switch (themeId.toLowerCase()) {
-            case "bini":
-                return isLightMode ? 0xFFDB2777 : 0xFFF472B6;
-            case "crimson":
-                return isLightMode ? 0xFFDC2626 : 0xFFFB7185;
-            case "ube":
-                return isLightMode ? 0xFF7C3AED : 0xFFC084FC;
-            case "coffee":
-                return isLightMode ? 0xFFD97706 : 0xFFFBBF24;
-            case "matcha":
-                return isLightMode ? 0xFF16A34A : 0xFF34D399;
+            case "bini": return isLightMode ? 0xFFDB2777 : 0xFFF472B6;
+            case "crimson": return isLightMode ? 0xFFDC2626 : 0xFFFB7185;
+            case "ube": return isLightMode ? 0xFF7C3AED : 0xFFC084FC;
+            case "coffee": return isLightMode ? 0xFFD97706 : 0xFFFBBF24;
+            case "matcha": return isLightMode ? 0xFF16A34A : 0xFF34D399;
             case "duos":
-            case "dual-tone":
-                return isLightMode ? 0xFF6366F1 : 0xFFA855F7;
+            case "dual-tone": return isLightMode ? 0xFF6366F1 : 0xFFA855F7;
             case "highlighter":
-            case "rainbow":
-                return isLightMode ? 0xFFEC4899 : 0xFFFB7185;
+            case "rainbow": return isLightMode ? 0xFFEC4899 : 0xFFFB7185;
             case "obsidian":
-            case "monochrome":
-                return isLightMode ? 0xFF334155 : 0xFFCBD5E1;
+            case "monochrome": return isLightMode ? 0xFF334155 : 0xFFCBD5E1;
             case "bluebook":
             case "blue-cascade":
-            default:
-                return isLightMode ? 0xFF2563EB : 0xFF38BDF8;
+            default: return isLightMode ? 0xFF2563EB : 0xFF38BDF8;
         }
     }
 }

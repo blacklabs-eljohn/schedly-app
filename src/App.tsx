@@ -74,6 +74,7 @@ import { HomeMiniCalendar } from './components/HomeMiniCalendar';
 import { syncWidgetsData } from './services/widgetBridge';
 import { getSubjectIconComponent } from './services/iconService';
 import { getUpcomingHolidays } from './services/phHolidaysService';
+import { AdminPortal } from './components/AdminPortal';
 
 import { Camera, ArrowRight, MapPin, User as UserIcon, Sparkles, Clock, CalendarDays, ChevronUp, CloudOff, Calendar as CalendarIcon, CheckCircle2, GraduationCap } from 'lucide-react';
 import './styles/apple-design-system.css';
@@ -82,6 +83,13 @@ export function App() {
   const initialCachedUser = getOfflineCachedUser();
   const initialUserId = initialCachedUser?.id || getLastActiveUserId();
 
+  const isInitiallyAdmin = typeof window !== 'undefined' && (
+    window.location.pathname.toLowerCase().includes('/admin') || 
+    window.location.hash.toLowerCase().includes('/admin') || 
+    window.location.hash.toLowerCase().includes('#admin')
+  );
+
+  const [isAdminRoute, setIsAdminRoute] = useState(isInitiallyAdmin);
   const [showSplash, setShowSplash] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(() => initialCachedUser);
   const [_isGuestMode, setIsGuestMode] = useState(false);
@@ -140,16 +148,23 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Check Privacy Policy Acceptance after splash screen
+  // Direct URL Route handling for /admin and #/admin
   useEffect(() => {
-    if (!showSplash && currentUser) {
-      const isAccepted = hasAcceptedPrivacyPolicy(currentUser.id);
-      if (!isAccepted) {
-        setIsPrivacyConsentMode(true);
-        setIsPrivacyModalOpen(true);
-      }
-    }
-  }, [showSplash, currentUser]);
+    const handleLocationCheck = () => {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      const isAdm = path.includes('/admin') || hash.includes('/admin') || hash.includes('#admin');
+      setIsAdminRoute(isAdm);
+    };
+
+    handleLocationCheck();
+    window.addEventListener('popstate', handleLocationCheck);
+    window.addEventListener('hashchange', handleLocationCheck);
+    return () => {
+      window.removeEventListener('popstate', handleLocationCheck);
+      window.removeEventListener('hashchange', handleLocationCheck);
+    };
+  }, []);
 
   const handlePrivacyAccept = () => {
     const uid = currentUser?.id || getLastActiveUserId();
@@ -811,6 +826,17 @@ export function App() {
   const pendingTasksTotal = customEvents.filter(
     e => ACADEMIC_DEADLINE_CATEGORIES.includes(e.category) && !e.isCompleted
   ).length;
+
+  if (isAdminRoute) {
+    return (
+      <AdminPortal 
+        onExit={() => {
+          window.history.pushState(null, '', '/');
+          setIsAdminRoute(false);
+        }} 
+      />
+    );
+  }
 
   return (
     <div className="schedly-app-root">

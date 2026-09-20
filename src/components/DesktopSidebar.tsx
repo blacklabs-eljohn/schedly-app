@@ -1,4 +1,3 @@
-import React from 'react';
 import { Home, Clock, CalendarDays, BookOpen, FolderOpen, Settings, Sun, Moon, CloudCheck, CloudOff, RefreshCw } from 'lucide-react';
 import { TabType } from './BottomTabBar';
 import { StudentProfile } from '../types';
@@ -37,7 +36,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   isOnline,
   onTriggerSync,
   onOpenIDModal,
-  onOpenCommandPalette
+  onOpenCommandPalette,
 }) => {
   const getStudentFirstName = (name?: string): string => {
     if (!name || !name.trim()) return 'Student';

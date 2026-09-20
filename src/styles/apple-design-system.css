@@ -2071,13 +2071,14 @@ main {
   box-shadow: 0 0 0 3px var(--ios-blue-light);
 }
 
-/* Modern Switch Toggle */
+/* Modern iOS Switch Toggle */
 .ios-toggle-switch {
   position: relative;
   display: inline-block;
-  width: 48px;
-  height: 28px;
+  width: 50px;
+  height: 30px;
   flex-shrink: 0;
+  cursor: pointer;
 }
 
 .ios-toggle-switch input {
@@ -2093,28 +2094,26 @@ main {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: var(--ios-divider);
-  transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  background-color: var(--ios-divider, #E2E8F0);
+  transition: 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   border-radius: 34px;
-  border: 1px solid var(--ios-card-border);
 }
 
 .ios-toggle-slider:before {
   position: absolute;
   content: "";
-  height: 22px;
-  width: 22px;
-  left: 2px;
-  bottom: 2px;
+  height: 24px;
+  width: 24px;
+  left: 3px;
+  bottom: 3px;
   background-color: #FFFFFF;
-  transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22);
 }
 
 input:checked + .ios-toggle-slider {
-  background-color: var(--ios-blue);
-  border-color: var(--ios-blue);
+  background-color: var(--ios-blue, #2563EB);
 }
 
 input:checked + .ios-toggle-slider:before {
@@ -6677,21 +6676,24 @@ body.dark-mode .apple-checklist-bullet[aria-checked="true"] {
 .ios-settings-group {
   background: var(--ios-card-bg);
   border: 1px solid var(--ios-card-border);
-  border-radius: 16px;
+  border-radius: 18px;
   overflow: hidden;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  margin-bottom: 22px;
+  box-shadow: var(--ios-shadow-sm);
 }
 
 .ios-settings-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 13px 16px;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 14px 16px;
   gap: 12px;
   position: relative;
   background: var(--ios-card-bg);
   transition: background 0.15s ease;
+  box-sizing: border-box;
 }
 
 .ios-settings-row.clickable {
@@ -6710,19 +6712,19 @@ body.dark-mode .apple-checklist-bullet[aria-checked="true"] {
 .ios-settings-divider {
   height: 1px;
   background: var(--ios-divider);
-  margin-left: 56px;
+  margin-left: 62px;
 }
 
 .ios-settings-icon-tile {
-  width: 32px;
-  height: 32px;
-  border-radius: 8.5px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #FFFFFF;
   flex-shrink: 0;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 /* Schedly Facebook Community Card */

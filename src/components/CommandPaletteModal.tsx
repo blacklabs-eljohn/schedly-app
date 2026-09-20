@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Course, CustomEvent } from '../types';
 import { triggerLightHaptic, triggerSelectionHaptic } from '../services/hapticsService';
+import { ShieldCheck } from 'lucide-react';
 
 export interface CommandPaletteModalProps {
   isOpen: boolean;

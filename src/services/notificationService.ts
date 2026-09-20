@@ -197,7 +197,7 @@ export async function triggerTestClassNotification(leadMins: number = 15): Promi
 /**
  * In-app haptic alert (does NOT pop up system OS notifications for regular in-app actions)
  */
-export function showSystemToast(_title: string, _body: string): void {
+export function showSystemToast(_title: string, _body?: string): void {
   triggerLightHaptic();
 }
 

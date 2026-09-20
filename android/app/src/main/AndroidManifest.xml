@@ -111,6 +111,19 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/reminders_widget_info" />
         </receiver>
+
+        <!-- 7. Background Widget Refresh & Midnight Rollover Receiver -->
+        <receiver
+            android:name=".WidgetAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.cororganizer.app.ACTION_SCHEDULE_WIDGET_UPDATE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+            </intent-filter>
+        </receiver>
     </application>
 
     <!-- Permissions -->

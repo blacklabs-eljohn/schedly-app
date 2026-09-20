@@ -40,6 +40,8 @@ public class WidgetBridgePlugin extends Plugin {
         String reminders = call.getString("reminders");
         String themeMode = call.getString("themeMode", "light");
         String colorTheme = call.getString("colorTheme", "bluebook");
+        String allCourses = call.getString("allCourses");
+        String allEvents = call.getString("allEvents");
 
         if (upNext != null) {
             editor.putString("up_next_class", upNext);
@@ -57,11 +59,17 @@ public class WidgetBridgePlugin extends Plugin {
         if (reminders != null) {
             editor.putString("academic_reminders", reminders);
         }
+        if (allCourses != null) {
+            editor.putString("all_courses", allCourses);
+        }
+        if (allEvents != null) {
+            editor.putString("all_events", allEvents);
+        }
         editor.putString("theme_mode", themeMode);
         editor.putString("color_theme", colorTheme);
         editor.apply();
 
-        // Process profile avatar asynchronously and trigger widget updates
+        // Process profile avatar asynchronously, trigger widget updates and schedule alarms
         new Thread(() -> {
             try {
                 if (profile != null) {
@@ -76,6 +84,9 @@ public class WidgetBridgePlugin extends Plugin {
 
             // Broadcast to trigger instant widget refresh
             triggerAllWidgetsUpdate(context);
+
+            // Schedule next AlarmManager update for midnight or upcoming class boundary
+            WidgetUpdateScheduler.scheduleNextUpdate(context);
         }).start();
 
         call.resolve();

@@ -9,7 +9,14 @@ import android.content.SharedPreferences;
 import android.view.View;
 import android.widget.RemoteViews;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 public class UpNextWidgetProvider extends AppWidgetProvider {
 
@@ -22,6 +29,7 @@ public class UpNextWidgetProvider extends AppWidgetProvider {
 
     public static void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         SharedPreferences prefs = context.getSharedPreferences("SchedlyWidgetPrefs", Context.MODE_PRIVATE);
+        String allCoursesJson = prefs.getString("all_courses", null);
         String upNextJson = prefs.getString("up_next_class", null);
         String themeMode = prefs.getString("theme_mode", "light");
         String colorTheme = prefs.getString("color_theme", "bluebook");
@@ -31,23 +39,139 @@ public class UpNextWidgetProvider extends AppWidgetProvider {
 
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.up_next_widget_layout);
 
+        Calendar nowCal = Calendar.getInstance();
+        int dayOfWeek = nowCal.get(Calendar.DAY_OF_WEEK);
+        String currentDayAbbrev = getDayAbbrev(dayOfWeek);
+        int currentMinutes = nowCal.get(Calendar.HOUR_OF_DAY) * 60 + nowCal.get(Calendar.MINUTE);
+
         String statusType = "NONE";
-        String statusBadge = "IN PROGRESS";
-        String countdownBadge = "Ends in 45m";
-        String courseCode = "CS 112";
-        String courseTitle = "Data Structures & Algorithms";
-        String timeSpan = "8:30 AM – 10:00 AM";
-        String room = "Room 304";
-        String instructor = "Prof. M. Dela Cruz";
-        int progress = 65;
+        String statusBadge = "REST DAY";
+        String countdownBadge = "Free Day";
+        String courseCode = "REST DAY 🌴";
+        String courseTitle = "No classes scheduled today";
+        String timeSpan = "Free Schedule";
+        String room = "Time to Recharge ✨";
+        String instructor = "Enjoy your free time";
+        int progress = 100;
 
-        String doneIcon = "🎉";
-        String doneBadge = "🎉 ALL DONE";
-        String doneTitle = "All Done for Today!";
-        String doneSub = "All classes completed. Enjoy your evening!";
-        String doneFooter = "✨ See you in class tomorrow!";
+        String doneIcon = "🌴";
+        String doneBadge = "🌴 REST DAY";
+        String doneTitle = "Rest Day ✨";
+        String doneSub = "No classes scheduled today. Relax and recharge!";
+        String doneFooter = "✨ Enjoy your free time!";
 
-        if (upNextJson != null) {
+        boolean calculatedFromRaw = false;
+
+        if (allCoursesJson != null && !allCoursesJson.trim().isEmpty()) {
+            try {
+                JSONArray arr = new JSONArray(allCoursesJson);
+                List<CourseModel> todayCourses = new ArrayList<>();
+
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject c = arr.optJSONObject(i);
+                    if (c == null) continue;
+
+                    JSONArray days = c.optJSONArray("days");
+                    boolean matchesToday = false;
+                    if (days != null) {
+                        for (int d = 0; d < days.length(); d++) {
+                            if (currentDayAbbrev.equalsIgnoreCase(days.optString(d))) {
+                                matchesToday = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (matchesToday) {
+                        String code = c.optString("courseCode", "CLASS");
+                        String name = c.optString("courseName", "Lecture Session");
+                        String r = c.optString("room", "Room TBD");
+                        if (!r.toLowerCase().startsWith("room")) {
+                            r = "Room " + r;
+                        }
+                        String inst = c.optString("instructor", "Instructor TBD");
+                        if (!inst.toLowerCase().startsWith("prof.") && !inst.toLowerCase().startsWith("instructor")) {
+                            inst = "Prof. " + inst;
+                        }
+                        String sTime = c.optString("startTime", "00:00");
+                        String eTime = c.optString("endTime", "00:00");
+                        int sMins = parseTimeToMinutes(sTime);
+                        int eMins = parseTimeToMinutes(eTime);
+
+                        todayCourses.add(new CourseModel(code, name, r, inst, sTime, eTime, sMins, eMins));
+                    }
+                }
+
+                Collections.sort(todayCourses, Comparator.comparingInt(a -> a.startMins));
+
+                if (todayCourses.isEmpty()) {
+                    // Rest Day
+                    statusType = "NONE";
+                    doneIcon = "🌴";
+                    doneBadge = "🌴 REST DAY";
+                    doneTitle = "Rest Day ✨";
+                    doneSub = "No classes scheduled today. Relax and recharge!";
+                    doneFooter = "✨ Enjoy your free time!";
+                    calculatedFromRaw = true;
+                } else {
+                    CourseModel ongoingCourse = null;
+                    CourseModel nextCourse = null;
+
+                    for (CourseModel c : todayCourses) {
+                        if (currentMinutes >= c.startMins && currentMinutes < c.endMins) {
+                            ongoingCourse = c;
+                            break;
+                        } else if (currentMinutes < c.startMins) {
+                            if (nextCourse == null || c.startMins < nextCourse.startMins) {
+                                nextCourse = c;
+                            }
+                        }
+                    }
+
+                    if (ongoingCourse != null) {
+                        statusType = "CURRENT";
+                        statusBadge = "IN PROGRESS";
+                        int duration = Math.max(1, ongoingCourse.endMins - ongoingCourse.startMins);
+                        int elapsed = Math.max(0, currentMinutes - ongoingCourse.startMins);
+                        progress = Math.min(100, Math.max(0, (elapsed * 100) / duration));
+                        int remaining = Math.max(0, ongoingCourse.endMins - currentMinutes);
+                        countdownBadge = "Ends in " + formatMinutesHuman(remaining);
+                        courseCode = ongoingCourse.courseCode;
+                        courseTitle = ongoingCourse.courseName;
+                        timeSpan = formatTime12h(ongoingCourse.startTime) + " – " + formatTime12h(ongoingCourse.endTime);
+                        room = ongoingCourse.room;
+                        instructor = ongoingCourse.instructor;
+                        calculatedFromRaw = true;
+                    } else if (nextCourse != null) {
+                        statusType = "NEXT";
+                        statusBadge = "UP NEXT";
+                        int until = Math.max(0, nextCourse.startMins - currentMinutes);
+                        countdownBadge = until > 0 ? ("Starts in " + formatMinutesHuman(until)) : ("Starts " + formatTime12h(nextCourse.startTime));
+                        courseCode = nextCourse.courseCode;
+                        courseTitle = nextCourse.courseName;
+                        timeSpan = formatTime12h(nextCourse.startTime) + " – " + formatTime12h(nextCourse.endTime);
+                        room = nextCourse.room;
+                        instructor = nextCourse.instructor;
+                        progress = 15;
+                        calculatedFromRaw = true;
+                    } else {
+                        // All classes today have ended
+                        statusType = "NONE";
+                        doneIcon = "🎉";
+                        doneBadge = "🎉 ALL DONE";
+                        doneTitle = "All Done for Today!";
+                        doneSub = "All classes completed. Great job today!";
+                        doneFooter = "✨ See you in class tomorrow!";
+                        calculatedFromRaw = true;
+                    }
+                }
+            } catch (Exception ignored) {
+                calculatedFromRaw = false;
+            }
+        }
+
+        // Fallback to pre-baked snapshot if raw calculation didn't succeed
+        if (!calculatedFromRaw && upNextJson != null) {
             try {
                 JSONObject obj = new JSONObject(upNextJson);
                 statusType = obj.optString("type", "NONE");
@@ -71,7 +195,6 @@ public class UpNextWidgetProvider extends AppWidgetProvider {
                     instructor = obj.optString("instructor", "Prof. TBD");
                     progress = obj.optInt("progress", 15);
                 } else {
-                    // NONE: Rest Day or All Classes Completed
                     boolean isRestDay = "REST DAY".equalsIgnoreCase(obj.optString("statusBadge", ""))
                             || obj.optString("courseCode", "").contains("REST");
                     if (isRestDay) {
@@ -140,7 +263,6 @@ public class UpNextWidgetProvider extends AppWidgetProvider {
         }
 
         if ("CURRENT".equals(statusType) || "NEXT".equals(statusType)) {
-            // Show Active Class Bento Container
             views.setViewVisibility(R.id.widget_up_next_active_container, View.VISIBLE);
             views.setViewVisibility(R.id.widget_up_next_done_container, View.GONE);
 
@@ -155,7 +277,6 @@ public class UpNextWidgetProvider extends AppWidgetProvider {
             views.setProgressBar(R.id.widget_up_next_progress_bar, 100, Math.min(100, Math.max(0, progress)), false);
             views.setTextViewText(R.id.widget_up_next_progress_label, progress + "%");
         } else {
-            // Show Celebration / Rest Day Container
             views.setViewVisibility(R.id.widget_up_next_active_container, View.GONE);
             views.setViewVisibility(R.id.widget_up_next_done_container, View.VISIBLE);
 
@@ -177,32 +298,106 @@ public class UpNextWidgetProvider extends AppWidgetProvider {
         appWidgetManager.updateAppWidget(appWidgetId, views);
     }
 
+    private static class CourseModel {
+        String courseCode;
+        String courseName;
+        String room;
+        String instructor;
+        String startTime;
+        String endTime;
+        int startMins;
+        int endMins;
+
+        CourseModel(String courseCode, String courseName, String room, String instructor, String startTime, String endTime, int startMins, int endMins) {
+            this.courseCode = courseCode;
+            this.courseName = courseName;
+            this.room = room;
+            this.instructor = instructor;
+            this.startTime = startTime;
+            this.endTime = endTime;
+            this.startMins = startMins;
+            this.endMins = endMins;
+        }
+    }
+
+    private static String getDayAbbrev(int calendarDayOfWeek) {
+        switch (calendarDayOfWeek) {
+            case Calendar.SUNDAY: return "Sun";
+            case Calendar.MONDAY: return "Mon";
+            case Calendar.TUESDAY: return "Tue";
+            case Calendar.WEDNESDAY: return "Wed";
+            case Calendar.THURSDAY: return "Thu";
+            case Calendar.FRIDAY: return "Fri";
+            case Calendar.SATURDAY: return "Sat";
+            default: return "Mon";
+        }
+    }
+
+    private static int parseTimeToMinutes(String timeStr) {
+        if (timeStr == null || !timeStr.contains(":")) return 0;
+        try {
+            String[] parts = timeStr.trim().split(":");
+            int h = Integer.parseInt(parts[0]);
+            int m = Integer.parseInt(parts[1]);
+            return h * 60 + m;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private static String formatMinutesHuman(int mins) {
+        if (mins <= 0) return "NOW";
+        int hours = mins / 60;
+        int rem = mins % 60;
+        if (hours > 0 && rem > 0) {
+            return hours + "h " + rem + "m";
+        }
+        if (hours > 0) {
+            return hours + "h";
+        }
+        return rem + "m";
+    }
+
+    private static String formatTime12h(String timeStr) {
+        if (timeStr == null || !timeStr.contains(":")) return "";
+        try {
+            String[] parts = timeStr.trim().split(":");
+            int h = Integer.parseInt(parts[0]);
+            int m = Integer.parseInt(parts[1]);
+            String ampm = h >= 12 ? "PM" : "AM";
+            int displayH = h % 12 == 0 ? 12 : h % 12;
+            return displayH + ":" + (m < 10 ? "0" + m : m) + " " + ampm;
+        } catch (Exception e) {
+            return timeStr;
+        }
+    }
+
     private static int getThemePrimaryColor(String themeId, boolean isLightMode) {
         if (themeId == null) themeId = "bluebook";
         switch (themeId.toLowerCase()) {
             case "bini":
-                return isLightMode ? 0xFFDB2777 : 0xFFF472B6; // Pink / Bubblegum
+                return isLightMode ? 0xFFDB2777 : 0xFFF472B6;
             case "crimson":
-                return isLightMode ? 0xFFDC2626 : 0xFFFB7185; // Bold Red / Ruby
+                return isLightMode ? 0xFFDC2626 : 0xFFFB7185;
             case "ube":
-                return isLightMode ? 0xFF7C3AED : 0xFFC084FC; // Purple
+                return isLightMode ? 0xFF7C3AED : 0xFFC084FC;
             case "coffee":
-                return isLightMode ? 0xFFD97706 : 0xFFFBBF24; // Amber Caramel
+                return isLightMode ? 0xFFD97706 : 0xFFFBBF24;
             case "matcha":
-                return isLightMode ? 0xFF16A34A : 0xFF34D399; // Mint Emerald
+                return isLightMode ? 0xFF16A34A : 0xFF34D399;
             case "duos":
             case "dual-tone":
-                return isLightMode ? 0xFF6366F1 : 0xFFA855F7; // Indigo Violet
+                return isLightMode ? 0xFF6366F1 : 0xFFA855F7;
             case "highlighter":
             case "rainbow":
-                return isLightMode ? 0xFFEC4899 : 0xFFFB7185; // Vibrant Pink
+                return isLightMode ? 0xFFEC4899 : 0xFFFB7185;
             case "obsidian":
             case "monochrome":
-                return isLightMode ? 0xFF334155 : 0xFFCBD5E1; // Sleek Titanium
+                return isLightMode ? 0xFF334155 : 0xFFCBD5E1;
             case "bluebook":
             case "blue-cascade":
             default:
-                return isLightMode ? 0xFF2563EB : 0xFF38BDF8; // Sapphire Blue
+                return isLightMode ? 0xFF2563EB : 0xFF38BDF8;
         }
     }
 }

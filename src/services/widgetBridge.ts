@@ -12,6 +12,8 @@ interface WidgetBridgePlugin {
     reminders?: string;
     themeMode?: string;
     colorTheme?: string;
+    allCourses?: string;
+    allEvents?: string;
   }): Promise<void>;
 }
 
@@ -388,7 +390,9 @@ export async function syncWidgetsData(
       calendarEvents: JSON.stringify(calendarData),
       reminders: JSON.stringify(remindersData),
       themeMode: themeMode,
-      colorTheme: activeTheme
+      colorTheme: activeTheme,
+      allCourses: JSON.stringify(courses || []),
+      allEvents: JSON.stringify(customEvents || [])
     });
   } catch (err) {
     console.warn('[WidgetBridge] Failed to update Android widgets:', err);

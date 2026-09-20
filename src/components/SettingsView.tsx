@@ -15,12 +15,12 @@ import {
   CheckCircle2 as CloudCheck,
   ChevronRight,
   ExternalLink,
-  Smartphone,
   HardDrive,
   MessageCircle,
   Check,
-  Layers,
-  Sparkles
+  Moon,
+  Sun,
+  ShieldAlert
 } from 'lucide-react';
 import { triggerLightHaptic, triggerSelectionHaptic, triggerSuccessHaptic } from '../services/hapticsService';
 import { ConfirmationModal } from './ConfirmationModal';
@@ -40,6 +40,81 @@ interface SettingsViewProps {
   isOnline?: boolean;
   onOpenPrivacyPolicy?: () => void;
 }
+
+const THEME_OPTIONS = [
+  {
+    id: 'bluebook' as const,
+    name: 'Bluebook',
+    emoji: '🔵',
+    desc: 'Classic Academic Blue',
+    swatches: ['#60A5FA', '#2563EB', '#1E3A8A', '#0F172A'],
+    aliases: ['blue-cascade']
+  },
+  {
+    id: 'crimson' as const,
+    name: 'Crimson',
+    emoji: '🔴',
+    desc: 'Bold Energy & Ruby',
+    swatches: ['#F87171', '#EF4444', '#DC2626', '#991B1B'],
+    aliases: []
+  },
+  {
+    id: 'bini' as const,
+    name: 'Bini',
+    emoji: '🌸',
+    desc: 'Playful Bubblegum Pink',
+    swatches: ['#F472B6', '#EC4899', '#DB2777', '#BE185D'],
+    aliases: []
+  },
+  {
+    id: 'ube' as const,
+    name: 'Ube',
+    emoji: '🟣',
+    desc: 'Deep Purple & Lavender',
+    swatches: ['#C4B5FD', '#A78BFA', '#7C3AED', '#5B21B6'],
+    aliases: []
+  },
+  {
+    id: 'coffee' as const,
+    name: 'Coffee',
+    emoji: '☕',
+    desc: 'Espresso & Warm Caramel',
+    swatches: ['#FDE68A', '#D97706', '#92400E', '#78350F'],
+    aliases: []
+  },
+  {
+    id: 'matcha' as const,
+    name: 'Matcha',
+    emoji: '🍵',
+    desc: 'Botanical Matcha Green',
+    swatches: ['#86EFAC', '#4ADE80', '#16A34A', '#14532D'],
+    aliases: []
+  },
+  {
+    id: 'duos' as const,
+    name: 'Duos',
+    emoji: '🎨',
+    desc: 'Dual-Tone Indigo & Violet',
+    swatches: ['#38BDF8', '#6366F1', '#EC4899', '#F59E0B'],
+    aliases: ['dual-tone']
+  },
+  {
+    id: 'highlighter' as const,
+    name: 'Highlighter',
+    emoji: '🌈',
+    desc: 'Neon Multi-Color Palette',
+    swatches: ['#F43F5E', '#10B981', '#3B82F6', '#8B5CF6'],
+    aliases: ['rainbow']
+  },
+  {
+    id: 'obsidian' as const,
+    name: 'Obsidian',
+    emoji: '🖤',
+    desc: 'Minimalist Stealth Mono',
+    swatches: ['#94A3B8', '#475569', '#1E293B', '#0F172A'],
+    aliases: ['monochrome']
+  }
+];
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   settings,
@@ -78,62 +153,86 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     onUpdateSettings({ ...settings, soundEnabled: e.target.checked });
   };
 
+  const currentTheme = (settings.colorTheme || settings.subjectCardTheme || 'bluebook') as string;
+
   return (
-    <div className="ios-section" style={{ paddingBottom: 88, paddingTop: 'calc(14px + env(safe-area-inset-top, 0px))' }}>
-      {/* Top Header Bar: Large Title "Settings", Connectivity Tag & Theme Logo */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+    <div className="ios-section settings-container-view" style={{ paddingBottom: 110, paddingTop: 'calc(16px + env(safe-area-inset-top, 0px))', maxWidth: 960, margin: '0 auto' }}>
+      {/* Header Bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, padding: '0 4px' }}>
         <div>
-          <h1 className="subjects-title" style={{ margin: 0, fontSize: 28 }}>Settings</h1>
+          <h1 className="subjects-title" style={{ margin: 0, fontSize: 30, letterSpacing: '-0.02em', fontWeight: 800 }}>Settings</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
             <span 
               style={{
-                width: 7,
-                height: 7,
+                width: 8,
+                height: 8,
                 borderRadius: '50%',
                 background: isOnline ? '#10B981' : '#F59E0B',
-                boxShadow: isOnline ? '0 0 8px rgba(16, 185, 129, 0.6)' : 'none'
+                boxShadow: isOnline ? '0 0 10px rgba(16, 185, 129, 0.7)' : 'none'
               }}
             />
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ios-text-secondary)' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: isOnline ? '#10B981' : 'var(--ios-text-secondary)' }}>
               {isOnline ? 'Cloud Synced' : 'Offline Mode'}
             </span>
           </div>
         </div>
 
-        <div className="top-utility-right">
-          <div
-            className="home-logo-circle"
-            onClick={onToggleTheme}
+        {onToggleTheme && (
+          <button
+            type="button"
+            onClick={() => {
+              triggerSelectionHaptic();
+              onToggleTheme();
+            }}
             title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-            style={{ cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 14px',
+              borderRadius: 20,
+              border: '1px solid var(--ios-card-border)',
+              background: 'var(--ios-card-bg)',
+              color: 'var(--ios-text-primary)',
+              cursor: 'pointer',
+              boxShadow: 'var(--ios-shadow-sm)',
+              fontSize: 13,
+              fontWeight: 700,
+              transition: 'all 0.15s ease'
+            }}
           >
-            <img
-              src="/schedly-logo.png"
-              alt="Schedly"
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-            />
-          </div>
-        </div>
+            {theme === 'dark' ? (
+              <>
+                <Sun size={15} color="#F59E0B" />
+                <span>Light</span>
+              </>
+            ) : (
+              <>
+                <Moon size={15} color="#6366F1" />
+                <span>Dark</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
 
-      {/* Responsive 2-Column Grid on Tablet & Desktop, Single Column on Mobile */}
+      {/* Main Grid: 2 Columns on Desktop, Single Stack on Mobile */}
       <div className="settings-desktop-grid">
-        {/* Left Column: Account, Reminders, Audio & Storage */}
+        {/* Left Column */}
         <div className="settings-split-col">
-          {/* ================= 1. ACCOUNT & CLOUD BACKUP ================= */}
+          {/* 1. Account & Cloud Sync */}
           <div className="ios-section-header">Account & Cloud Backup</div>
           <div className="ios-settings-group">
-            {/* Account Info Row */}
             <div className="ios-settings-row">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                <div className="ios-settings-icon-tile" style={{ background: '#3B82F6' }}>
-                  <UserCheck size={18} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                <div className="ios-settings-icon-tile" style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)' }}>
+                  <UserCheck size={17} />
                 </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {userEmail || 'Authenticated Student'}
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--ios-text-primary)' }}>
+                    {userEmail || 'Student Account'}
                   </div>
-                  <div style={{ fontSize: 11.5, color: isOnline ? '#10B981' : 'var(--ios-text-muted)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+                  <div style={{ fontSize: 11.5, color: isOnline ? '#10B981' : 'var(--ios-text-muted)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                     {isOnline ? (
                       <>
                         <CloudCheck size={12} />
@@ -142,7 +241,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     ) : (
                       <>
                         <CloudOff size={12} />
-                        <span>Local Cache Active</span>
+                        <span>Offline Local Cache</span>
                       </>
                     )}
                   </div>
@@ -158,8 +257,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   }}
                   disabled={isSyncing || !isOnline}
                   style={{
-                    padding: '6px 12px',
-                    borderRadius: 14,
+                    padding: '6px 14px',
+                    borderRadius: 12,
                     border: '1px solid var(--ios-card-border)',
                     background: 'var(--ios-bg-secondary)',
                     color: 'var(--ios-blue)',
@@ -167,9 +266,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 5,
+                    gap: 6,
                     cursor: 'pointer',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    boxShadow: 'var(--ios-shadow-sm)'
                   }}
                   title="Sync now with cloud"
                 >
@@ -179,10 +279,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               )}
             </div>
 
-            {/* Divider */}
             {onSignOut && <div className="ios-settings-divider" />}
 
-            {/* Sign Out Row */}
             {onSignOut && (
               <div
                 className="ios-settings-row clickable"
@@ -190,31 +288,31 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 role="button"
                 tabIndex={0}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div className="ios-settings-icon-tile" style={{ background: '#EF4444' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                  <div className="ios-settings-icon-tile" style={{ background: 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)' }}>
                     <LogOut size={16} />
                   </div>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14, color: '#EF4444' }}>Sign Out</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)' }}>Log out from this device</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 1 }}>Log out from this device</div>
                   </div>
                 </div>
-                <ChevronRight size={16} style={{ color: 'var(--ios-text-muted)' }} />
+                <ChevronRight size={16} style={{ color: 'var(--ios-text-muted)', flexShrink: 0 }} />
               </div>
             )}
           </div>
 
-          {/* ================= 2. CLASS REMINDERS ================= */}
+          {/* 2. Class Reminders & Notifications */}
           <div className="ios-section-header">Class Reminders & Notifications</div>
           <div className="ios-settings-group">
             <div className="ios-settings-row">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div className="ios-settings-icon-tile" style={{ background: '#8B5CF6' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, paddingRight: 8 }}>
+                <div className="ios-settings-icon-tile" style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)' }}>
                   <Bell size={17} />
                 </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 14.5 }}>Push Notifications</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)' }}>Get notified before lectures start</div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14.5, color: 'var(--ios-text-primary)' }}>Push Notifications</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 1 }}>Get notified before lectures start</div>
                 </div>
               </div>
               <label className="ios-toggle-switch">
@@ -230,7 +328,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             {settings.remindersEnabled && (
               <>
                 <div className="ios-settings-divider" />
-                <div style={{ padding: '12px 16px', background: 'var(--ios-bg-secondary)' }}>
+                <div style={{ padding: '14px 16px', background: 'var(--ios-bg-secondary)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ios-text-secondary)' }}>Remind me:</span>
                     <span style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ios-blue)' }}>
@@ -238,7 +336,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 6 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
                     {[
                       { label: '5m', value: 5 },
                       { label: '10m', value: 10 },
@@ -251,13 +349,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         type="button"
                         onClick={() => handleSetReminderMinutes(option.value)}
                         style={{
-                          flex: 1,
-                          padding: '7px 0',
+                          padding: '8px 0',
                           borderRadius: 10,
                           border: settings.reminderMinutes === option.value ? '1.5px solid var(--ios-blue)' : '1px solid var(--ios-card-border)',
                           background: settings.reminderMinutes === option.value ? 'var(--ios-blue-light)' : 'var(--ios-card-bg)',
                           color: settings.reminderMinutes === option.value ? 'var(--ios-blue)' : 'var(--ios-text-secondary)',
-                          fontSize: 12,
+                          fontSize: 12.5,
                           fontWeight: settings.reminderMinutes === option.value ? 800 : 600,
                           cursor: 'pointer',
                           transition: 'all 0.15s ease'
@@ -276,9 +373,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         triggerLightHaptic();
                         onTestNotification();
                       }}
-                      style={{ width: '100%', marginTop: 12, fontSize: 12, padding: '7px 12px' }}
+                      style={{ width: '100%', marginTop: 12, fontSize: 12.5, padding: '9px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                     >
-                      <Send size={12} /> Test Notification Now
+                      <Send size={13} /> Test Notification Now
                     </button>
                   )}
                 </div>
@@ -286,17 +383,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             )}
           </div>
 
-          {/* ================= 3. AUDIO & HAPTICS ================= */}
+          {/* 3. Audio & Storage */}
           <div className="ios-section-header">Audio & Feedback</div>
           <div className="ios-settings-group">
             <div className="ios-settings-row">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div className="ios-settings-icon-tile" style={{ background: '#F59E0B' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, paddingRight: 8 }}>
+                <div className="ios-settings-icon-tile" style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' }}>
                   <Volume2 size={17} />
                 </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 14.5 }}>Alert Sound</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)' }}>Play chime with class notifications</div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14.5, color: 'var(--ios-text-primary)' }}>Alert Sound</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 1 }}>Play chime with class notifications</div>
                 </div>
               </div>
               <label className="ios-toggle-switch">
@@ -310,29 +407,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
 
-          {/* ================= 4. DEVICE OFFLINE STORAGE ================= */}
           <div className="ios-section-header">Device Storage & Privacy</div>
           <div className="ios-settings-group">
             <div className="ios-settings-row">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div className="ios-settings-icon-tile" style={{ background: '#10B981' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, paddingRight: 8 }}>
+                <div className="ios-settings-icon-tile" style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)' }}>
                   <HardDrive size={16} />
                 </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>Offline-First Storage</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)' }}>Timetable, Pass, Notes & Docs saved on device</div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ios-text-primary)' }}>Offline-First Storage</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 1 }}>Timetable, Pass, Notes & Docs saved on device</div>
                 </div>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 999, background: '#10B98115', color: '#10B981' }}>
+              <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 999, background: 'rgba(16, 185, 129, 0.12)', color: '#10B981', flexShrink: 0 }}>
                 Encrypted
               </span>
             </div>
           </div>
-        </div>
 
-        {/* Right Column: Facebook Page, Personality Themes, Schedule Management & Legal */}
-        <div className="settings-split-col">
-          {/* ================= 5. OFFICIAL SCHEDLY FACEBOOK COMMUNITY ================= */}
+          {/* Official Community */}
           <div className="ios-section-header">Official Community & Support</div>
           <a
             href="https://facebook.com/schedlyapp"
@@ -341,44 +434,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             onClick={() => triggerLightHaptic()}
             className="schedly-fb-brand-card"
             title="Visit Schedly Facebook Page"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-              padding: '12px 16px',
-              background: 'var(--ios-card-bg)',
-              border: '1.5px solid rgba(24, 119, 242, 0.25)',
-              borderRadius: 16,
-              textDecoration: 'none',
-              color: 'inherit',
-              cursor: 'pointer',
-              marginBottom: 20
-            }}
           >
-            <div 
-              className="schedly-fb-avatar-wrap"
-              style={{
-                width: 44,
-                height: 44,
-                minWidth: 44,
-                minHeight: 44,
-                maxWidth: 44,
-                maxHeight: 44,
-                borderRadius: 12,
-                overflow: 'hidden',
-                flexShrink: 0,
-                border: '1.5px solid rgba(24, 119, 242, 0.3)',
-                boxShadow: '0 4px 12px rgba(24, 119, 242, 0.18)',
-                background: '#FFFFFF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
+            <div className="schedly-fb-avatar-wrap">
               <img
                 src="/schedly-logo.png"
                 alt="Schedly"
-                style={{ width: 30, height: 30, maxWidth: 30, maxHeight: 30, objectFit: 'contain', display: 'block' }}
               />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -410,106 +470,27 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <ExternalLink size={16} strokeWidth={2.2} />
             </div>
           </a>
+        </div>
 
-          {/* ================= 6. VISUAL PERSONALITY THEMES ================= */}
+        {/* Right Column */}
+        <div className="settings-split-col">
+          {/* 4. Visual Personality Themes */}
           <div className="ios-section-header">Visual Personalities</div>
           <div className="ios-settings-group">
-            <div style={{ padding: '12px 16px 8px 16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <div className="ios-settings-icon-tile" style={{ background: '#EC4899' }}>
+            <div style={{ padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                <div className="ios-settings-icon-tile" style={{ background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' }}>
                   <Palette size={17} />
                 </div>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: 14.5 }}>Theme Palette</div>
+                  <div style={{ fontWeight: 800, fontSize: 14.5, color: 'var(--ios-text-primary)' }}>Theme Palette</div>
                   <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)' }}>Same Schedly. Different personality.</div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                {[
-                  {
-                    id: 'bluebook' as const,
-                    name: 'Bluebook',
-                    badge: 'Classic',
-                    emoji: '🔵',
-                    personality: 'Academic, familiar, classic Schedly',
-                    swatches: ['#60A5FA', '#2563EB', '#1E3A8A', '#0F172A'],
-                    aliases: ['blue-cascade']
-                  },
-                  {
-                    id: 'crimson' as const,
-                    name: 'Crimson',
-                    badge: 'Bold',
-                    emoji: '🔴',
-                    personality: 'Bold, energetic, confident',
-                    swatches: ['#F87171', '#EF4444', '#DC2626', '#991B1B'],
-                    aliases: []
-                  },
-                  {
-                    id: 'bini' as const,
-                    name: 'Bini',
-                    badge: 'Playful',
-                    emoji: '🌸',
-                    personality: 'Fun, youthful, stylish & modern',
-                    swatches: ['#F472B6', '#EC4899', '#DB2777', '#BE185D'],
-                    aliases: []
-                  },
-                  {
-                    id: 'ube' as const,
-                    name: 'Ube',
-                    badge: 'Distinctive',
-                    emoji: '🟣',
-                    personality: 'Filipino, distinctive, playful & premium',
-                    swatches: ['#C4B5FD', '#A78BFA', '#7C3AED', '#5B21B6'],
-                    aliases: []
-                  },
-                  {
-                    id: 'coffee' as const,
-                    name: 'Coffee',
-                    badge: 'Cozy',
-                    emoji: '☕',
-                    personality: 'Cozy, productive, espresso & mocha',
-                    swatches: ['#FDE68A', '#D97706', '#92400E', '#78350F'],
-                    aliases: []
-                  },
-                  {
-                    id: 'matcha' as const,
-                    name: 'Matcha',
-                    badge: 'Fresh',
-                    emoji: '🍵',
-                    personality: 'Fresh, calm, organized & natural',
-                    swatches: ['#86EFAC', '#4ADE80', '#16A34A', '#14532D'],
-                    aliases: []
-                  },
-                  {
-                    id: 'duos' as const,
-                    name: 'Duos',
-                    badge: 'Dynamic',
-                    emoji: '🎨',
-                    personality: 'Dual-tone gradients with high contrast',
-                    swatches: ['#38BDF8', '#6366F1', '#EC4899', '#F59E0B'],
-                    aliases: ['dual-tone']
-                  },
-                  {
-                    id: 'highlighter' as const,
-                    name: 'Highlighter',
-                    badge: 'Vibrant',
-                    emoji: '🌈',
-                    personality: 'Color-coded by course, maximum vibrancy',
-                    swatches: ['#F43F5E', '#10B981', '#3B82F6', '#8B5CF6'],
-                    aliases: ['rainbow']
-                  },
-                  {
-                    id: 'obsidian' as const,
-                    name: 'Obsidian',
-                    badge: 'Mono',
-                    emoji: '🖤',
-                    personality: 'Sleek, stealth & minimalist monochrome black',
-                    swatches: ['#94A3B8', '#475569', '#1E293B', '#0F172A'],
-                    aliases: ['monochrome']
-                  }
-                ].map(themeItem => {
-                  const currentTheme = (settings.colorTheme || settings.subjectCardTheme || 'bluebook') as string;
+              {/* Responsive Theme Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 8 }}>
+                {THEME_OPTIONS.map(themeItem => {
                   const isSelected = currentTheme === themeItem.id || (themeItem.aliases as string[]).includes(currentTheme);
 
                   return (
@@ -527,54 +508,59 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       tabIndex={0}
                       style={{
                         display: 'flex',
-                        alignItems: 'center',
+                        flexDirection: 'column',
                         justifyContent: 'space-between',
                         padding: '10px 12px',
-                        borderRadius: 13,
+                        borderRadius: 14,
                         border: `1.5px solid ${isSelected ? 'var(--ios-blue)' : 'var(--ios-card-border)'}`,
                         background: isSelected ? 'var(--ios-blue-light)' : 'var(--ios-bg-secondary)',
                         cursor: 'pointer',
-                        transition: 'all 0.15s ease'
+                        transition: 'all 0.15s ease',
+                        boxShadow: isSelected ? '0 2px 8px rgba(37, 99, 235, 0.15)' : 'none'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ fontSize: 18 }}>{themeItem.emoji}</div>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, marginBottom: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <span style={{ fontSize: 16 }}>{themeItem.emoji}</span>
+                          <div>
+                            <div style={{
                               fontWeight: 800,
-                              fontSize: 13.5,
+                              fontSize: 13,
                               color: isSelected ? 'var(--ios-blue)' : 'var(--ios-text-primary)'
                             }}>
                               {themeItem.name}
-                            </span>
-                            {isSelected && (
-                              <span style={{
-                                fontSize: 9,
-                                fontWeight: 800,
-                                padding: '1px 5px',
-                                borderRadius: 999,
-                                background: 'var(--ios-blue)',
-                                color: '#FFFFFF'
-                              }}>
-                                ACTIVE
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: 11, color: 'var(--ios-text-muted)', marginTop: 1 }}>
-                            {themeItem.personality}
+                            </div>
+                            <div style={{ fontSize: 10.5, color: 'var(--ios-text-muted)', lineHeight: 1.2 }}>
+                              {themeItem.desc}
+                            </div>
                           </div>
                         </div>
+
+                        {isSelected && (
+                          <div style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: '50%',
+                            background: 'var(--ios-blue)',
+                            color: '#FFFFFF',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            <Check size={11} strokeWidth={3} />
+                          </div>
+                        )}
                       </div>
 
-                      {/* Swatches */}
-                      <div style={{ display: 'flex', gap: 3.5, alignItems: 'center', flexShrink: 0, marginLeft: 8 }}>
+                      {/* Swatches Bar */}
+                      <div style={{ display: 'flex', gap: 3.5, alignItems: 'center', marginTop: 'auto' }}>
                         {themeItem.swatches.map((color, cIdx) => (
                           <div
                             key={cIdx}
                             style={{
-                              width: 12,
-                              height: 12,
+                              flex: 1,
+                              height: 6,
                               borderRadius: 3,
                               background: color,
                               boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
@@ -589,52 +575,50 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
 
-          {/* ================= 7. COR & SCHEDULE DATA ================= */}
+          {/* 5. COR & Schedule Management */}
           <div className="ios-section-header">COR & Schedule Management</div>
           <div className="ios-settings-group">
-            {/* Scan COR */}
             <div
               className="ios-settings-row clickable"
               onClick={onOpenScanner}
               role="button"
               tabIndex={0}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div className="ios-settings-icon-tile" style={{ background: '#0284C7' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                <div className="ios-settings-icon-tile" style={{ background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' }}>
                   <Camera size={16} />
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>Scan / Re-scan COR</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)' }}>Upload or take a photo of your schedule</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ios-text-primary)' }}>Scan / Re-scan COR</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 1 }}>Upload or take a photo of your schedule</div>
                 </div>
               </div>
-              <ChevronRight size={16} style={{ color: 'var(--ios-text-muted)' }} />
+              <ChevronRight size={16} style={{ color: 'var(--ios-text-muted)', flexShrink: 0 }} />
             </div>
 
             <div className="ios-settings-divider" />
 
-            {/* Clear Data */}
             <div
               className="ios-settings-row clickable"
               onClick={onResetData}
               role="button"
               tabIndex={0}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div className="ios-settings-icon-tile" style={{ background: '#EF4444' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                <div className="ios-settings-icon-tile" style={{ background: 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)' }}>
                   <Trash2 size={16} />
                 </div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#EF4444' }}>Clear All Schedule Data</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)' }}>Wipes saved courses from storage</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 1 }}>Wipes saved courses from storage</div>
                 </div>
               </div>
-              <ChevronRight size={16} style={{ color: 'var(--ios-text-muted)' }} />
+              <ChevronRight size={16} style={{ color: 'var(--ios-text-muted)', flexShrink: 0 }} />
             </div>
           </div>
 
-          {/* ================= 8. PRIVACY POLICY & GUIDELINES ================= */}
-          <div className="ios-section-header">Privacy & Guidelines</div>
+          {/* 6. Privacy & Support */}
+          <div className="ios-section-header">Privacy & Support</div>
           <div className="ios-settings-group">
             <div
               className="ios-settings-row clickable"
@@ -645,16 +629,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               role="button"
               tabIndex={0}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div className="ios-settings-icon-tile" style={{ background: '#059669' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                <div className="ios-settings-icon-tile" style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)' }}>
                   <ShieldCheck size={16} />
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>Privacy Policy & Guidelines</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)' }}>Terms of use, Digital ID disclaimer & data rights</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ios-text-primary)' }}>Privacy Policy & Guidelines</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 1 }}>Terms of use, Digital ID disclaimer & data rights</div>
                 </div>
               </div>
-              <ChevronRight size={16} style={{ color: 'var(--ios-text-muted)' }} />
+              <ChevronRight size={16} style={{ color: 'var(--ios-text-muted)', flexShrink: 0 }} />
             </div>
 
             <div className="ios-settings-divider" />
@@ -667,21 +651,21 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               className="ios-settings-row clickable"
               style={{ textDecoration: 'none', color: 'inherit' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div className="ios-settings-icon-tile" style={{ background: '#1877F2' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                <div className="ios-settings-icon-tile" style={{ background: 'linear-gradient(135deg, #1877F2 0%, #0D5CB6 100%)' }}>
                   <MessageCircle size={16} />
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>Contact Schedly Support</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)' }}>Send feedback or get help via Facebook Messenger</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ios-text-primary)' }}>Contact Schedly Support</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ios-text-muted)', marginTop: 1 }}>Send feedback or get help via Facebook Messenger</div>
                 </div>
               </div>
-              <ExternalLink size={15} style={{ color: 'var(--ios-text-muted)' }} />
+              <ExternalLink size={15} style={{ color: 'var(--ios-text-muted)', flexShrink: 0 }} />
             </a>
           </div>
 
           {/* Legal Disclaimer & App Info Footer */}
-          <div style={{ textAlign: 'center', padding: '8px 12px 20px 12px', color: 'var(--ios-text-muted)' }}>
+          <div style={{ textAlign: 'center', padding: '12px 16px 24px 16px', color: 'var(--ios-text-muted)' }}>
             <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 6, color: 'var(--ios-text-secondary)' }}>
               Schedly • v1.4.0 (Build 2026)
             </div>
