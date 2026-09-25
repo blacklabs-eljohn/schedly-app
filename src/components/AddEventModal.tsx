@@ -28,6 +28,7 @@ interface AddEventModalProps {
 }
 
 const CATEGORIES: { id: EventCategory; label: string; icon: string; defaultColor: string }[] = [
+  { id: 'class_suspended', label: 'No Class / Suspension', icon: '🛑', defaultColor: '#EF4444' },
   { id: 'exam', label: 'Major Exam', icon: '📝', defaultColor: '#EF4444' },
   { id: 'long_quiz', label: 'Long Quiz', icon: '📋', defaultColor: '#F97316' },
   { id: 'short_quiz', label: 'Short Quiz', icon: '⚡', defaultColor: '#F59E0B' },
@@ -42,6 +43,14 @@ const CATEGORIES: { id: EventCategory; label: string; icon: string; defaultColor
   { id: 'meeting', label: 'Meeting / Defense', icon: '🤝', defaultColor: '#4F46E5' },
   { id: 'activity', label: 'Campus Life', icon: '🏆', defaultColor: '#EC4899' },
   { id: 'personal', label: 'Personal', icon: '🎯', defaultColor: '#059669' }
+];
+
+const SUSPENSION_PRESETS = [
+  { label: '🌀 Typhoon / Weather', title: 'Class Suspended (Typhoon / Heavy Rain)', notes: 'Official suspension due to weather advisory.' },
+  { label: '🏆 Intramurals / SCUAA', title: 'No Classes (University Intramurals)', notes: 'Regular classes suspended for campus sports fest.' },
+  { label: '🏛️ Local Holiday / Fiesta', title: 'No Classes (Local Holiday / Charter Day)', notes: 'Official non-working local holiday declared by LGU.' },
+  { label: '🧑‍🏫 Faculty Conference / Memo', title: 'Class Suspended (Faculty Conference / Memo)', notes: 'Faculty and administrative development meeting.' },
+  { label: '🎓 University Foundation', title: 'No Classes (University Foundation Day)', notes: 'Annual campus anniversary celebration.' }
 ];
 
 const COLOR_PALETTES = [
@@ -91,6 +100,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
 
   const matchedCourse = courses.find(c => c.id === selectedSubjectId);
+  const isExistingEvent = Boolean(initialEvent && initialEvent.id && initialEvent.id.trim() !== '');
 
   useEffect(() => {
     if (isOpen) {
@@ -186,9 +196,12 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
     }
 
     const resolvedCourse = courses.find(c => c.id === selectedSubjectId) || matchedCourse;
+    const resolvedId = isExistingEvent 
+      ? initialEvent!.id 
+      : `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     const newEvent: CustomEvent = {
-      id: initialEvent ? initialEvent.id : `evt_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      id: resolvedId,
       title: title.trim(),
       category,
       date,
@@ -199,11 +212,11 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       reminderMinutes,
       notes: notes.trim() || undefined,
       color: selectedColor,
-      isCompleted: initialEvent?.isCompleted || false,
+      isCompleted: isExistingEvent ? (initialEvent?.isCompleted || false) : false,
       subjectId: resolvedCourse ? resolvedCourse.id : (selectedSubjectId || initialEvent?.subjectId || undefined),
       subjectCode: resolvedCourse ? resolvedCourse.courseCode : (initialEvent?.subjectCode || undefined),
       subjectName: resolvedCourse ? resolvedCourse.courseName : (initialEvent?.subjectName || undefined),
-      createdAt: initialEvent?.createdAt || new Date().toISOString()
+      createdAt: (isExistingEvent && initialEvent?.createdAt) ? initialEvent.createdAt : new Date().toISOString()
     };
 
     triggerSuccessHaptic();
@@ -212,13 +225,13 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   };
 
   const handleDelete = () => {
-    if (initialEvent && onDeleteEvent) {
+    if (isExistingEvent && onDeleteEvent) {
       setIsConfirmDeleteOpen(true);
     }
   };
 
   const handleConfirmDelete = () => {
-    if (initialEvent && onDeleteEvent) {
+    if (isExistingEvent && onDeleteEvent && initialEvent) {
       triggerLightHaptic();
       setIsConfirmDeleteOpen(false);
       onDeleteEvent(initialEvent.id);
@@ -319,6 +332,51 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
               })}
             </div>
           </div>
+
+          {/* Quick Suspension Reason Presets */}
+          {category === 'class_suspended' && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              borderRadius: 12,
+              padding: '12px 14px',
+              marginBottom: 14
+            }}>
+              <div style={{ fontSize: 11.5, fontWeight: 800, color: '#EF4444', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span>🛑</span> Quick Suspension Presets
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {SUSPENSION_PRESETS.map(preset => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => {
+                      triggerLightHaptic();
+                      setTitle(preset.title);
+                      setNotes(preset.notes);
+                      setIsAllDay(true);
+                      setSelectedColor('#EF4444');
+                    }}
+                    style={{
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      padding: '5px 10px',
+                      borderRadius: 8,
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      background: 'var(--ios-card-bg)',
+                      color: 'var(--ios-text-primary)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--ios-text-secondary)', marginTop: 8, lineHeight: 1.4 }}>
+                💡 Declaring No Class will mark this date as suspended in your timetable, home view, and calendar, and silence class alarms for this day.
+              </div>
+            </div>
+          )}
 
           {/* Subject Linkage (Two-Way Sync) */}
           {courses.length > 0 && (
@@ -597,10 +655,10 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
               className="ios-btn-primary"
               style={{ width: '100%', padding: '13px', fontSize: 14, fontWeight: 800 }}
             >
-              {initialEvent ? 'Save Changes' : 'Create Event'}
+              {isExistingEvent ? 'Save Changes' : 'Create Event'}
             </button>
 
-            {initialEvent && (
+            {isExistingEvent && (
               <button 
                 type="button" 
                 onClick={handleDelete}

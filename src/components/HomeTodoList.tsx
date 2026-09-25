@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CustomEvent, Course, EventCategory } from '../types';
+import { CustomEvent, Course, EventCategory, isTaskCategory } from '../types';
 import { 
   CheckCircle2, 
   Circle, 
@@ -13,8 +13,6 @@ import {
   ChevronDown, 
   ChevronUp, 
   Flame,
-  Layers,
-  ArrowRight,
   BookOpen
 } from 'lucide-react';
 import { formatTime12H } from '../services/scheduleEngine';
@@ -141,6 +139,9 @@ export const HomeTodoList: React.FC<HomeTodoListProps> = ({
   // Category Icon & Label mapping
   const getCategoryMeta = (cat?: EventCategory) => {
     switch (cat) {
+      case 'class_suspended':
+      case 'no_class':
+        return { label: 'No Class / Suspension', emoji: '🛑', color: '#EF4444' };
       case 'exam':
         return { label: 'Major Exam', emoji: '📝', color: '#EF4444' };
       case 'long_quiz':
@@ -174,16 +175,7 @@ export const HomeTodoList: React.FC<HomeTodoListProps> = ({
   };
 
   // Only actionable academic deadlines & deliverables are shown in Home Deadlines & Tasks
-  const ACADEMIC_DEADLINE_CATEGORIES: EventCategory[] = [
-    'exam',
-    'long_quiz',
-    'short_quiz',
-    'assignment',
-    'reporting',
-    'project'
-  ];
-
-  const academicEvents = events.filter(e => ACADEMIC_DEADLINE_CATEGORIES.includes(e.category));
+  const academicEvents = events.filter(e => isTaskCategory(e.category));
   const pendingEvents = academicEvents.filter(e => !e.isCompleted);
   const completedEvents = academicEvents.filter(e => e.isCompleted);
 

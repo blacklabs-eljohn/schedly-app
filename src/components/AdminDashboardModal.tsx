@@ -5,7 +5,6 @@ import {
   Activity, 
   TrendingUp, 
   BookOpen, 
-  Calendar, 
   School, 
   Search, 
   RefreshCw, 
@@ -18,12 +17,10 @@ import {
   Clock, 
   Sparkles, 
   UserCheck, 
-  GraduationCap, 
   SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
   Send,
-  Eye,
   CalendarDays
 } from 'lucide-react';
 import { 

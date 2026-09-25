@@ -106,6 +106,7 @@ export async function scheduleClassReminders(
       // Calculate hour and minute for the alarm
       let targetHour = Math.floor(targetMins / 60);
       let targetMinute = targetMins % 60;
+      let rollBackDay = false;
 
       if (targetMinute < 0) {
         targetMinute += 60;
@@ -113,12 +114,16 @@ export async function scheduleClassReminders(
       }
       if (targetHour < 0) {
         targetHour += 24;
+        rollBackDay = true;
       }
 
       course.days.forEach(day => {
         notificationId++;
-        const weekdayIndex = DAY_NAME_TO_WEEKDAY[day];
+        let weekdayIndex = DAY_NAME_TO_WEEKDAY[day];
         if (!weekdayIndex) return;
+        if (rollBackDay) {
+          weekdayIndex = weekdayIndex === 1 ? 7 : weekdayIndex - 1;
+        }
 
         const roomInfo = course.room ? `Room ${course.room}` : 'Class';
         const formattedStart = formatTime12H(course.startTime);
@@ -194,11 +199,28 @@ export async function triggerTestClassNotification(leadMins: number = 15): Promi
   }
 }
 
+type ToastListener = (toast: { title: string; message?: string } | null) => void;
+const toastListeners = new Set<ToastListener>();
+
+export function subscribeSystemToast(listener: ToastListener): () => void {
+  toastListeners.add(listener);
+  return () => {
+    toastListeners.delete(listener);
+  };
+}
+
 /**
- * In-app haptic alert (does NOT pop up system OS notifications for regular in-app actions)
+ * In-app interactive toast notification with Success animation & haptic feedback
  */
-export function showSystemToast(_title: string, _body?: string): void {
-  triggerLightHaptic();
+export function showSystemToast(title: string, body?: string): void {
+  triggerSuccessHaptic();
+  toastListeners.forEach(listener => {
+    try {
+      listener({ title, message: body });
+    } catch (e) {
+      // ignore
+    }
+  });
 }
 
 /**

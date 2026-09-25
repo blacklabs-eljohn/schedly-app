@@ -43,6 +43,8 @@ import {
   FileCategory 
 } from '../services/localFileStorageService';
 import { triggerLightHaptic, triggerSelectionHaptic } from '../services/hapticsService';
+import { LottieAnimation } from './LottieAnimation';
+import noDataPreviewAnim from '../assets/No Data Preview.json';
 
 interface FoldersViewProps {
   courses: Course[];
@@ -520,19 +522,24 @@ export const FoldersView: React.FC<FoldersViewProps> = ({
       return (
         <div 
           style={{ 
-            padding: '44px 20px', 
+            padding: '36px 20px 30px', 
             borderRadius: 18, 
             background: 'var(--ios-card-bg)', 
             border: '1px dashed var(--ios-card-border)', 
-            textAlign: 'center' 
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center'
           }}
         >
-          <UploadCloud size={32} color="var(--ios-text-muted)" style={{ margin: '0 auto 10px', display: 'block' }} />
-          <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ios-text-primary)', marginBottom: 4 }}>
-            No files found
+          <div style={{ width: 140, height: 120, marginBottom: 4 }}>
+            <LottieAnimation animationData={noDataPreviewAnim} loop={true} />
           </div>
-          <div style={{ fontSize: 12.5, color: 'var(--ios-text-muted)', marginBottom: 14 }}>
-            Upload PPT slides, PDF lecture notes, or docs to access them anytime offline.
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ios-text-primary)', marginBottom: 4 }}>
+            No files in this folder
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--ios-text-muted)', marginBottom: 16, maxWidth: 300 }}>
+            Upload PPT slides, PDF lecture notes, or document reviewers to access them anytime offline.
           </div>
           <button
             type="button"
@@ -541,8 +548,8 @@ export const FoldersView: React.FC<FoldersViewProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              padding: '8px 16px',
-              borderRadius: 10,
+              padding: '8px 18px',
+              borderRadius: 12,
               background: 'var(--ios-blue)',
               color: '#FFFFFF',
               border: 'none',

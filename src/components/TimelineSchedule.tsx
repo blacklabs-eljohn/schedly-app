@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Course, DayOfWeek, FreeTimeGap, isLaboratoryCourse } from '../types';
+import { Course, DayOfWeek, FreeTimeGap, isLaboratoryCourse, CustomEvent, isClassSuspensionEvent } from '../types';
 import { 
   DAYS_OF_WEEK, 
   timeToMinutes, 
@@ -22,12 +22,16 @@ import {
   CheckCircle2,
   Palmtree,
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  AlertOctagon
 } from 'lucide-react';
 import { triggerSelectionHaptic, triggerLightHaptic } from '../services/hapticsService';
+import { LottieAnimation } from './LottieAnimation';
+import noClassAnim from '../assets/No Class.json';
 
 interface TimelineScheduleProps {
   courses: Course[];
+  events?: CustomEvent[];
   onSelectCourse: (course: Course) => void;
   onOpenScanner?: () => void;
   initialDay?: DayOfWeek;
@@ -49,6 +53,7 @@ interface PositionedEvent {
 
 export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({ 
   courses, 
+  events = [],
   onSelectCourse, 
   initialDay,
   onSelectDay,
@@ -234,6 +239,25 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
   const totalFreeTimeMinutes = dayInfo.freeTimeGaps.reduce((acc, g) => acc + g.durationMinutes, 0);
   const totalFreeTimeHours = (totalFreeTimeMinutes / 60).toFixed(1);
 
+  // Compute date corresponding to selectedDay in the current week
+  const getSelectedDayDateStr = () => {
+    const today = new Date();
+    const todayDayIndex = today.getDay(); // 0 is Sun
+    const dayIndexMap: Record<DayOfWeek, number> = {
+      'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6
+    };
+    const targetDayIndex = dayIndexMap[selectedDay] ?? 1;
+    const diff = targetDayIndex - todayDayIndex;
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + diff);
+    const y = targetDate.getFullYear();
+    const m = (targetDate.getMonth() + 1).toString().padStart(2, '0');
+    const d = targetDate.getDate().toString().padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const selectedDayDateStr = getSelectedDayDateStr();
+  const selectedDaySuspension = (events || []).find(e => e.date === selectedDayDateStr && isClassSuspensionEvent(e.category));
   const selectedDayHoliday = getHolidayForDayInCurrentWeek(selectedDay);
 
   return (
@@ -348,6 +372,50 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
         })}
       </div>
 
+      {/* Declared Class Suspension Banner for Selected Day */}
+      {selectedDaySuspension && (
+        <div 
+          className="ios-card" 
+          style={{
+            padding: '12px 14px',
+            marginBottom: 14,
+            background: 'linear-gradient(135deg, var(--ios-card-bg) 0%, rgba(239, 68, 68, 0.08) 100%)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: 'rgba(239, 68, 68, 0.15)',
+              color: 'var(--ios-red, #EF4444)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 16,
+              flexShrink: 0
+            }}>
+              🛑
+            </div>
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ios-red, #EF4444)' }}>
+                {selectedDaySuspension.title}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--ios-text-secondary)', marginTop: 1 }}>
+                Declared Class Suspension • Classes called off {selectedDaySuspension.location ? `(${selectedDaySuspension.location})` : ''}
+              </div>
+            </div>
+          </div>
+          <span className="ios-tag-pill" style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'var(--ios-red, #EF4444)', fontSize: 10, padding: '2px 7px' }}>
+            NO CLASSES
+          </span>
+        </div>
+      )}
+
       {/* Holiday Announcement Banner for Selected Day (if holiday) */}
       {selectedDayHoliday && (
         <div 
@@ -415,8 +483,30 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
               </div>
 
               {dayCourses.length === 0 && (
-                <div className="ios-card" style={{ textAlign: 'center', padding: '36px 14px', color: 'var(--ios-text-muted)', fontSize: 13.5 }}>
-                  No classes scheduled for {selectedDay}. Enjoy your free day! 🎉
+                <div 
+                  className="ios-card" 
+                  style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    padding: '32px 20px 24px', 
+                    textAlign: 'center',
+                    background: 'var(--ios-card-bg)',
+                    borderRadius: 20,
+                    border: '1px solid var(--ios-card-border)',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
+                  }}
+                >
+                  <div style={{ width: 180, height: 140, marginBottom: 8 }}>
+                    <LottieAnimation animationData={noClassAnim} loop={true} />
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ios-text-primary)', marginBottom: 4 }}>
+                    No Classes for {selectedDay}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--ios-text-muted)', maxWidth: 300, lineHeight: 1.45 }}>
+                    Enjoy your free day! Time to relax, review course notes, or catch up on pending tasks. 🎉
+                  </div>
                 </div>
               )}
 

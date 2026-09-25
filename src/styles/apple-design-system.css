@@ -659,7 +659,7 @@ main {
 .digital-id-3d-scene {
   perspective: 1200px;
   width: 100%;
-  margin-bottom: 14px;
+  margin-bottom: 0;
 }
 
 .digital-id-3d-card {
@@ -3128,15 +3128,23 @@ input:checked + .ios-toggle-slider:before {
 .home-desktop-grid {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 10px;
 }
 
 .home-col-side {
   order: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   padding: 0 20px;
+}
+
+.home-col-side .digital-id-3d-scene {
+  margin-bottom: 0;
+}
+
+.home-col-side .ios-notification-banner {
+  margin-bottom: 0;
 }
 
 .home-col-main {

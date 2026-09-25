@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Course, NotificationSettings, StudentProfile, DayOfWeek, CustomEvent, SubjectNote, CourseLink, CourseTopic, isLaboratoryCourse } from './types';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { Course, NotificationSettings, StudentProfile, DayOfWeek, CustomEvent, SubjectNote, CourseLink, CourseTopic, isLaboratoryCourse, isClassSuspensionEvent } from './types';
 import { User } from '@supabase/supabase-js';
 import { 
   getStoredCourses, 
@@ -20,13 +20,12 @@ import {
   createBlankProfile,
   getLastActiveUserId,
   setLastActiveUserId,
-  hasAcceptedPrivacyPolicy,
   setAcceptedPrivacyPolicy,
   recordLocalAppOpen
 } from './services/storageService';
 import { detectScheduleConflicts, autoResolveScheduleConflicts, getDayScheduleInfo, formatTime12H, timeToMinutes, getSubjectCardGradient, DAYS_OF_WEEK } from './services/scheduleEngine';
 import { getDefaultOfficialCourses } from './services/corParser';
-import { scheduleClassReminders, showSystemToast, triggerTestClassNotification, scheduleCustomEventNotification, cancelCustomEventNotification, syncAllCustomEventsNotifications } from './services/notificationService';
+import { scheduleClassReminders, showSystemToast, subscribeSystemToast, triggerTestClassNotification, scheduleCustomEventNotification, cancelCustomEventNotification, syncAllCustomEventsNotifications } from './services/notificationService';
 import { onAuthStateChange, getCurrentUser, signOutUser, getOfflineCachedUser } from './services/authService';
 import { 
   pullCloudData, 
@@ -48,36 +47,41 @@ import { ConflictAlertBanner } from './components/ConflictAlertBanner';
 import { SubjectsList } from './components/SubjectsList';
 import { SubjectDetailScreen } from './components/SubjectDetailScreen';
 import { SettingsView } from './components/SettingsView';
-import { ScannerModal } from './components/ScannerModal';
-import { CorrectionScreen } from './components/CorrectionScreen';
-import { InstructorDetailModal } from './components/InstructorDetailModal';
-import { FullscreenIDModal } from './components/FullscreenIDModal';
-import { EditIDModal } from './components/EditIDModal';
-import { HolidayCalendarModal } from './components/HolidayCalendarModal';
 import { CalendarView } from './components/CalendarView';
 import { SplashScreen } from './components/SplashScreen';
 import { AnnouncementBanner } from './components/AnnouncementBanner';
-import { AnnouncementModal } from './components/AnnouncementModal';
 import { fetchActiveAnnouncements, dismissAnnouncement } from './services/announcementService';
 import { Announcement } from './types';
 import { triggerLightHaptic, triggerSuccessHaptic } from './services/hapticsService';
 import { AuthScreen } from './components/AuthScreen';
-import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { HomeTodoList } from './components/HomeTodoList';
-import { AddEventModal } from './components/AddEventModal';
-import { CommandPaletteModal } from './components/CommandPaletteModal';
 import { FoldersView } from './components/FoldersView';
 import { FloatingActionPill } from './components/FloatingActionPill';
-import { EditSubjectModal } from './components/EditSubjectModal';
-import { CreateNoteModal } from './components/CreateNoteModal';
 import { HomeMiniCalendar } from './components/HomeMiniCalendar';
 import { syncWidgetsData } from './services/widgetBridge';
 import { getSubjectIconComponent } from './services/iconService';
-import { getUpcomingHolidays } from './services/phHolidaysService';
-import { AdminPortal } from './components/AdminPortal';
+import { getUpcomingHolidays, getTodayHoliday } from './services/phHolidaysService';
+import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
+import { AddEventModal } from './components/AddEventModal';
+import { EditSubjectModal } from './components/EditSubjectModal';
+import { LottieAnimation } from './components/LottieAnimation';
+import { SuccessToast } from './components/SuccessToast';
+import noClassAnim from './assets/No Class.json';
 
-import { Camera, ArrowRight, MapPin, User as UserIcon, Sparkles, Clock, CalendarDays, ChevronUp, CloudOff, Calendar as CalendarIcon, CheckCircle2, GraduationCap } from 'lucide-react';
+import { Camera, ArrowRight, MapPin, User as UserIcon, Sparkles, Clock, CalendarDays, ChevronUp, CloudOff, Calendar, CheckCircle2, GraduationCap } from 'lucide-react';
 import './styles/apple-design-system.css';
+
+// Lazy-loaded heavy modal and route components for optimal initial paint performance
+const AdminPortal = lazy(() => import('./components/AdminPortal').then(m => ({ default: m.AdminPortal })));
+const ScannerModal = lazy(() => import('./components/ScannerModal').then(m => ({ default: m.ScannerModal })));
+const CorrectionScreen = lazy(() => import('./components/CorrectionScreen').then(m => ({ default: m.CorrectionScreen })));
+const InstructorDetailModal = lazy(() => import('./components/InstructorDetailModal').then(m => ({ default: m.InstructorDetailModal })));
+const FullscreenIDModal = lazy(() => import('./components/FullscreenIDModal').then(m => ({ default: m.FullscreenIDModal })));
+const EditIDModal = lazy(() => import('./components/EditIDModal').then(m => ({ default: m.EditIDModal })));
+const HolidayCalendarModal = lazy(() => import('./components/HolidayCalendarModal').then(m => ({ default: m.HolidayCalendarModal })));
+const AnnouncementModal = lazy(() => import('./components/AnnouncementModal').then(m => ({ default: m.AnnouncementModal })));
+const CommandPaletteModal = lazy(() => import('./components/CommandPaletteModal').then(m => ({ default: m.CommandPaletteModal })));
+const CreateNoteModal = lazy(() => import('./components/CreateNoteModal').then(m => ({ default: m.CreateNoteModal })));
 
 export function App() {
   const initialCachedUser = getOfflineCachedUser();
@@ -135,6 +139,14 @@ export function App() {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isGlobalAddNoteOpen, setIsGlobalAddNoteOpen] = useState(false);
   const [isGlobalAddCourseOpen, setIsGlobalAddCourseOpen] = useState(false);
+  const [activeToast, setActiveToast] = useState<{ title: string; message?: string } | null>(null);
+
+  // Global In-App Toast Listener
+  useEffect(() => {
+    return subscribeSystemToast((toast) => {
+      setActiveToast(toast);
+    });
+  }, []);
 
   // Global Command Palette Shortcut (⌘K / Ctrl+K)
   useEffect(() => {
@@ -578,16 +590,21 @@ export function App() {
   };
 
   const handleSaveCustomEvent = (event: CustomEvent) => {
+    const validId = event.id && event.id.trim() !== '' 
+      ? event.id 
+      : `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const eventToSave: CustomEvent = { ...event, id: validId };
+
     setCustomEvents(prev => {
-      const exists = prev.some(e => e.id === event.id);
+      const exists = prev.some(e => e.id && e.id === validId);
       const updated = exists 
-        ? prev.map(e => e.id === event.id ? event : e) 
-        : [event, ...prev];
+        ? prev.map(e => e.id === validId ? eventToSave : e) 
+        : [eventToSave, ...prev.filter(e => e.id && e.id.trim() !== '')];
       saveEvents(updated, currentUser?.id, true);
       return updated;
     });
-    scheduleCustomEventNotification(event);
-    showSystemToast('Event Saved', `${event.title} scheduled.`);
+    scheduleCustomEventNotification(eventToSave);
+    showSystemToast('Event Saved', `${eventToSave.title} scheduled.`);
 
     if (currentUser && isNetworkOnline()) {
       flushSyncQueue(currentUser.id);
@@ -785,6 +802,12 @@ export function App() {
   const today = new Date();
   const todayDayName = (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][today.getDay()]) as DayOfWeek;
   const todayInfo = getDayScheduleInfo(courses, todayDayName || 'Mon');
+  const todayDateStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+  const todaySuspensionEvent = customEvents.find(e => e.date === todayDateStr && isClassSuspensionEvent(e.category));
+  const todayHoliday = getTodayHoliday();
+  const isClassSuspendedToday = Boolean(todaySuspensionEvent);
+  const isHolidayToday = Boolean(todayHoliday);
+  const hasNoClassesToday = todayInfo.courses.length === 0 || isClassSuspendedToday || isHolidayToday;
 
   const getStudentFirstName = (name?: string): string => {
     if (!name || !name.trim()) return 'Student';
@@ -829,12 +852,14 @@ export function App() {
 
   if (isAdminRoute) {
     return (
-      <AdminPortal 
-        onExit={() => {
-          window.history.pushState(null, '', '/');
-          setIsAdminRoute(false);
-        }} 
-      />
+      <Suspense fallback={<div style={{ minHeight: '100vh', background: '#090D16' }} />}>
+        <AdminPortal 
+          onExit={() => {
+            window.history.pushState(null, '', '/');
+            setIsAdminRoute(false);
+          }} 
+        />
+      </Suspense>
     );
   }
 
@@ -941,12 +966,14 @@ export function App() {
 
             {/* Main Content Area based on Active Tab */}
             {isCorrectionOpen ? (
-              <CorrectionScreen 
-                courses={reviewCourses}
-                profile={profile}
-                onSaveSchedule={handleSaveSchedule}
-                onCancel={() => setIsCorrectionOpen(false)}
-              />
+              <Suspense fallback={null}>
+                <CorrectionScreen 
+                  courses={reviewCourses}
+                  profile={profile}
+                  onSaveSchedule={handleSaveSchedule}
+                  onCancel={() => setIsCorrectionOpen(false)}
+                />
+              </Suspense>
             ) : (
               <>
                 {activeTab === 'home' && (
@@ -978,7 +1005,7 @@ export function App() {
                     <div className="home-desktop-grid">
                       {/* Center Column: Iconic Stacked Cards & Deadlines Workspace */}
                       <div className="home-col-main">
-                        <div className="ios-section" style={{ paddingBottom: 0, paddingTop: 4 }}>
+                        <div className="ios-section" style={{ paddingBottom: 0, paddingTop: 0 }}>
                           {/* Onboarding Welcome Card if no courses */}
                           {courses.length === 0 && (
                             <div className="ios-card" style={{ padding: '24px 20px', textAlign: 'center', marginBottom: 14 }}>
@@ -1049,7 +1076,7 @@ export function App() {
                                   whiteSpace: 'nowrap'
                                 }}
                               >
-                                <CalendarIcon size={14} style={{ flexShrink: 0 }} />
+                                <Calendar size={14} style={{ flexShrink: 0 }} />
                                 <span style={{ whiteSpace: 'nowrap' }}>Class Schedule</span>
                               </button>
 
@@ -1127,29 +1154,126 @@ export function App() {
                           </div>
                         )}
 
-                        {/* Mode 2: Today's Classes List (The Iconic Stacked Cards) */}
+                        {/* Mode 2: Today's Classes List (The Iconic Stacked Cards or No Class Lottie Hero) */}
                         {homeViewMode === 'schedule' && courses.length > 0 && (
                           <div className="ios-section" style={{ paddingBottom: 78, paddingTop: 6 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                               <div className="ios-section-header" style={{ margin: 0 }}>
-                                Classes Today ({todayInfo.courses.length})
+                                {isClassSuspendedToday 
+                                  ? 'Class Suspended Today' 
+                                  : isHolidayToday 
+                                    ? 'Campus Holiday' 
+                                    : `Classes Today (${todayInfo.courses.length})`}
                               </div>
                               <button 
                                 type="button"
                                 onClick={() => {
                                   triggerLightHaptic();
-                                  setSelectedTimetableDay(todayDayName);
-                                  handleSelectTab('schedule');
+                                  if (isClassSuspendedToday || isHolidayToday) {
+                                    handleSelectTab('calendar');
+                                  } else {
+                                    setSelectedTimetableDay(todayDayName);
+                                    handleSelectTab('schedule');
+                                  }
                                 }}
-                                style={{ background: 'none', border: 'none', color: 'var(--ios-blue)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
+                                style={{ background: 'none', border: 'none', color: isClassSuspendedToday ? 'var(--ios-red, #EF4444)' : 'var(--ios-blue)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
                               >
-                                View Timetable <ArrowRight size={13} />
+                                {isClassSuspendedToday || isHolidayToday ? 'View Calendar' : 'View Timetable'} <ArrowRight size={13} />
                               </button>
                             </div>
 
-                            {todayInfo.courses.length === 0 ? (
-                              <div className="ios-card" style={{ color: 'var(--ios-text-muted)', textAlign: 'center', padding: '24px 16px', fontSize: 13 }}>
-                                No classes scheduled for today ({todayDayName}). Enjoy your free day! 🎉
+                            {hasNoClassesToday ? (
+                              <div 
+                                className="ios-card" 
+                                style={{ 
+                                  display: 'flex', 
+                                  flexDirection: 'column', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center', 
+                                  padding: '24px 20px 22px', 
+                                  textAlign: 'center',
+                                  background: 'var(--ios-card-bg)',
+                                  borderRadius: 20,
+                                  border: isClassSuspendedToday 
+                                    ? '1px solid rgba(239, 68, 68, 0.25)' 
+                                    : isHolidayToday 
+                                      ? '1px solid rgba(16, 185, 129, 0.25)' 
+                                      : '1px solid var(--ios-card-border)',
+                                  boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                                  marginTop: 4
+                                }}
+                              >
+                                <div style={{ width: 170, height: 140, marginBottom: 8 }}>
+                                  <LottieAnimation animationData={noClassAnim} loop={true} />
+                                </div>
+                                <div style={{ 
+                                  fontSize: 16, 
+                                  fontWeight: 800, 
+                                  color: isClassSuspendedToday ? 'var(--ios-red, #EF4444)' : 'var(--ios-text-primary)', 
+                                  marginBottom: 4, 
+                                  letterSpacing: -0.2 
+                                }}>
+                                  {isClassSuspendedToday 
+                                    ? `🛑 ${todaySuspensionEvent?.title || 'Class Suspended Today'}`
+                                    : isHolidayToday
+                                      ? `🌴 ${todayHoliday?.name}`
+                                      : 'No Classes Today'
+                                  }
+                                </div>
+                                <div style={{ fontSize: 12.5, color: 'var(--ios-text-muted)', maxWidth: 300, lineHeight: 1.45, marginBottom: 16 }}>
+                                  {isClassSuspendedToday
+                                    ? `Official class suspension declared for today. Regular classes and scheduled lectures are officially called off.${todaySuspensionEvent?.location ? ` (${todaySuspensionEvent.location})` : ''}`
+                                    : isHolidayToday
+                                      ? `${todayHoliday?.typeLabel} • Regular campus classes and laboratory sessions are suspended today.`
+                                      : `Enjoy your free ${todayDayName}! It's a great opportunity to review notes, catch up on assignments, or relax.`
+                                  }
+                                </div>
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      triggerLightHaptic();
+                                      handleSelectTab('calendar');
+                                    }}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 6,
+                                      padding: '8px 15px',
+                                      borderRadius: 16,
+                                      fontSize: 12,
+                                      fontWeight: 700,
+                                      background: isClassSuspendedToday ? 'rgba(239, 68, 68, 0.1)' : 'var(--ios-blue-light, rgba(0,122,255,0.1))',
+                                      color: isClassSuspendedToday ? 'var(--ios-red, #EF4444)' : 'var(--ios-blue)',
+                                      border: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    <Calendar size={13} /> {isClassSuspendedToday || isHolidayToday ? 'View Academic Calendar' : 'View Weekly Schedule'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      triggerLightHaptic();
+                                      setHomeViewMode('tasks');
+                                    }}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 6,
+                                      padding: '8px 15px',
+                                      borderRadius: 16,
+                                      fontSize: 12,
+                                      fontWeight: 700,
+                                      background: 'rgba(52, 199, 89, 0.1)',
+                                      color: '#34C759',
+                                      border: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    <CheckCircle2 size={13} /> Check Tasks
+                                  </button>
+                                </div>
                               </div>
                             ) : (
                               <div className="wallet-stack-container" style={{ marginTop: 4 }}>
@@ -1450,6 +1574,7 @@ export function App() {
                         {/* 2. Redesigned Next Class Hero Banner (Interactive & Friendly on Desktop, Compact on Mobile) */}
                         <NextClassHero 
                           courses={courses}
+                          events={customEvents}
                           onSelectCourse={(course) => {
                             setSelectedCourse(course);
                             setActiveTab('subjects');
@@ -1525,6 +1650,7 @@ export function App() {
                     </div>
                     <TimelineSchedule 
                       courses={courses}
+                      events={customEvents}
                       onSelectCourse={(course) => {
                         setSelectedCourse(course);
                         setActiveTab('subjects');
@@ -1650,132 +1776,135 @@ export function App() {
             <BottomTabBar activeTab={activeTab} onSelectTab={handleSelectTab} />
           )}
 
-          {/* Document Scanner Modal */}
-          <ScannerModal 
-            isOpen={isScannerOpen}
-            onClose={() => setIsScannerOpen(false)}
-            onScanComplete={handleScanComplete}
-            onAddManually={() => {
-              setIsScannerOpen(false);
-              setActiveTab('subjects');
-            }}
-          />
-
-          {/* Instructor Detail Modal */}
-          <InstructorDetailModal 
-            instructorName={selectedInstructor}
-            allCourses={courses}
-            onClose={() => setSelectedInstructor(null)}
-          />
-
-          {/* Fullscreen Digital ID Modal with PNG Image Export & 3D Flip */}
-          <FullscreenIDModal 
-            profile={profile}
-            courses={courses}
-            isOpen={isFullscreenIDOpen}
-            onClose={() => setIsFullscreenIDOpen(false)}
-            onEdit={() => {
-              setIsFullscreenIDOpen(false);
-              setIsEditIDOpen(true);
-            }}
-          />
-
-          {/* Edit Student ID Customization Modal */}
-          <EditIDModal 
-            profile={profile}
-            isOpen={isEditIDOpen}
-            onClose={() => setIsEditIDOpen(false)}
-            onSave={handleSaveProfile}
-          />
-
-          {/* Philippine National Holidays & Campus Calendar Modal */}
-          <HolidayCalendarModal 
-            isOpen={isHolidayCalendarOpen}
-            onClose={() => setIsHolidayCalendarOpen(false)}
-          />
-
-          {/* Developer Remote Update / Feature / Alert Popups */}
-          {announcements.find(a => a.type === 'modal') && (
-            <AnnouncementModal 
-              announcement={announcements.find(a => a.type === 'modal')!}
-              onDismiss={handleDismissAnnouncement}
+          {/* Lazy-Loaded Modals & Quick Action Sheets */}
+          <Suspense fallback={null}>
+            {/* Document Scanner Modal */}
+            <ScannerModal 
+              isOpen={isScannerOpen}
+              onClose={() => setIsScannerOpen(false)}
+              onScanComplete={handleScanComplete}
+              onAddManually={() => {
+                setIsScannerOpen(false);
+                setActiveTab('subjects');
+              }}
             />
-          )}
 
-          {/* Privacy Policy & Rules Modal */}
-          <PrivacyPolicyModal 
-            isOpen={isPrivacyModalOpen}
-            onClose={() => setIsPrivacyModalOpen(false)}
-            onAccept={handlePrivacyAccept}
-            isConsentMode={isPrivacyConsentMode}
-          />
+            {/* Instructor Detail Modal */}
+            <InstructorDetailModal 
+              instructorName={selectedInstructor}
+              allCourses={courses}
+              onClose={() => setSelectedInstructor(null)}
+            />
 
-          {/* Home Tab Add / Edit Task Modal */}
-          <AddEventModal 
-            isOpen={isAddingHomeEvent}
-            onClose={() => {
-              setIsAddingHomeEvent(false);
-              setEditingHomeEvent(null);
-            }}
-            onSaveEvent={(evt) => {
-              handleSaveCustomEvent(evt);
-              setIsAddingHomeEvent(false);
-              setEditingHomeEvent(null);
-            }}
-            onDeleteEvent={(id) => {
-              handleDeleteCustomEvent(id);
-              setIsAddingHomeEvent(false);
-              setEditingHomeEvent(null);
-            }}
-            initialEvent={editingHomeEvent}
-            courses={courses}
-          />
+            {/* Fullscreen Digital ID Modal with PNG Image Export & 3D Flip */}
+            <FullscreenIDModal 
+              profile={profile}
+              courses={courses}
+              isOpen={isFullscreenIDOpen}
+              onClose={() => setIsFullscreenIDOpen(false)}
+              onEdit={() => {
+                setIsFullscreenIDOpen(false);
+                setIsEditIDOpen(true);
+              }}
+            />
 
-          {/* Spotlight Command Palette (⌘K / Ctrl+K) */}
-          <CommandPaletteModal 
-            isOpen={isCommandPaletteOpen}
-            onClose={() => setIsCommandPaletteOpen(false)}
-            courses={courses}
-            events={customEvents}
-            onSelectTab={handleSelectTab}
-            onSelectCourse={(course) => {
-              setSelectedCourse(course);
-              handleSelectTab('subjects');
-            }}
-            onOpenAddTask={() => {
-              setEditingHomeEvent(null);
-              setIsAddingHomeEvent(true);
-            }}
-            onOpenAddCourse={() => {
-              setIsGlobalAddCourseOpen(true);
-            }}
-            onToggleTheme={handleToggleTheme}
-            theme={theme}
-            onOpenScanner={() => setIsScannerOpen(true)}
-          />
+            {/* Edit Student ID Customization Modal */}
+            <EditIDModal 
+              profile={profile}
+              isOpen={isEditIDOpen}
+              onClose={() => setIsEditIDOpen(false)}
+              onSave={handleSaveProfile}
+            />
 
-          {/* Global Add / Edit Course Modal */}
-          <EditSubjectModal 
-            course={null}
-            isOpen={isGlobalAddCourseOpen}
-            onClose={() => setIsGlobalAddCourseOpen(false)}
-            onSave={(newCourse) => {
-              handleAddCourse(newCourse);
-              setIsGlobalAddCourseOpen(false);
-            }}
-          />
+            {/* Philippine National Holidays & Campus Calendar Modal */}
+            <HolidayCalendarModal 
+              isOpen={isHolidayCalendarOpen}
+              onClose={() => setIsHolidayCalendarOpen(false)}
+            />
 
-          {/* Global Study Note Creator Modal */}
-          <CreateNoteModal 
-            isOpen={isGlobalAddNoteOpen}
-            onClose={() => setIsGlobalAddNoteOpen(false)}
-            courses={courses}
-            preselectedCourseId={selectedCourse?.id || courses[0]?.id}
-            onSaveNote={(note) => {
-              handleSaveSubjectNote(note);
-              setIsGlobalAddNoteOpen(false);
-            }}
-          />
+            {/* Developer Remote Update / Feature / Alert Popups */}
+            {announcements.find(a => a.type === 'modal') && (
+              <AnnouncementModal 
+                announcement={announcements.find(a => a.type === 'modal')!}
+                onDismiss={handleDismissAnnouncement}
+              />
+            )}
+
+            {/* Privacy Policy & Rules Modal */}
+            <PrivacyPolicyModal 
+              isOpen={isPrivacyModalOpen}
+              onClose={() => setIsPrivacyModalOpen(false)}
+              onAccept={handlePrivacyAccept}
+              isConsentMode={isPrivacyConsentMode}
+            />
+
+            {/* Home Tab Add / Edit Task Modal */}
+            <AddEventModal 
+              isOpen={isAddingHomeEvent}
+              onClose={() => {
+                setIsAddingHomeEvent(false);
+                setEditingHomeEvent(null);
+              }}
+              onSaveEvent={(evt) => {
+                handleSaveCustomEvent(evt);
+                setIsAddingHomeEvent(false);
+                setEditingHomeEvent(null);
+              }}
+              onDeleteEvent={(id) => {
+                handleDeleteCustomEvent(id);
+                setIsAddingHomeEvent(false);
+                setEditingHomeEvent(null);
+              }}
+              initialEvent={editingHomeEvent}
+              courses={courses}
+            />
+
+            {/* Spotlight Command Palette (⌘K / Ctrl+K) */}
+            <CommandPaletteModal 
+              isOpen={isCommandPaletteOpen}
+              onClose={() => setIsCommandPaletteOpen(false)}
+              courses={courses}
+              events={customEvents}
+              onSelectTab={handleSelectTab}
+              onSelectCourse={(course) => {
+                setSelectedCourse(course);
+                handleSelectTab('subjects');
+              }}
+              onOpenAddTask={() => {
+                setEditingHomeEvent(null);
+                setIsAddingHomeEvent(true);
+              }}
+              onOpenAddCourse={() => {
+                setIsGlobalAddCourseOpen(true);
+              }}
+              onToggleTheme={handleToggleTheme}
+              theme={theme}
+              onOpenScanner={() => setIsScannerOpen(true)}
+            />
+
+            {/* Global Add / Edit Course Modal */}
+            <EditSubjectModal 
+              course={null}
+              isOpen={isGlobalAddCourseOpen}
+              onClose={() => setIsGlobalAddCourseOpen(false)}
+              onSave={(newCourse) => {
+                handleAddCourse(newCourse);
+                setIsGlobalAddCourseOpen(false);
+              }}
+            />
+
+            {/* Global Study Note Creator Modal */}
+            <CreateNoteModal 
+              isOpen={isGlobalAddNoteOpen}
+              onClose={() => setIsGlobalAddNoteOpen(false)}
+              courses={courses}
+              preselectedCourseId={selectedCourse?.id || courses[0]?.id}
+              onSaveNote={(note) => {
+                handleSaveSubjectNote(note);
+                setIsGlobalAddNoteOpen(false);
+              }}
+            />
+          </Suspense>
 
           {/* Global Floating Quick Action Pill (Tablet & Desktop Only) */}
           {!isCorrectionOpen && (
@@ -1797,6 +1926,13 @@ export function App() {
               onOpenScanner={() => setIsScannerOpen(true)}
             />
           )}
+          {/* Global Floating Success Toast Notification */}
+          <SuccessToast 
+            isOpen={Boolean(activeToast)}
+            title={activeToast?.title || ''}
+            message={activeToast?.message}
+            onClose={() => setActiveToast(null)}
+          />
         </div>
       )}
     </div>

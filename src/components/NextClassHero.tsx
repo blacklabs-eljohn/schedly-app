@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Course, DayOfWeek } from '../types';
+import { Course, DayOfWeek, CustomEvent, isClassSuspensionEvent } from '../types';
 import { getActiveClassState, formatTime12H, timeToMinutes } from '../services/scheduleEngine';
 import { triggerLightHaptic } from '../services/hapticsService';
 import { getTodayHoliday } from '../services/phHolidaysService';
-import { Sparkles, CheckCircle2, Palmtree, ArrowRight, Clock, MapPin, User } from 'lucide-react';
+import { Sparkles, CheckCircle2, Palmtree, ArrowRight, Clock, MapPin, User, AlertOctagon } from 'lucide-react';
 import { getSubjectIconComponent } from '../services/iconService';
+import { LottieAnimation } from './LottieAnimation';
+import noClassAnim from '../assets/No Class.json';
 
 interface NextClassHeroProps {
   courses: Course[];
+  events?: CustomEvent[];
   onSelectCourse: (course: Course) => void;
   onOpenScanner?: () => void;
   onOpenTasksTab?: () => void;
@@ -16,6 +19,7 @@ interface NextClassHeroProps {
 
 export const NextClassHero: React.FC<NextClassHeroProps> = ({
   courses,
+  events = [],
   onSelectCourse,
   onOpenTasksTab,
   onOpenCalendarTab
@@ -33,9 +37,82 @@ export const NextClassHero: React.FC<NextClassHeroProps> = ({
     return null;
   }
 
+  const currentDateTime = new Date();
+  const todayDateStr = `${currentDateTime.getFullYear()}-${(currentDateTime.getMonth() + 1).toString().padStart(2, '0')}-${currentDateTime.getDate().toString().padStart(2, '0')}`;
+  const todaySuspension = events.find(e => e.date === todayDateStr && isClassSuspensionEvent(e.category));
+
   const todayDayName = (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()]) as DayOfWeek;
   const todayCourses = courses.filter(c => c.days.includes(todayDayName));
   const todayHoliday = getTodayHoliday();
+
+  // 0. If today has a declared Class Suspension / No Class event
+  if (todaySuspension) {
+    return (
+      <>
+        {/* Mobile View: Classic Compact Apple Banner */}
+        <div 
+          className="ios-notification-banner next-hero-mobile-only"
+          style={{
+            cursor: 'default',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            background: 'linear-gradient(135deg, var(--ios-card-bg) 0%, rgba(239, 68, 68, 0.06) 100%)'
+          }}
+        >
+          <div className="ios-notification-main">
+            <div className="ios-notification-icon" style={{ background: 'rgba(239, 68, 68, 0.12)', color: 'var(--ios-red, #EF4444)' }}>
+              <AlertOctagon size={19} />
+            </div>
+            <div className="ios-notification-content">
+              <div className="ios-notification-title">🛑 {todaySuspension.title}</div>
+              <div className="ios-notification-subtitle">
+                Official Class Suspension • No classes {todaySuspension.location ? `(${todaySuspension.location})` : ''}
+              </div>
+            </div>
+            <div className="ios-notification-right">
+              <span className="ios-tag-pill" style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'var(--ios-red, #EF4444)', fontWeight: 800, fontSize: 10, padding: '3px 7px' }}>
+                NO CLASS
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop View: Friendly Interactive Hero Card */}
+        <div className="home-friendly-hero-card holiday-hero next-hero-desktop-only" style={{ border: '1px solid rgba(239, 68, 68, 0.25)' }}>
+          <div className="friendly-hero-top">
+            <div className="friendly-hero-icon-box" style={{ background: 'rgba(239, 68, 68, 0.12)', color: 'var(--ios-red, #EF4444)' }}>
+              <AlertOctagon size={22} />
+            </div>
+            <div className="friendly-hero-meta">
+              <span className="friendly-hero-badge" style={{ background: 'rgba(239, 68, 68, 0.12)', color: 'var(--ios-red, #EF4444)' }}>
+                🛑 CLASS SUSPENDED
+              </span>
+              <div className="friendly-hero-title">
+                {todaySuspension.title}
+              </div>
+            </div>
+          </div>
+
+          <p className="friendly-hero-desc">
+            Class suspension declared for today. Regular campus classes and scheduled lectures are officially called off.
+          </p>
+
+          {onOpenCalendarTab && (
+            <button 
+              type="button" 
+              className="friendly-hero-action-btn"
+              onClick={() => {
+                triggerLightHaptic();
+                onOpenCalendarTab();
+              }}
+            >
+              <span>View Academic Calendar</span>
+              <ArrowRight size={13} />
+            </button>
+          )}
+        </div>
+      </>
+    );
+  }
 
   // 1. If today is an official Philippine National Holiday
   if (todayHoliday) {
@@ -198,38 +275,43 @@ export const NextClassHero: React.FC<NextClassHeroProps> = ({
         </div>
 
         {/* Desktop View: Friendly Interactive Hero Card */}
-        <div className="home-friendly-hero-card freeday-hero next-hero-desktop-only">
-          <div className="friendly-hero-top">
-            <div className="friendly-hero-icon-box freeday-icon">
-              <Sparkles size={22} />
-            </div>
-            <div className="friendly-hero-meta">
-              <span className="friendly-hero-badge freeday-badge">
-                RELAX & STUDY
-              </span>
-              <div className="friendly-hero-title">
-                Free Day Today
+        <div className="home-friendly-hero-card freeday-hero next-hero-desktop-only" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="friendly-hero-top">
+              <div className="friendly-hero-icon-box freeday-icon">
+                <Sparkles size={22} />
+              </div>
+              <div className="friendly-hero-meta">
+                <span className="friendly-hero-badge freeday-badge">
+                  RELAX & STUDY
+                </span>
+                <div className="friendly-hero-title">
+                  Free Day Today
+                </div>
               </div>
             </div>
+
+            <p className="friendly-hero-desc">
+              No classes scheduled for {todayDayName}. Great day to catch up on assignments, prepare for upcoming projects, or take a well-deserved break!
+            </p>
+
+            {onOpenCalendarTab && (
+              <button 
+                type="button" 
+                className="friendly-hero-action-btn freeday-btn"
+                onClick={() => {
+                  triggerLightHaptic();
+                  onOpenCalendarTab();
+                }}
+              >
+                <span>Explore Academic Calendar</span>
+                <ArrowRight size={13} />
+              </button>
+            )}
           </div>
-
-          <p className="friendly-hero-desc">
-            No classes scheduled for {todayDayName}. Great day to catch up on assignments, prepare for upcoming projects, or take a well-deserved break!
-          </p>
-
-          {onOpenCalendarTab && (
-            <button 
-              type="button" 
-              className="friendly-hero-action-btn freeday-btn"
-              onClick={() => {
-                triggerLightHaptic();
-                onOpenCalendarTab();
-              }}
-            >
-              <span>Explore Academic Calendar</span>
-              <ArrowRight size={13} />
-            </button>
-          )}
+          <div style={{ width: 130, height: 110, flexShrink: 0 }}>
+            <LottieAnimation animationData={noClassAnim} loop={true} />
+          </div>
         </div>
       </>
     );

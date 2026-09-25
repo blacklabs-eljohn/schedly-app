@@ -1,5 +1,5 @@
 {
-  "appId": "com.schedly.app",
+  "appId": "com.cororganizer.app",
   "appName": "Schedly",
   "webDir": "dist",
   "bundledWebRuntime": false,

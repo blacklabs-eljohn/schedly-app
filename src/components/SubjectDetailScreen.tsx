@@ -73,6 +73,8 @@ import { AddEventModal } from './AddEventModal';
 import { CourseLinksModal } from './CourseLinksModal';
 import { CourseTopicModal } from './CourseTopicModal';
 import { ConfirmationModal } from './ConfirmationModal';
+import { LottieAnimation } from './LottieAnimation';
+import noDataPreviewAnim from '../assets/No Data Preview.json';
 
 interface SubjectDetailScreenProps {
   course: Course;
@@ -475,6 +477,13 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
     if (!raw) return '';
     let text = raw;
 
+    // Strip unsafe script/iframe/object tags & inline event handlers
+    text = text
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+      .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
+      .replace(/on\w+\s*=\s*(?:'[^']*'|"[^"]*"|[^\s>]+)/gi, '');
+
     // Convert legacy markdown checklists: - [ ] Task or - [x] Task
     text = text.replace(/(?:^|\n)\s*[-*]\s*\[([ xX])\]\s*([^\n\r<]+)/g, (_match, check, itemText) => {
       const isChecked = check.toLowerCase() === 'x';
@@ -488,7 +497,7 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
     text = text.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
 
     // Convert legacy *italic* to <em>
-    text = text.replace(/(^|[^\*])\*([^\*]+?)\*([^\*]|$)/g, '$1<em>$2</em>$3');
+    text = text.replace(/(^|[^*])\*([^*]+?)\*([^*]|$)/g, '$1<em>$2</em>$3');
 
     // Convert legacy `code` to <code>
     text = text.replace(/`([^`]+?)`/g, '<code style="background: var(--ios-bg-secondary); padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 0.9em;">$1</code>');
@@ -2511,29 +2520,20 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                   borderRadius: 20,
                   border: '1px solid var(--ios-card-border)',
                   textAlign: 'center', 
-                  padding: '40px 24px', 
-                  boxShadow: 'var(--ios-shadow-sm)'
+                  padding: '32px 24px 28px', 
+                  boxShadow: 'var(--ios-shadow-sm)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center'
                 }}
               >
-                <div 
-                  style={{ 
-                    width: 52, 
-                    height: 52, 
-                    borderRadius: 16, 
-                    background: `${themeColor}15`, 
-                    color: themeColor,
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    margin: '0 auto 12px auto' 
-                  }}
-                >
-                  <CheckCircle2 size={26} />
+                <div style={{ width: 140, height: 120, marginBottom: 4 }}>
+                  <LottieAnimation animationData={noDataPreviewAnim} loop={true} />
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ios-text-primary)', marginBottom: 4 }}>
                   {taskFilter === 'completed' ? 'No completed tasks yet' : 'No upcoming deadlines'}
                 </div>
-                <div style={{ fontSize: 12.5, color: 'var(--ios-text-muted)', marginBottom: 20, lineHeight: 1.45, maxWidth: 300, margin: '0 auto 20px auto' }}>
+                <div style={{ fontSize: 12.5, color: 'var(--ios-text-muted)', marginBottom: 18, lineHeight: 1.45, maxWidth: 300 }}>
                   {taskFilter === 'completed' 
                     ? 'Check off tasks above to see them in your completed archive.'
                     : `Track exams, quizzes, problem sets, and project deadlines for ${course.courseCode}.`}
@@ -3187,29 +3187,20 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                   borderRadius: 18,
                   border: '1px solid var(--ios-card-border)',
                   textAlign: 'center',
-                  padding: '36px 20px',
-                  boxShadow: 'var(--ios-shadow-sm)'
+                  padding: '30px 20px 24px',
+                  boxShadow: 'var(--ios-shadow-sm)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center'
                 }}
               >
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 14,
-                    background: `${themeColor}15`,
-                    color: themeColor,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto 10px auto'
-                  }}
-                >
-                  <BookOpen size={24} />
+                <div style={{ width: 130, height: 110, marginBottom: 4 }}>
+                  <LottieAnimation animationData={noDataPreviewAnim} loop={true} />
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ios-text-primary)', marginBottom: 4 }}>
                   {filterKeyExamsOnly ? 'No Key Exam Topics in this term' : 'No syllabus lessons yet'}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--ios-text-muted)', marginBottom: 16, lineHeight: 1.45, maxWidth: 280, margin: '0 auto 16px auto' }}>
+                <div style={{ fontSize: 12, color: 'var(--ios-text-muted)', marginBottom: 16, lineHeight: 1.45, maxWidth: 280 }}>
                   {filterKeyExamsOnly 
                     ? 'Tag important chapters as Key Exam Topics to see them highlighted here.'
                     : `Map out chapters, lecture concepts, and exam pointers for ${course.courseCode}.`}
@@ -3575,26 +3566,14 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
 
             {/* Empty State: No Notes at all */}
             {linkedNotes.length === 0 ? (
-              <div className="pinboard-empty-state">
-                <div 
-                  style={{ 
-                    width: 54, 
-                    height: 54, 
-                    borderRadius: 18, 
-                    background: `${themeColor}15`, 
-                    color: themeColor,
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    margin: '0 auto 12px auto' 
-                  }}
-                >
-                  <FileText size={26} />
+              <div className="pinboard-empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                <div style={{ width: 140, height: 120, marginBottom: 4 }}>
+                  <LottieAnimation animationData={noDataPreviewAnim} loop={true} />
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ios-text-primary)', marginBottom: 4 }}>
                   No study notes pinned yet
                 </div>
-                <div style={{ fontSize: 12.5, color: 'var(--ios-text-muted)', marginBottom: 18, lineHeight: 1.45, maxWidth: 320, margin: '0 auto 18px auto' }}>
+                <div style={{ fontSize: 12.5, color: 'var(--ios-text-muted)', marginBottom: 18, lineHeight: 1.45, maxWidth: 320 }}>
                   Pin lecture takeaways, exam pointers, checklists, and formulas to this organized study wall.
                 </div>
                 <button
@@ -4292,19 +4271,24 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                 return (
                   <div 
                     style={{ 
-                      padding: '40px 20px', 
+                      padding: '32px 20px 28px', 
                       borderRadius: 16, 
                       background: 'var(--ios-card-bg)', 
                       border: '1px dashed var(--ios-card-border)', 
                       textAlign: 'center',
-                      marginBottom: 20
+                      marginBottom: 20,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center'
                     }}
                   >
-                    <UploadCloud size={32} color="var(--ios-text-muted)" style={{ margin: '0 auto 10px', display: 'block' }} />
+                    <div style={{ width: 140, height: 120, marginBottom: 4 }}>
+                      <LottieAnimation animationData={noDataPreviewAnim} loop={true} />
+                    </div>
                     <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ios-text-primary)', marginBottom: 4 }}>
                       {fileSearchQuery ? 'No matching files' : 'No materials uploaded yet'}
                     </div>
-                    <div style={{ fontSize: 12.5, color: 'var(--ios-text-muted)', marginBottom: 14 }}>
+                    <div style={{ fontSize: 12.5, color: 'var(--ios-text-muted)', marginBottom: 16, maxWidth: 300 }}>
                       Upload lecture slides (.pptx), reviewer PDFs, or document handouts for this course.
                     </div>
                     <button
@@ -4314,8 +4298,8 @@ export const SubjectDetailScreen: React.FC<SubjectDetailScreenProps> = ({
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 6,
-                        padding: '8px 16px',
-                        borderRadius: 10,
+                        padding: '8px 18px',
+                        borderRadius: 12,
                         background: themeColor,
                         color: '#FFFFFF',
                         border: 'none',

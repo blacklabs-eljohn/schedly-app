@@ -176,7 +176,49 @@ export type EventCategory =
   | 'org_event'
   | 'seminar_workshop'
   | 'sports'
-  | 'personal';
+  | 'personal'
+  | 'class_suspended'
+  | 'no_class';
+
+export const ACADEMIC_TASK_CATEGORIES: EventCategory[] = [
+  'exam',
+  'long_quiz',
+  'short_quiz',
+  'assignment',
+  'reporting',
+  'project'
+];
+
+export const CALENDAR_EVENT_CATEGORIES: EventCategory[] = [
+  'campus_event',
+  'department_event',
+  'org_event',
+  'seminar_workshop',
+  'sports',
+  'meeting',
+  'activity',
+  'personal',
+  'class_suspended',
+  'no_class'
+];
+
+export function isTaskCategory(category?: EventCategory): boolean {
+  if (!category) return false;
+  return ACADEMIC_TASK_CATEGORIES.includes(category);
+}
+
+export function isCalendarEventCategory(category?: EventCategory): boolean {
+  if (!category) return true;
+  return !isTaskCategory(category);
+}
+
+export function isClassSuspensionEvent(eventOrCategory?: Partial<CustomEvent> | EventCategory | null): boolean {
+  if (!eventOrCategory) return false;
+  if (typeof eventOrCategory === 'string') {
+    return eventOrCategory === 'class_suspended' || eventOrCategory === 'no_class';
+  }
+  return eventOrCategory.category === 'class_suspended' || eventOrCategory.category === 'no_class';
+}
 
 export interface CustomEvent {
   id: string;

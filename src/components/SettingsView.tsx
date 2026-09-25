@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { triggerLightHaptic, triggerSelectionHaptic, triggerSuccessHaptic } from '../services/hapticsService';
 import { ConfirmationModal } from './ConfirmationModal';
+import '../styles/settings-view.css';
 
 interface SettingsViewProps {
   settings: NotificationSettings;

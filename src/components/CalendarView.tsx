@@ -3,7 +3,9 @@ import {
   CustomEvent, 
   EventCategory,
   Course,
-  DayOfWeek
+  DayOfWeek,
+  isTaskCategory,
+  isClassSuspensionEvent
 } from '../types';
 import { 
   getUpcomingHolidays, 
@@ -137,9 +139,31 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const scheduledClassesForDay = courses.filter(c => c.days && c.days.includes(selectedDayName));
   scheduledClassesForDay.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
 
+  const selectedDaySuspensions = selectedDayEvents.filter(e => isClassSuspensionEvent(e.category));
+  const selectedDayNonSuspensionEvents = selectedDayEvents.filter(e => !isClassSuspensionEvent(e.category));
+  const selectedDayTasks = selectedDayEvents.filter(e => isTaskCategory(e.category));
+
   const handleOpenAddForSelectedDay = () => {
     triggerLightHaptic();
     setEditingEvent(null);
+    setModalDefaultDate(selectedDateStr);
+    setIsAddModalOpen(true);
+  };
+
+  const handleOpenSuspensionForSelectedDay = () => {
+    triggerLightHaptic();
+    setEditingEvent({
+      id: '',
+      title: 'Class Suspended',
+      date: selectedDateStr,
+      startTime: '',
+      endTime: '',
+      category: 'class_suspended',
+      isAllDay: true,
+      color: '#EF4444',
+      reminderMinutes: -1,
+      createdAt: new Date().toISOString()
+    });
     setModalDefaultDate(selectedDateStr);
     setIsAddModalOpen(true);
   };
@@ -273,6 +297,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   const getCategoryLabel = (cat: EventCategory) => {
     switch (cat) {
+      case 'class_suspended':
+      case 'no_class': return '🛑 No Class / Suspension';
       case 'exam': return '📝 Major Exam';
       case 'long_quiz': return '📋 Long Quiz';
       case 'short_quiz': return '⚡ Short Quiz';
@@ -287,7 +313,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       case 'meeting': return '🤝 Meeting';
       case 'activity': return '🏆 Campus Life';
       case 'personal':
-      default: return '🎯 Personal Task';
+      default: return '🎯 Personal Event';
     }
   };
 
@@ -766,7 +792,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           {/* RIGHT: Selected Day Activity & Events Panel */}
           <div className="calendar-split-col">
             <div className="cal-agenda-card">
-              {/* Day Header Bar with + Add Event */}
+              {/* Day Header Bar with + Add Event & 🛑 No Class */}
               <div className="cal-agenda-header">
                 <div>
                   <div className="cal-agenda-day-title">
@@ -777,20 +803,90 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       <span className="ios-tag-pill ios-tag-pill-green" style={{ fontSize: 9.5 }}>● TODAY</span>
                     )}
                     <span>
-                      {scheduledClassesForDay.length} {scheduledClassesForDay.length === 1 ? 'class' : 'classes'} • {selectedDayEvents.length} {selectedDayEvents.length === 1 ? 'task' : 'tasks'}
+                      {scheduledClassesForDay.length} {scheduledClassesForDay.length === 1 ? 'class' : 'classes'} • {selectedDayTasks.length} {selectedDayTasks.length === 1 ? 'task' : 'tasks'}
                     </span>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  className="cal-agenda-add-btn"
-                  onClick={handleOpenAddForSelectedDay}
-                >
-                  <Plus size={13} strokeWidth={2.5} />
-                  <span>Add</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={handleOpenSuspensionForSelectedDay}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      color: '#EF4444',
+                      borderRadius: 14,
+                      padding: '5px 9px',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      cursor: 'pointer'
+                    }}
+                    title="Declare No Class or Suspension on this date"
+                  >
+                    <span>🛑 No Class</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="cal-agenda-add-btn"
+                    onClick={handleOpenAddForSelectedDay}
+                  >
+                    <Plus size={13} strokeWidth={2.5} />
+                    <span>Add</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Declared Class Suspension Banner */}
+              {selectedDaySuspensions.map(suspension => (
+                <div 
+                  key={suspension.id}
+                  onClick={() => handleEditEvent(suspension)}
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    borderRadius: 12,
+                    padding: '10px 12px',
+                    marginBottom: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    gap: 8
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    <div style={{ 
+                      width: 30, 
+                      height: 30, 
+                      borderRadius: 8, 
+                      background: 'rgba(239, 68, 68, 0.15)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      fontSize: 15,
+                      flexShrink: 0 
+                    }}>
+                      🛑
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ios-red, #EF4444)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {suspension.title}
+                      </div>
+                      <div style={{ fontSize: 10.5, color: 'var(--ios-text-secondary)', marginTop: 1 }}>
+                        Class Suspended / No Classes Declared {suspension.location ? `• ${suspension.location}` : ''}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="ios-tag-pill" style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'var(--ios-red, #EF4444)', fontSize: 9.5, flexShrink: 0 }}>
+                    SUSPENDED
+                  </span>
+                </div>
+              ))}
 
               {/* National Holiday Banner */}
               {selectedHoliday && (
@@ -871,15 +967,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 </div>
               )}
 
-              {/* 2. Deadlines & Scheduled Events */}
+              {/* 2. Tasks & Events */}
               <div>
                 <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ios-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <CalendarDays size={12} /> Tasks & Activities
+                  <CalendarDays size={12} /> Tasks & Events
                 </div>
-                {selectedDayEvents.length > 0 ? (
+                {selectedDayNonSuspensionEvents.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {selectedDayEvents.map(ev => {
+                    {selectedDayNonSuspensionEvents.map(ev => {
                       const evColor = ev.color || 'var(--ios-blue)';
+                      const isTask = isTaskCategory(ev.category);
                       return (
                         <div 
                           key={ev.id}
@@ -903,8 +1000,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               fontSize: 13, 
                               fontWeight: 800, 
                               color: 'var(--ios-text-primary)',
-                              textDecoration: ev.isCompleted ? 'line-through' : 'none',
-                              opacity: ev.isCompleted ? 0.6 : 1
+                              textDecoration: isTask && ev.isCompleted ? 'line-through' : 'none',
+                              opacity: isTask && ev.isCompleted ? 0.6 : 1
                             }}>
                               {ev.title}
                             </div>
@@ -928,7 +1025,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               {getCategoryLabel(ev.category)}
                             </span>
 
-                            {onToggleEventComplete && (
+                            {/* Only academic deliverables/tasks have completion checkboxes */}
+                            {isTask && onToggleEventComplete && (
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -1199,8 +1297,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           </div>
                         </div>
 
-                        {/* Checkbox */}
-                        {onToggleEventComplete && (
+                        {/* Checkbox only for actionable academic tasks */}
+                        {isTaskCategory(ev.category) && onToggleEventComplete && (
                           <button
                             type="button"
                             onClick={(e) => {

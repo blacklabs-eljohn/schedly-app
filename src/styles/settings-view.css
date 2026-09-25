@@ -1,0 +1,211 @@
+/* ========================================================================= */
+/* Schedly Settings View Dedicated, Rock-Solid, Encapsulated Stylesheet     */
+/* Fully resilient against global style changes and cascading conflicts     */
+/* ========================================================================= */
+
+.settings-container-view {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding-bottom: 120px;
+  box-sizing: border-box;
+}
+
+.settings-desktop-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .settings-desktop-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 24px !important;
+    align-items: start !important;
+    width: 100% !important;
+  }
+}
+
+.settings-split-col {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Enclosed iOS Settings Group Card */
+.settings-container-view .ios-settings-group {
+  background: var(--ios-card-bg, #FFFFFF) !important;
+  border: 1px solid var(--ios-card-border, rgba(0, 0, 0, 0.08)) !important;
+  border-radius: 18px !important;
+  overflow: hidden !important;
+  margin-bottom: 22px !important;
+  box-shadow: var(--ios-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04)) !important;
+}
+
+/* Single Row inside an iOS Settings Group */
+.settings-container-view .ios-settings-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 14px 16px !important;
+  gap: 12px !important;
+  position: relative !important;
+  background: var(--ios-card-bg, #FFFFFF) !important;
+  transition: background 0.15s ease !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-height: 52px !important;
+}
+
+.settings-container-view .ios-settings-row.clickable {
+  cursor: pointer !important;
+  user-select: none !important;
+}
+
+.settings-container-view .ios-settings-row.clickable:hover {
+  background: var(--ios-bg-secondary, rgba(0, 0, 0, 0.02)) !important;
+}
+
+.settings-container-view .ios-settings-row.clickable:active {
+  background: var(--ios-bg-grouped, rgba(0, 0, 0, 0.04)) !important;
+}
+
+.settings-container-view .ios-settings-divider {
+  height: 1px !important;
+  background: var(--ios-divider, rgba(0, 0, 0, 0.06)) !important;
+  margin-left: 62px !important;
+  width: calc(100% - 62px) !important;
+}
+
+.settings-container-view .ios-settings-icon-tile {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 9px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #FFFFFF !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Bulletproof iOS Toggle Switch Component */
+.settings-container-view .ios-toggle-switch {
+  position: relative !important;
+  display: inline-block !important;
+  width: 51px !important;
+  height: 31px !important;
+  flex-shrink: 0 !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  user-select: none !important;
+}
+
+.settings-container-view .ios-toggle-switch input {
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  margin: 0 !important;
+  pointer-events: none !important;
+}
+
+.settings-container-view .ios-toggle-slider {
+  position: absolute !important;
+  cursor: pointer !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-color: #E9E9EA !important;
+  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  border-radius: 31px !important;
+  box-sizing: border-box !important;
+}
+
+body.dark-mode .settings-container-view .ios-toggle-slider,
+[data-theme="dark"] .settings-container-view .ios-toggle-slider {
+  background-color: #39393D !important;
+}
+
+.settings-container-view input:checked + .ios-toggle-slider {
+  background-color: #34C759 !important;
+}
+
+.settings-container-view .ios-toggle-slider:before {
+  position: absolute !important;
+  content: "" !important;
+  height: 27px !important;
+  width: 27px !important;
+  left: 2px !important;
+  bottom: 2px !important;
+  background-color: #FFFFFF !important;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  border-radius: 50% !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.settings-container-view input:checked + .ios-toggle-slider:before {
+  transform: translateX(20px) !important;
+}
+
+/* Schedly Facebook Community Card */
+.settings-container-view .schedly-fb-brand-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 14px 16px !important;
+  background: var(--ios-card-bg, #FFFFFF) !important;
+  border: 1.5px solid rgba(24, 119, 242, 0.25) !important;
+  border-radius: 16px !important;
+  text-decoration: none !important;
+  color: inherit !important;
+  cursor: pointer !important;
+  margin-bottom: 22px !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease !important;
+  box-shadow: 0 4px 16px -4px rgba(24, 119, 242, 0.15) !important;
+  box-sizing: border-box !important;
+}
+
+.settings-container-view .schedly-fb-brand-card:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(24, 119, 242, 0.5) !important;
+  box-shadow: 0 8px 24px -4px rgba(24, 119, 242, 0.25) !important;
+}
+
+.settings-container-view .schedly-fb-brand-card:active {
+  transform: scale(0.985) !important;
+}
+
+.settings-container-view .schedly-fb-avatar-wrap {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  min-height: 46px !important;
+  max-width: 46px !important;
+  max-height: 46px !important;
+  border-radius: 13px !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+  border: 1.5px solid rgba(24, 119, 242, 0.3) !important;
+  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.18) !important;
+  background: #FFFFFF !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.settings-container-view .schedly-fb-avatar-wrap img {
+  width: 32px !important;
+  height: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
+  object-fit: contain !important;
+  display: block !important;
+}
